@@ -4,10 +4,13 @@ import { Input } from "@/components/ui/Input";
 import { layout } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
 import { authErrorToKorean } from "@/lib/auth/authErrorMessage";
-import { isSupabaseConfigured, supabase } from "@/lib/supabase/client";
+import {
+  getSupabaseConfigErrorMessage,
+  isSupabaseConfigured,
+  supabase,
+} from "@/lib/supabase/client";
 import { mapSupabaseUser } from "@/lib/supabase/mapAuthUser";
 import { useAuthStore } from "@/stores/authStore";
-import type { UserRole } from "@/types/domain";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Globe } from "lucide-react";
 import { useForm } from "react-hook-form";
@@ -25,8 +28,7 @@ export function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const from = (location.state as { from?: string } | null)?.from ?? "/dashboard";
-  const loginDemo = useAuthStore((s) => s.loginDemo);
-  const setMockSession = useAuthStore((s) => s.setMockSession);
+  const signupNotice = (location.state as { signupNotice?: string } | null)?.signupNotice;
   const setUser = useAuthStore((s) => s.setUser);
 
   const {
@@ -34,13 +36,13 @@ export function LoginPage() {
     handleSubmit,
     formState: { errors, isSubmitting },
     setError,
+    clearErrors,
   } = useForm<FormValues>({ resolver: zodResolver(schema) });
 
   const onSubmit = async (values: FormValues) => {
+    clearErrors("root");
     if (!isSupabaseConfigured || !supabase) {
-      setError("root", {
-        message: "아직 로그인 연동이 되어 있지 않아요. 아래 데모로 먼저 써 보세요.",
-      });
+      setError("root", { message: getSupabaseConfigErrorMessage() });
       return;
     }
     const { data, error } = await supabase.auth.signInWithPassword({
@@ -51,26 +53,29 @@ export function LoginPage() {
       setError("root", { message: authErrorToKorean(error.message) });
       return;
     }
-    setMockSession(false);
-    if (data.user) {
-      setUser(mapSupabaseUser(data.user));
+    if (!data.user) {
+      setError("root", {
+        message: "로그인에 성공했지만 사용자 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.",
+      });
+      return;
     }
+    setUser(mapSupabaseUser(data.user));
     navigate(from, { replace: true });
   };
 
   const googlePlaceholder = async () => {
+    clearErrors("root");
     if (!isSupabaseConfigured || !supabase) {
-      setError("root", {
-        message: "구글로 시작하려면 로그인 설정에서 구글 연동을 켜 주세요.",
-      });
+      setError("root", { message: getSupabaseConfigErrorMessage() });
       return;
     }
-    await supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo: window.location.origin } });
-  };
-
-  const demo = (role: UserRole) => {
-    loginDemo(role);
-    navigate(from, { replace: true });
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: `${window.location.origin}/dashboard` },
+    });
+    if (error) {
+      setError("root", { message: authErrorToKorean(error.message) });
+    }
   };
 
   return (
@@ -84,6 +89,23 @@ export function LoginPage() {
           </p>
         </CardHeader>
         <CardContent>
+          {!isSupabaseConfigured ? (
+            <div
+              role="alert"
+              className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-3 text-sm text-amber-950"
+            >
+              <p className="font-semibold">Supabase 연결 정보가 없거나 올바르지 않습니다</p>
+              <p className="mt-1 leading-relaxed text-amber-900">{getSupabaseConfigErrorMessage()}</p>
+              <p className="mt-2 text-xs text-amber-800/90">
+                프로젝트 루트 `.env`에 값을 넣은 뒤 반드시 개발 서버를 다시 시작하세요.
+              </p>
+            </div>
+          ) : null}
+          {signupNotice ? (
+            <p className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
+              {signupNotice}
+            </p>
+          ) : null}
           <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
             <div>
               <label className="text-base font-medium text-slate-800" htmlFor="email">
@@ -108,7 +130,7 @@ export function LoginPage() {
               ) : null}
             </div>
             {errors.root ? (
-              <p className="text-sm text-amber-700">{errors.root.message}</p>
+              <p className="text-sm text-red-600">{errors.root.message}</p>
             ) : null}
             <Button type="submit" className="w-full" size="lg" loading={isSubmitting}>
               로그인
@@ -119,20 +141,6 @@ export function LoginPage() {
               <Globe className="h-4 w-4 shrink-0" aria-hidden />
               구글로 시작하기
             </Button>
-          </div>
-          <div className="mt-6 rounded-xl border border-dashed border-slate-200 bg-slate-50 p-4">
-            <p className="text-xs font-medium text-slate-600">데모 세션 (즉시 체험)</p>
-            <div className="mt-3 flex flex-col gap-2">
-              <Button type="button" variant="outline" size="sm" onClick={() => demo("client")}>
-                사업자 데모
-              </Button>
-              <Button type="button" variant="outline" size="sm" onClick={() => demo("creator")}>
-                제작자 데모
-              </Button>
-              <Button type="button" variant="outline" size="sm" onClick={() => demo("admin")}>
-                관리자 데모
-              </Button>
-            </div>
           </div>
           <p className="mt-6 text-center text-base leading-relaxed text-slate-600">
             계정이 없으신가요?{" "}
