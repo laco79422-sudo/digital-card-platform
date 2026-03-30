@@ -5,8 +5,15 @@ const variants = {
   primary:
     "bg-brand-800 text-white hover:bg-brand-900 shadow-sm shadow-brand-900/20",
   secondary: "border border-slate-300 bg-white text-brand-900 hover:bg-slate-50",
+  /**
+   * Solid light CTA on dark/gradient backgrounds.
+   * Use this instead of primary + className text overrides — primary carries text-white and
+   * without tailwind-merge caused invisible white-on-white when paired with bg-white.
+   */
+  solidLight:
+    "border border-slate-300 bg-white text-slate-900 shadow-sm hover:bg-slate-100 active:bg-slate-200/90",
   outline: "border border-brand-700/30 text-brand-900 hover:bg-brand-50",
-  /** For CTAs on dark / gradient backgrounds */
+  /** Secondary-style CTA on dark / gradient backgrounds (white outline, light fill) */
   outlineOnDark:
     "border border-white/40 bg-white/5 text-white shadow-none backdrop-blur-sm hover:bg-white/15",
   ghost: "text-slate-700 hover:bg-slate-100",

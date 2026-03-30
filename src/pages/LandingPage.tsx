@@ -47,9 +47,9 @@ export function LandingPage() {
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:mt-10 sm:flex-row sm:items-stretch">
               <Link to="/signup" className="w-full sm:w-auto">
-                <Button size="lg" className="w-full bg-white text-brand-950 hover:bg-brand-50">
+                <Button size="lg" variant="solidLight" className="w-full">
                   사업자로 시작하기
-                  <ArrowRight className="h-4 w-4 shrink-0" aria-hidden />
+                  <ArrowRight className="h-4 w-4 shrink-0 text-slate-900" aria-hidden />
                 </Button>
               </Link>
               <Link to="/creators" className="w-full sm:w-auto">
