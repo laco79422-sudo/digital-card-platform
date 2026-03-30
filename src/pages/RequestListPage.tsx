@@ -23,17 +23,19 @@ export function RequestListPage() {
     <div className={cn(layout.page, "py-10 sm:py-12")}>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold leading-snug tracking-tight text-slate-900 md:text-3xl">의뢰</h1>
+          <h1 className="break-keep text-2xl font-bold leading-snug tracking-tight text-slate-900 md:text-3xl">
+            의뢰 목록
+          </h1>
           <p className="mt-1 text-base leading-relaxed text-slate-600">
             {user?.role === "creator"
-              ? "공개 의뢰 목록에서 지원해 보세요."
-              : "등록한 의뢰와 상태를 확인하세요."}
+              ? "열린 의뢰를 보고, 마음에 드는 곳에 제안을 보내 보세요."
+              : "올린 의뢰와 진행 상태를 한눈에 볼 수 있어요."}
           </p>
         </div>
         {user?.role === "client" || user?.role === "company_admin" ? (
           <Link to="/requests/new" className="w-full sm:w-auto">
             <Button className="w-full min-h-[52px] sm:w-auto" size="lg">
-              새 의뢰
+              의뢰하기
             </Button>
           </Link>
         ) : null}

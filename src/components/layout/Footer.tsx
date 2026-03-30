@@ -9,14 +9,14 @@ export function Footer() {
         <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
           <div>
             <div className="flex items-center gap-2">
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-900 text-sm font-bold text-white">
-                BC
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-700 to-brand-900 text-sm font-bold text-white shadow-sm">
+                L
               </span>
-              <span className="font-semibold text-slate-900">BizCard Connect</span>
+              <span className="font-semibold text-slate-900">Linko 명함</span>
             </div>
             <p className="mt-3 text-[15px] leading-relaxed text-slate-600 sm:text-base">
-              명함에서 바로 블로그·유튜브·숏폼 의뢰까지. B2B를 위한 디지털 명함과 크리에이터 매칭
-              플랫폼입니다.
+              Link는 만나고, Go는 나아갑니다. 당신의 이름으로 시작되는 연결—소개와 만남, 협업까지 한곳에서
+              이어 드립니다.
             </p>
           </div>
           <div>
@@ -24,17 +24,17 @@ export function Footer() {
             <ul className="mt-3 space-y-2 text-sm text-slate-600">
               <li>
                 <Link to="/pricing" className="hover:text-brand-800">
-                  요금제
+                  이용 안내
                 </Link>
               </li>
               <li>
                 <Link to="/creators" className="hover:text-brand-800">
-                  제작자 디렉터리
+                  제작자 둘러보기
                 </Link>
               </li>
               <li>
                 <Link to="/requests" className="hover:text-brand-800">
-                  의뢰 보기
+                  의뢰하기
                 </Link>
               </li>
             </ul>
@@ -56,12 +56,12 @@ export function Footer() {
           </div>
           <div>
             <h4 className="text-sm font-semibold text-slate-900">문의</h4>
-            <p className="mt-3 text-sm text-slate-600">hello@bizcardconnect.app</p>
+            <p className="mt-3 text-sm text-slate-600">hello@linko.app</p>
             <p className="text-sm text-slate-500">평일 10:00–18:00 (KST)</p>
           </div>
         </div>
         <p className="mt-10 border-t border-slate-200 pt-8 text-center text-xs text-slate-400">
-          © {new Date().getFullYear()} BizCard Connect Platform. All rights reserved.
+          © {new Date().getFullYear()} Linko 명함
         </p>
       </div>
     </footer>

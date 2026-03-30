@@ -22,14 +22,16 @@ export function MyCardsPage() {
     <div className={cn(layout.page, "py-10 sm:py-12")}>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold leading-snug tracking-tight text-slate-900 md:text-3xl">내 명함</h1>
+          <h1 className="break-keep text-2xl font-bold leading-snug tracking-tight text-slate-900 md:text-3xl">
+            내 명함
+          </h1>
           <p className="mt-1 text-base leading-relaxed text-slate-600">
             슬러그로 공개 페이지를 만들고 QR로 공유하세요.
           </p>
         </div>
         <Link to="/cards/new" className="w-full sm:w-auto">
           <Button className="w-full min-h-[52px] sm:w-auto" size="lg">
-            새 명함 만들기
+            명함 만들기
           </Button>
         </Link>
       </div>
@@ -39,7 +41,7 @@ export function MyCardsPage() {
           <EmptyState
             icon={CreditCard}
             title="아직 명함이 없습니다"
-            description="첫 디지털 명함을 만들고 의뢰 버튼과 연결해 보세요."
+            description="첫 명함으로 당신의 이야기를 열고, 연결을 시작해 보세요."
             action={() => (window.location.href = "/cards/new")}
             actionLabel="명함 만들기"
           />
@@ -69,7 +71,7 @@ export function MyCardsPage() {
                     <Link to={`/cards/${card.id}/edit`}>
                       <Button variant="outline" size="sm">
                         <Pencil className="h-4 w-4" />
-                        편집
+                        수정하기
                       </Button>
                     </Link>
                   </div>

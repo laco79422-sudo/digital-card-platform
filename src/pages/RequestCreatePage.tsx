@@ -66,7 +66,9 @@ export function RequestCreatePage() {
   return (
     <div className={cn(layout.pageForm, "py-10 sm:py-12")}>
       <div className="mb-6 flex items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold leading-snug tracking-tight text-slate-900 md:text-3xl">의뢰 등록</h1>
+        <h1 className="break-keep text-2xl font-bold leading-snug tracking-tight text-slate-900 md:text-3xl">
+          의뢰 올리기
+        </h1>
         <Link
           to="/requests"
           className="inline-flex min-h-11 shrink-0 items-center text-base font-medium text-brand-700"
@@ -76,9 +78,9 @@ export function RequestCreatePage() {
       </div>
       <Card>
         <CardHeader>
-          <h2 className="text-lg font-semibold text-slate-900">브리프</h2>
+          <h2 className="text-lg font-semibold text-slate-900">의뢰 내용</h2>
           <p className="mt-1 text-base leading-relaxed text-slate-600">
-            제작자가 지원할 수 있도록 구체적으로 적어 주세요.
+            제작자가 이해하기 쉽게, 원하는 결과와 일정을 적어 주세요.
           </p>
         </CardHeader>
         <CardContent>

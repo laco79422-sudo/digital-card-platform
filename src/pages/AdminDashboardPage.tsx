@@ -10,6 +10,24 @@ import { useAppDataStore } from "@/stores/appDataStore";
 import { CreditCard, ImageIcon, LayoutDashboard, Users } from "lucide-react";
 import { useMemo, useState } from "react";
 
+const ROLE_LABEL: Record<string, string> = {
+  client: "사업자",
+  creator: "제작자",
+  admin: "관리자",
+  company_admin: "기업 관리자",
+};
+
+const PAYMENT_TYPE_LABEL: Record<string, string> = {
+  subscription: "사업자 구독",
+  creator_membership: "제작자 멤버십",
+};
+
+const PAYMENT_STATUS_LABEL: Record<string, string> = {
+  completed: "완료",
+  pending: "대기",
+  failed: "실패",
+};
+
 export function AdminDashboardPage() {
   const platformUsers = useAppDataStore((s) => s.platformUsers);
   const businessCards = useAppDataStore((s) => s.businessCards);
@@ -48,12 +66,14 @@ export function AdminDashboardPage() {
     <div className={cn(layout.page, "py-10 sm:py-12")}>
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold leading-snug tracking-tight text-slate-900 md:text-3xl">관리자 대시보드</h1>
+          <h1 className="break-keep text-2xl font-bold leading-snug tracking-tight text-slate-900 md:text-3xl">
+            관리 화면
+          </h1>
           <p className="mt-1 text-base leading-relaxed text-slate-600">
-            회원·명함·의뢰·결제·추천 제작자·배너를 한 화면에서 관리합니다.
+            회원·명함·의뢰·결제·추천 제작자·배너를 한 화면에서 다룰 수 있어요.
           </p>
         </div>
-        <Badge tone="brand">Admin</Badge>
+        <Badge tone="brand">관리자</Badge>
       </div>
 
       <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -86,7 +106,7 @@ export function AdminDashboardPage() {
                 {platformUsers.map((u) => (
                   <tr key={u.id} className="border-b border-slate-50">
                     <td className="py-2 font-medium text-slate-800">{u.name}</td>
-                    <td className="py-2 text-slate-600">{u.role}</td>
+                    <td className="py-2 text-slate-600">{ROLE_LABEL[u.role] ?? u.role}</td>
                     <td className="py-2 text-slate-500">{u.email}</td>
                   </tr>
                 ))}
@@ -106,9 +126,13 @@ export function AdminDashboardPage() {
                   key={p.id}
                   className="flex items-center justify-between rounded-lg border border-slate-100 px-3 py-2"
                 >
-                  <span className="text-slate-600">{p.payment_type}</span>
+                  <span className="text-slate-600">
+                    {PAYMENT_TYPE_LABEL[p.payment_type] ?? p.payment_type}
+                  </span>
                   <span className="font-medium text-slate-900">₩{p.amount.toLocaleString()}</span>
-                  <Badge tone={p.status === "completed" ? "success" : "default"}>{p.status}</Badge>
+                  <Badge tone={p.status === "completed" ? "success" : "default"}>
+                    {PAYMENT_STATUS_LABEL[p.status] ?? p.status}
+                  </Badge>
                 </li>
               ))}
             </ul>
@@ -127,7 +151,7 @@ export function AdminDashboardPage() {
           </div>
           <div>
             <p className="font-medium text-slate-900">의뢰 {serviceRequests.length}건</p>
-            <p className="text-slate-500">오픈 {serviceRequests.filter((r) => r.status === "open").length}</p>
+            <p className="text-slate-500">모집 중 {serviceRequests.filter((r) => r.status === "open").length}</p>
           </div>
           <div>
             <p className="font-medium text-slate-900">지원 {applications.length}건</p>

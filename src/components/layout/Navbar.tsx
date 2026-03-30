@@ -1,10 +1,11 @@
 import { Button } from "@/components/ui/Button";
+import { signOutApp } from "@/lib/auth/signOutApp";
 import { layout } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/authStore";
-import { Menu, X } from "lucide-react";
+import { LogOut, Menu, X } from "lucide-react";
 import { useState } from "react";
-import { Link, NavLink } from "react-router-dom";
+import { Link, NavLink, useNavigate } from "react-router-dom";
 
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
   cn(
@@ -13,25 +14,39 @@ const navLinkClass = ({ isActive }: { isActive: boolean }) =>
   );
 
 const links = [
-  { to: "/pricing", label: "요금제" },
+  { to: "/pricing", label: "이용 안내" },
   { to: "/creators", label: "제작자" },
-  { to: "/requests", label: "의뢰" },
+  { to: "/requests", label: "의뢰하기" },
 ];
 
 export function Navbar() {
+  const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const [open, setOpen] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
+
+  const handleLogout = async () => {
+    setSigningOut(true);
+    try {
+      await signOutApp();
+      setOpen(false);
+      navigate("/login", { replace: true });
+    } finally {
+      setSigningOut(false);
+    }
+  };
 
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/90 backdrop-blur-md">
       <div className={cn("flex h-14 min-h-14 items-center justify-between gap-3 sm:h-16 sm:min-h-16", layout.page)}>
         <div className="flex items-center gap-8">
-          <Link to="/" className="flex items-center gap-2">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-900 text-sm font-bold text-white">
-              BC
+          <Link to="/" className="flex min-w-0 items-center gap-2">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-700 to-brand-900 text-sm font-bold text-white shadow-sm">
+              L
             </span>
-            <span className="hidden font-semibold tracking-tight text-slate-900 sm:inline">
-              BizCard Connect
+            <span className="truncate font-semibold tracking-tight text-slate-900 sm:hidden">Linko</span>
+            <span className="hidden truncate font-semibold tracking-tight text-slate-900 sm:inline">
+              Linko 명함
             </span>
           </Link>
           <nav className="hidden items-center gap-6 md:flex">
@@ -51,9 +66,22 @@ export function Navbar() {
             </Link>
           ) : null}
           {user ? (
-            <Link to="/dashboard">
-              <Button size="sm">대시보드</Button>
-            </Link>
+            <>
+              <Link to="/dashboard">
+                <Button size="sm">내 공간</Button>
+              </Link>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                disabled={signingOut}
+                onClick={() => void handleLogout()}
+              >
+                <LogOut className="h-4 w-4" aria-hidden />
+                로그아웃
+              </Button>
+            </>
           ) : (
             <>
               <Link to="/login">
@@ -62,7 +90,7 @@ export function Navbar() {
                 </Button>
               </Link>
               <Link to="/signup">
-                <Button size="sm">시작하기</Button>
+                <Button size="sm">회원가입</Button>
               </Link>
             </>
           )}
@@ -105,11 +133,23 @@ export function Navbar() {
               </Link>
             ) : null}
             {user ? (
-              <Link to="/dashboard" className="mt-3 block" onClick={() => setOpen(false)}>
-                <Button className="w-full min-h-[52px]" size="lg">
-                  대시보드
-                </Button>
-              </Link>
+              <div className="mt-3 flex flex-col gap-0">
+                <Link to="/dashboard" className="block" onClick={() => setOpen(false)}>
+                  <Button className="w-full min-h-[52px]" size="lg">
+                    내 공간
+                  </Button>
+                </Link>
+                <div className="my-3 border-t border-slate-200" role="separator" />
+                <button
+                  type="button"
+                  className="flex min-h-[52px] w-full items-center justify-center gap-2 rounded-xl px-3 text-base font-semibold text-red-600 transition-colors hover:bg-red-50 hover:text-red-700 disabled:opacity-50"
+                  disabled={signingOut}
+                  onClick={() => void handleLogout()}
+                >
+                  <LogOut className="h-5 w-5 shrink-0" aria-hidden />
+                  {signingOut ? "로그아웃 중…" : "로그아웃"}
+                </button>
+              </div>
             ) : (
               <div className="mt-3 flex flex-col gap-3">
                 <Link to="/login" onClick={() => setOpen(false)}>
@@ -119,7 +159,7 @@ export function Navbar() {
                 </Link>
                 <Link to="/signup" onClick={() => setOpen(false)}>
                   <Button className="w-full min-h-[52px]" size="lg">
-                    시작하기
+                    회원가입
                   </Button>
                 </Link>
               </div>

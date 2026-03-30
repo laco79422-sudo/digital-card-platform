@@ -91,7 +91,7 @@ export function PublicCardPage() {
       <div className="flex min-h-dvh flex-col items-center justify-center bg-slate-50 px-5">
         <p className="text-xl font-semibold text-slate-900">명함을 찾을 수 없습니다</p>
         <p className="mt-2 max-w-sm text-center text-base leading-relaxed text-slate-600">
-          슬러그를 확인하거나 홈으로 이동하세요.
+          주소가 맞는지 확인하거나 홈으로 돌아가 보세요.
         </p>
         <Link
           to="/"
@@ -130,9 +130,7 @@ export function PublicCardPage() {
 
       <div className={cn(layout.pageCompact, "-mt-10")}>
         <div className="rounded-2xl border border-slate-300 bg-white p-5 shadow-lg shadow-slate-900/10 sm:p-6">
-          <p className="text-center text-xs font-semibold uppercase tracking-wider text-slate-500">
-            연결하기
-          </p>
+          <p className="text-center text-xs font-semibold text-slate-500">연결하기</p>
           <div className="mt-4 flex flex-col gap-3">
             {links.map((link) => {
               const Icon = iconForType(link.type);
@@ -156,7 +154,7 @@ export function PublicCardPage() {
           {qr ? (
             <div className="mt-8 flex flex-col items-center border-t border-slate-200 pt-8">
               <p className="text-sm font-medium text-slate-600">명함 공유 QR</p>
-              <img src={qr} alt="QR code" className="mt-3 h-40 w-40 rounded-xl border border-slate-100 bg-white p-2" />
+              <img src={qr} alt="명함 공유용 QR 코드" className="mt-3 h-40 w-40 rounded-xl border border-slate-100 bg-white p-2" />
             </div>
           ) : null}
 
@@ -165,7 +163,7 @@ export function PublicCardPage() {
               to="/"
               className="inline-flex min-h-10 items-center justify-center text-sm text-slate-500 hover:text-brand-700"
             >
-              Powered by BizCard Connect
+              Linko 명함으로 만들었어요
             </Link>
           </div>
         </div>

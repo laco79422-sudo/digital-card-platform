@@ -184,8 +184,8 @@ export function CardEditorPage() {
   return (
     <div className={cn(layout.pageEditor, "py-10 sm:py-12")}>
       <div className="mb-6 flex items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold leading-snug tracking-tight text-slate-900 md:text-3xl">
-          {isNew ? "새 명함" : "명함 편집"}
+        <h1 className="break-keep text-2xl font-bold leading-snug tracking-tight text-slate-900 md:text-3xl">
+          {isNew ? "명함 만들기" : "명함 수정하기"}
         </h1>
         <Link
           to="/cards"
@@ -221,9 +221,9 @@ export function CardEditorPage() {
                 <Textarea className="mt-1" rows={4} {...register("intro")} />
               </div>
               <div className="sm:col-span-2">
-                <label className="text-base font-medium text-slate-800">공개 슬러그 (URL)</label>
+                <label className="text-base font-medium text-slate-800">공개 주소 이름</label>
                 <div className="mt-1 flex flex-col gap-2 sm:flex-row sm:items-stretch">
-                  <Input className="flex-1" placeholder="harbor-marketing" {...register("slug")} />
+                  <Input className="flex-1" placeholder="hong-studio" {...register("slug")} />
                   <Button
                     type="button"
                     variant="secondary"
@@ -234,14 +234,16 @@ export function CardEditorPage() {
                   </Button>
                 </div>
                 {errors.slug ? <p className="mt-1 text-xs text-red-600">{errors.slug.message}</p> : null}
-                <p className="mt-1 text-xs text-slate-400">주소: /c/{watch("slug") || "..."}</p>
+                <p className="mt-1 text-xs text-slate-400 break-all sm:break-normal">
+                  링크: /c/{watch("slug") || "..."}
+                </p>
               </div>
               <div>
                 <label className="text-base font-medium text-slate-800">테마</label>
                 <Select className="mt-1" {...register("theme")}>
-                  <option value="navy">Navy</option>
-                  <option value="slate">Slate</option>
-                  <option value="midnight">Midnight</option>
+                  <option value="navy">네이비 블루</option>
+                  <option value="slate">슬레이트 그레이</option>
+                  <option value="midnight">미드나이트</option>
                 </Select>
               </div>
               <div>
@@ -333,7 +335,7 @@ export function CardEditorPage() {
                   </Select>
                 </div>
                 <div className="sm:col-span-5">
-                  <label className="text-sm font-medium text-slate-800">URL</label>
+                  <label className="text-sm font-medium text-slate-800">링크 주소</label>
                   <Input
                     className="mt-1"
                     value={row.url}

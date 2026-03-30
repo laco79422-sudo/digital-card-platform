@@ -55,13 +55,21 @@ export function DashboardPage() {
 
   const isCreator = user?.role === "creator";
 
+  const displayName =
+    user?.name?.trim() ||
+    (user?.email?.includes("@") ? user.email.split("@")[0] : null)?.trim() ||
+    "사용자";
+
   return (
     <div className={cn(layout.page, "py-10 sm:py-12")}>
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold leading-snug tracking-tight text-slate-900 md:text-3xl">대시보드</h1>
+          <p className="text-sm font-semibold text-brand-800">Linko 명함</p>
+          <h1 className="mt-1 break-keep text-2xl font-bold leading-snug tracking-tight text-slate-900 md:text-3xl">
+            내 공간
+          </h1>
           <p className="mt-1 text-base leading-relaxed text-slate-600">
-            안녕하세요, <span className="font-medium text-slate-900">{user?.name}</span>님
+            안녕하세요, <span className="font-medium text-slate-900">{displayName}</span>님
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -69,13 +77,13 @@ export function DashboardPage() {
             to="/cards/new"
             className="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-brand-800 px-5 text-base font-semibold text-white hover:bg-brand-900 sm:min-h-0 sm:py-2.5"
           >
-            새 명함
+            명함 만들기
           </Link>
           <Link
             to="/requests/new"
             className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-slate-300 bg-white px-5 text-base font-semibold text-slate-900 hover:bg-slate-50 sm:min-h-0 sm:py-2.5"
           >
-            의뢰 등록
+            의뢰하기
           </Link>
         </div>
       </div>
@@ -90,16 +98,16 @@ export function DashboardPage() {
               hint="공개 링크와 QR로 공유하세요"
             />
             <StatsCard
-              label="총 조회수"
+              label="총 조회"
               value={String(viewsCount)}
               icon={Eye}
-              trend="최근 14일 그래프 참고"
+              trend="아래 활동 기록에서 추이를 확인하세요"
             />
             <StatsCard
-              label="버튼 클릭"
+              label="클릭 수"
               value={String(clicksCount)}
               icon={MousePointerClick}
-              hint="명함 액션 로그"
+              hint="명함 속 버튼을 누른 횟수예요"
             />
             <StatsCard
               label="진행 중 의뢰"
@@ -109,23 +117,38 @@ export function DashboardPage() {
           </>
         ) : (
           <>
-            <StatsCard label="내 지원" value={String(myApps.length)} icon={Send} />
             <StatsCard
-              label="대기 중"
+              label="보낸 제안"
+              value={String(myApps.length)}
+              icon={Send}
+              hint="의뢰에 보낸 제안 개수예요"
+            />
+            <StatsCard
+              label="답을 기다리는 중"
               value={String(myApps.filter((a) => a.status === "pending").length)}
               icon={MousePointerClick}
             />
-            <StatsCard label="샘플 명함 조회" value={String(viewsCount)} icon={Eye} />
-            <StatsCard label="프로필 완성도" value="82%" icon={CreditCard} hint="포트폴리오 보강" />
+            <StatsCard
+              label="내 명함"
+              value={String(myCards.length)}
+              icon={CreditCard}
+              hint="제작자 계정으로 만든 명함이에요"
+            />
+            <StatsCard
+              label="총 조회"
+              value={String(viewsCount)}
+              icon={Eye}
+              hint="내 명함이 열린 횟수예요"
+            />
           </>
         )}
       </div>
 
       {!isCreator ? (
         <div className="mt-10 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
-          <h2 className="text-lg font-semibold text-slate-900 sm:text-xl">명함 조회 추이</h2>
+          <h2 className="break-keep text-lg font-semibold text-slate-900 sm:text-xl">활동 기록</h2>
           <p className="mt-1 text-[15px] leading-relaxed text-slate-600 sm:text-base">
-            최근 14일간 공개 명함 조회 수(샘플·로컬 누적)
+            최근 14일 동안 내 명함이 몇 번 열렸는지예요. 이 기기·브라우저에 저장된 기록만 보여요.
           </p>
           <div className="mt-6 h-72 w-full">
             <ResponsiveContainer width="100%" height="100%">

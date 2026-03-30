@@ -113,7 +113,7 @@ export const useAppDataStore = create<AppDataState>()(
       setBanners: (banners) => set({ banners }),
     }),
     {
-      name: "bcc-app-data",
+      name: "linko-app-data",
       storage: createJSONStorage(() => localStorage),
       version: 1,
       partialize: (state) => ({

@@ -3,7 +3,9 @@ import { Card, CardContent, CardHeader } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { layout } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
+import { authErrorToKorean } from "@/lib/auth/authErrorMessage";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase/client";
+import { mapSupabaseUser } from "@/lib/supabase/mapAuthUser";
 import { useAuthStore } from "@/stores/authStore";
 import type { UserRole } from "@/types/domain";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -25,6 +27,7 @@ export function LoginPage() {
   const from = (location.state as { from?: string } | null)?.from ?? "/dashboard";
   const loginDemo = useAuthStore((s) => s.loginDemo);
   const setMockSession = useAuthStore((s) => s.setMockSession);
+  const setUser = useAuthStore((s) => s.setUser);
 
   const {
     register,
@@ -35,24 +38,31 @@ export function LoginPage() {
 
   const onSubmit = async (values: FormValues) => {
     if (!isSupabaseConfigured || !supabase) {
-      setError("root", { message: "Supabase가 설정되지 않았습니다. 데모 로그인을 이용하세요." });
+      setError("root", {
+        message: "아직 로그인 연동이 되어 있지 않아요. 아래 데모로 먼저 써 보세요.",
+      });
       return;
     }
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email: values.email,
       password: values.password,
     });
     if (error) {
-      setError("root", { message: error.message });
+      setError("root", { message: authErrorToKorean(error.message) });
       return;
     }
     setMockSession(false);
+    if (data.user) {
+      setUser(mapSupabaseUser(data.user));
+    }
     navigate(from, { replace: true });
   };
 
   const googlePlaceholder = async () => {
     if (!isSupabaseConfigured || !supabase) {
-      setError("root", { message: "Supabase에 OAuth를 연결하면 Google 로그인이 활성화됩니다." });
+      setError("root", {
+        message: "구글로 시작하려면 로그인 설정에서 구글 연동을 켜 주세요.",
+      });
       return;
     }
     await supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo: window.location.origin } });
@@ -67,8 +77,11 @@ export function LoginPage() {
     <div className={cn(layout.pageAuth, "py-12 sm:py-20 lg:py-24")}>
       <Card>
         <CardHeader>
-          <h1 className="text-2xl font-semibold leading-snug tracking-tight text-slate-900">로그인</h1>
-          <p className="mt-1 text-base leading-relaxed text-slate-600">BizCard Connect 계정으로 계속하세요.</p>
+          <p className="text-sm font-semibold text-brand-800">Linko 명함</p>
+          <h1 className="mt-1 text-2xl font-semibold leading-snug tracking-tight text-slate-900">로그인</h1>
+          <p className="mt-2 text-base leading-relaxed text-slate-600">
+            연결되는 나의 시작, Linko 명함 계정으로 이어가세요.
+          </p>
         </CardHeader>
         <CardContent>
           <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
@@ -103,8 +116,8 @@ export function LoginPage() {
           </form>
           <div className="mt-4">
             <Button type="button" variant="secondary" className="w-full" size="lg" onClick={googlePlaceholder}>
-              <Globe className="h-4 w-4" />
-              Google로 계속하기 (연동 시)
+              <Globe className="h-4 w-4 shrink-0" aria-hidden />
+              구글로 시작하기
             </Button>
           </div>
           <div className="mt-6 rounded-xl border border-dashed border-slate-200 bg-slate-50 p-4">

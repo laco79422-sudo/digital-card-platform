@@ -24,7 +24,9 @@ export function CreatorDirectoryPage() {
 
   return (
     <div className={cn(layout.page, "py-10 sm:py-12")}>
-      <h1 className="text-2xl font-bold leading-snug tracking-tight text-slate-900 md:text-3xl">제작자 디렉터리</h1>
+      <h1 className="break-keep text-2xl font-bold leading-snug tracking-tight text-slate-900 md:text-3xl">
+        제작자 둘러보기
+      </h1>
       <p className="mt-2 text-base leading-relaxed text-slate-600">
         블로그와 유튜브 제작자를 한곳에서 찾고, 프로필에서 바로 지원하세요.
       </p>

@@ -57,13 +57,13 @@ export function CreatorProfilePage() {
           to="/creators"
           className="mt-6 inline-flex min-h-[52px] items-center justify-center text-base font-semibold text-brand-700"
         >
-          디렉터리로
+          제작자 목록으로
         </Link>
       </div>
     );
   }
 
-  const name = creator.display_name ?? "크리에이터";
+  const name = creator.display_name ?? "제작자";
 
   const submitApply = () => {
     if (!user || user.role !== "creator") {
@@ -95,7 +95,7 @@ export function CreatorProfilePage() {
         to="/creators"
         className="inline-flex min-h-11 items-center text-base font-medium text-brand-700"
       >
-        ← 디렉터리
+        ← 제작자 목록
       </Link>
       <Card className="mt-6">
         <CardContent className="space-y-6 p-6 sm:p-8">
@@ -148,12 +148,12 @@ export function CreatorProfilePage() {
             ))}
           </div>
           <Button className="w-full min-h-[52px] sm:w-auto" size="lg" onClick={() => setOpen(true)}>
-            이 의뢰에 지원하기
+            의뢰에 제안 보내기
           </Button>
         </CardContent>
       </Card>
 
-      <Modal open={open} onClose={() => setOpen(false)} title="의뢰 지원">
+      <Modal open={open} onClose={() => setOpen(false)} title="의뢰에 제안하기">
         <div className="space-y-4">
           {openRequests.length === 0 ? (
             <p className="text-base leading-relaxed text-slate-600">
@@ -198,7 +198,7 @@ export function CreatorProfilePage() {
             </div>
           </div>
           <Button className="w-full" size="lg" onClick={submitApply}>
-            지원서 보내기
+            제안 보내기
           </Button>
             </>
           ) : null}

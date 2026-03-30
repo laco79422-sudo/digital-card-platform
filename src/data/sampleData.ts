@@ -18,8 +18,8 @@ export const SAMPLE_USERS: User[] = [
   {
     id: "user-client-1",
     role: "client",
-    name: "김민준",
-    email: "minjun@sample.co.kr",
+    name: "데모 클라이언트",
+    email: "demo-client@example.local",
     phone: "010-1234-5678",
     avatar_url: null,
     created_at: now,
@@ -37,7 +37,7 @@ export const SAMPLE_USERS: User[] = [
     id: "user-admin-1",
     role: "admin",
     name: "플랫폼 관리자",
-    email: "admin@bizcardconnect.app",
+    email: "admin@linko.app",
     phone: null,
     avatar_url: null,
     created_at: now,
@@ -68,12 +68,12 @@ export const SAMPLE_CARDS: BusinessCard[] = [
     user_id: "user-client-1",
     slug: "harbor-marketing",
     brand_name: "하버 마케팅",
-    person_name: "김민준",
+    person_name: "데모 대표",
     job_title: "대표 · 퍼포먼스 마케터",
     intro:
       "B2B 리드 제너레이션과 콘텐츠 기반 세일즈 퍼널을 설계합니다. 명함으로 상담 예약부터 제작 의뢰까지 연결해 보세요.",
     phone: "010-1234-5678",
-    email: "minjun@sample.co.kr",
+    email: "demo-client@example.local",
     website_url: "https://harbor-marketing.example",
     blog_url: "https://blog.example/harbor",
     youtube_url: "https://youtube.com/@harbor",
@@ -195,7 +195,7 @@ export const SAMPLE_REQUESTS: ServiceRequest[] = [
     deadline: "2026-05-01",
     status: "open",
     created_at: now,
-    client_name: "김민준",
+    client_name: "데모 클라이언트",
   },
   {
     id: "req-2",
@@ -208,7 +208,7 @@ export const SAMPLE_REQUESTS: ServiceRequest[] = [
     deadline: "2026-04-20",
     status: "matched",
     created_at: now,
-    client_name: "김민준",
+    client_name: "데모 클라이언트",
   },
 ];
 
@@ -274,8 +274,8 @@ export const SAMPLE_PAYMENTS: Payment[] = [
 export const SAMPLE_BANNERS: MainBanner[] = [
   {
     id: "bnr-1",
-    title: "명함 하나로, 고객 연결부터 콘텐츠 제작 의뢰까지",
-    subtitle: "BizCard Connect에서 블로그·유튜브·숏폼 제작자를 만나보세요.",
+    title: "Linko 명함 — 연결되는 나의 시작",
+    subtitle: "이름으로 열리는 소개, 블로그·영상·디자인 파트너까지 한곳에서 만나 보세요.",
     cta_label: "무료로 시작하기",
     cta_href: "/signup",
     sort_order: 0,
@@ -291,12 +291,12 @@ export const LANDING_TESTIMONIALS = [
     role: "스타트업 CMO",
   },
   {
-    quote: "제작자 풀이 넓어서 브리핑 후 바로 매칭됐습니다. 수수료 구조도 투명했습니다.",
+    quote: "제작자 분들이 많아서 요구만 정리하면 금방 맞는 분을 만났어요. 비용도 알기 쉬웠습니다.",
     name: "오현석",
     role: "에이전시 대표",
   },
   {
-    quote: "Creator Plus 덕분에 의뢰 알림이 정리되고, 포트폴리오 노출이 좋아졌습니다.",
+    quote: "제작자 플러스 덕분에 새 의뢰 알림이 정리되고, 포트폴리오가 더 잘 보였어요.",
     name: "이서연",
     role: "블로그 작가",
   },
@@ -305,14 +305,14 @@ export const LANDING_TESTIMONIALS = [
 export const LANDING_FAQ = [
   {
     q: "무료로 명함을 몇 개까지 만들 수 있나요?",
-    a: "Free 플랜에서는 공개 명함 1개와 기본 통계를 제공합니다. 팀 단위는 Business 플랜을 확인해 주세요.",
+    a: "무료 이용 시 공개 명함 1개와 기본 방문·클릭 기록을 쓸 수 있어요. 팀·법인은 비즈니스 안내를 봐 주세요.",
   },
   {
-    q: "의뢰 매칭 후 결제는 어떻게 하나요?",
-    a: "플랫폼에서 제작자를 선택하면 안전결제 플로우로 연결됩니다. (데모에서는 UI만 제공됩니다.)",
+    q: "의뢰가 연결된 뒤 결제는 어떻게 하나요?",
+    a: "제작자를 정하면 안전하게 결제하는 흐름으로 안내할 예정이에요. (지금 데모에서는 화면만 보여 드려요.)",
   },
   {
-    q: "Supabase만 연결하면 실데이터로 바뀌나요?",
-    a: "환경 변수에 프로젝트 URL과 anon key를 넣으면 Auth와 DB 연동 레이어를 확장할 수 있습니다.",
+    q: "백엔드를 연결하면 실제 데이터로 바뀌나요?",
+    a: "서버(예: Supabase) 주소와 키를 설정하면 로그인·저장을 실서비스에 맞게 확장할 수 있어요.",
   },
 ];

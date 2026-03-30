@@ -4,7 +4,9 @@ import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { layout } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
+import { authErrorToKorean } from "@/lib/auth/authErrorMessage";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase/client";
+import { mapSupabaseUser } from "@/lib/supabase/mapAuthUser";
 import { useAuthStore } from "@/stores/authStore";
 import type { UserRole } from "@/types/domain";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -25,6 +27,7 @@ export function SignupPage() {
   const navigate = useNavigate();
   const loginDemo = useAuthStore((s) => s.loginDemo);
   const setMockSession = useAuthStore((s) => s.setMockSession);
+  const setUser = useAuthStore((s) => s.setUser);
 
   const {
     register,
@@ -38,11 +41,11 @@ export function SignupPage() {
 
   const onSubmit = async (values: FormValues) => {
     if (!isSupabaseConfigured || !supabase) {
-      loginDemo(values.role as UserRole);
+      loginDemo(values.role as UserRole, { name: values.name, email: values.email });
       navigate("/dashboard");
       return;
     }
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email: values.email,
       password: values.password,
       options: {
@@ -53,10 +56,13 @@ export function SignupPage() {
       },
     });
     if (error) {
-      setError("root", { message: error.message });
+      setError("root", { message: authErrorToKorean(error.message) });
       return;
     }
     setMockSession(false);
+    if (data.user) {
+      setUser(mapSupabaseUser(data.user));
+    }
     navigate("/dashboard");
   };
 
@@ -64,9 +70,11 @@ export function SignupPage() {
     <div className={cn(layout.pageAuth, "py-12 sm:py-20 lg:py-24")}>
       <Card>
         <CardHeader>
-          <h1 className="text-2xl font-semibold leading-snug tracking-tight text-slate-900">회원가입</h1>
-          <p className="mt-1 text-base leading-relaxed text-slate-600">
-            Supabase 미설정 시 데모 계정으로 바로 대시보드에 진입합니다.
+          <p className="text-sm font-semibold text-brand-800">Linko 명함</p>
+          <h1 className="mt-1 text-2xl font-semibold leading-snug tracking-tight text-slate-900">회원가입</h1>
+          <p className="mt-2 text-base leading-relaxed text-slate-600">
+            이름 하나로 오늘의 연결을 시작하세요. (로컬 데모 모드에서는 입력하신 이름으로 바로 체험할 수
+            있습니다.)
           </p>
         </CardHeader>
         <CardContent>
@@ -76,8 +84,8 @@ export function SignupPage() {
                 유형
               </label>
               <Select id="role" className="mt-1" {...register("role")}>
-                <option value="client">사업자 (클라이언트)</option>
-                <option value="creator">제작자 (크리에이터)</option>
+                <option value="client">사업자</option>
+                <option value="creator">제작자</option>
               </Select>
             </div>
             <div>
@@ -105,7 +113,7 @@ export function SignupPage() {
             </div>
             {errors.root ? <p className="text-sm text-red-600">{errors.root.message}</p> : null}
             <Button type="submit" className="w-full" size="lg" loading={isSubmitting}>
-              가입하고 시작하기
+              회원가입
             </Button>
           </form>
           <p className="mt-6 text-center text-base leading-relaxed text-slate-600">

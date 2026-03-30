@@ -37,6 +37,12 @@ export const type = {
     "break-keep text-4xl font-bold leading-[1.15] tracking-tight text-white md:text-5xl lg:text-[2.75rem] lg:leading-[1.12] xl:text-6xl",
   heroLead:
     "break-keep text-base font-normal leading-relaxed text-white/92 max-w-xl sm:text-[17px] md:max-w-2xl",
+  /** Hero 부제 · 연결 메시지 */
+  heroTagline:
+    "break-keep text-xl font-medium leading-snug tracking-tight text-white sm:text-2xl md:text-[1.65rem]",
+  /** 긴 브랜드 스토리 (줄바꿈 포함) */
+  heroStory:
+    "whitespace-pre-line break-keep text-base font-normal leading-relaxed text-white/88 max-w-2xl sm:text-[17px]",
   heroFootnote: "text-sm leading-relaxed text-brand-100",
   sectionTitle:
     "break-keep text-2xl font-bold leading-snug tracking-tight text-slate-900 md:text-3xl",

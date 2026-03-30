@@ -35,18 +35,20 @@ export function ApplicationsPage() {
 
   return (
     <div className={cn(layout.pageWide, "py-10 sm:py-12")}>
-      <h1 className="text-2xl font-bold leading-snug tracking-tight text-slate-900 md:text-3xl">지원 내역</h1>
+      <h1 className="break-keep text-2xl font-bold leading-snug tracking-tight text-slate-900 md:text-3xl">
+        제안·지원 내역
+      </h1>
       <p className="mt-2 text-base leading-relaxed text-slate-600">
         {user.role === "creator"
-          ? "보낸 제안과 상태를 확인하세요."
-          : "내 의뢰에 도착한 지원입니다."}
+          ? "보낸 제안과 진행 상태를 확인하세요."
+          : "내 의뢰에 도착한 제안이에요."}
       </p>
       {list.length === 0 ? (
         <div className="mt-10">
           <EmptyState
             icon={Send}
-            title="지원 내역이 없습니다"
-            description="의뢰 목록에서 프로젝트에 지원해 보세요."
+            title="아직 제안이 없어요"
+            description="의뢰 목록에서 마음에 드는 일에 제안을 보내 보세요."
           />
         </div>
       ) : (

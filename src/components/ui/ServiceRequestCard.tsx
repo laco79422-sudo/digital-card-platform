@@ -12,9 +12,9 @@ const typeLabels: Record<ServiceRequestType, string> = {
 };
 
 const statusLabels: Record<ServiceRequestStatus, string> = {
-  open: "모집중",
-  matched: "매칭됨",
-  in_progress: "진행중",
+  open: "모집 중",
+  matched: "연결됨",
+  in_progress: "진행 중",
   completed: "완료",
   cancelled: "취소",
 };
@@ -63,7 +63,7 @@ export function ServiceRequestCard({ request }: { request: ServiceRequest }) {
             to="/applications"
             className="min-h-11 text-base font-medium text-brand-700 hover:text-brand-900"
           >
-            내 지원
+            내 제안
           </Link>
         </div>
       </CardContent>

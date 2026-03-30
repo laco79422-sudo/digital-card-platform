@@ -10,7 +10,8 @@ interface AuthState {
   mockSession: boolean;
   setUser: (user: User | null) => void;
   setMockSession: (v: boolean) => void;
-  loginDemo: (role: UserRole) => void;
+  /** 로컬 데모 전용. `overrides`로 회원가입 폼 이름·이메일을 반영할 수 있습니다. */
+  loginDemo: (role: UserRole, overrides?: Partial<Pick<User, "name" | "email">>) => void;
   logout: () => void;
 }
 
@@ -34,15 +35,25 @@ export const useAuthStore = create<AuthState>()(
       mockSession: false,
       setUser: (user) => set({ user }),
       setMockSession: (mockSession) => set({ mockSession }),
-      loginDemo: (role) =>
+      loginDemo: (role, overrides) => {
+        const base = pickDemoUser(role);
         set({
-          user: pickDemoUser(role),
+          user: { ...base, ...overrides },
           mockSession: true,
-        }),
-      logout: () => set({ user: null, mockSession: false }),
+        });
+      },
+      logout: () => {
+        set({ user: null, mockSession: false });
+        try {
+          localStorage.removeItem("linko-auth");
+          localStorage.removeItem("bcc-auth");
+        } catch {
+          /* ignore */
+        }
+      },
     }),
     {
-      name: "bcc-auth",
+      name: "linko-auth",
       storage: createJSONStorage(() => localStorage),
       partialize: (s) => ({ user: s.user, mockSession: s.mockSession }),
     },

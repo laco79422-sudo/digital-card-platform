@@ -10,12 +10,17 @@ import {
   BarChart3,
   Link2,
   MessageSquare,
-  Sparkles,
   Users,
   Video,
 } from "lucide-react";
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
+
+const HERO_STORY = `당신의 이름이 하나의 연결이 되는 순간,
+Linko는 사람과 사람을 이어줍니다.
+단순한 명함이 아니라,
+당신을 보여주고, 연결을 만들고,
+기회를 이어가는 새로운 시작입니다.`;
 
 export function LandingPage() {
   const featuredCreatorIds = useAppDataStore((s) => s.featuredCreatorIds);
@@ -30,36 +35,32 @@ export function LandingPage() {
 
   return (
     <>
-      <section className="relative overflow-hidden bg-gradient-to-b from-brand-950 via-brand-900 to-brand-950 text-white">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(59,130,246,0.2),_transparent_50%)]" />
+      <section className="relative overflow-hidden bg-gradient-to-b from-slate-900 via-brand-950 to-brand-950 text-white">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(96,165,250,0.18),_transparent_55%)]" />
         <div className={cn("relative", layout.page, section.yHero)}>
           <div className="max-w-3xl">
             <p className={type.heroKicker}>
-              <Sparkles className="h-3.5 w-3.5 shrink-0 opacity-90" aria-hidden />
-              BizCard Connect Platform
+              <Link2 className="h-3.5 w-3.5 shrink-0 opacity-90" aria-hidden />
+              Link + Go · 연결하고 나아가요
             </p>
-            <h1 className={cn("mt-5 sm:mt-6", type.heroTitle)}>
-              명함 하나로, 고객 연결부터 콘텐츠 제작 의뢰까지
-            </h1>
-            <p className={cn("mt-5 sm:mt-6", type.heroLead)}>
-              블로그와 유튜브 제작자를 한곳에서 찾으세요. 사업자는 빠르게 홍보하고, 제작자는 꾸준히
-              일감을 얻습니다.
-            </p>
+            <h1 className={cn("mt-5 sm:mt-6", type.heroTitle)}>Linko 명함</h1>
+            <p className={cn("mt-4 sm:mt-5", type.heroTagline)}>연결되는 나의 시작</p>
+            <p className={cn("mt-6 sm:mt-7", type.heroStory)}>{HERO_STORY}</p>
             <div className="mt-8 flex flex-col gap-3 sm:mt-10 sm:flex-row sm:items-stretch">
               <Link to="/signup" className="w-full sm:w-auto">
                 <Button size="lg" variant="solidLight" className="w-full">
-                  사업자로 시작하기
+                  연결 시작하기
                   <ArrowRight className="h-4 w-4 shrink-0 text-slate-900" aria-hidden />
                 </Button>
               </Link>
               <Link to="/creators" className="w-full sm:w-auto">
                 <Button size="lg" variant="outlineOnDark" className="w-full">
-                  제작자 둘러보기
+                  함께할 사람 둘러보기
                 </Button>
               </Link>
             </div>
             <p className={cn("mt-5 sm:mt-6", type.heroFootnote)}>
-              신용카드 없이 무료 플랜으로 명함 1개를 바로 만들 수 있습니다.
+              첫 명함은 무료로, 이름 하나로 오늘부터 연결을 열어 보세요.
             </p>
           </div>
         </div>
@@ -68,40 +69,38 @@ export function LandingPage() {
       <section className={cn("border-b border-slate-200 bg-white", section.y)}>
         <div className={layout.page}>
           <div className="mx-auto max-w-2xl text-center">
-            <h2 className={type.sectionTitleCenter}>
-              명함에서 바로 블로그와 유튜브 의뢰까지
-            </h2>
+            <h2 className={type.sectionTitleCenter}>이름으로 열리는 만남의 문</h2>
             <p className={cn("mt-3 sm:mt-4", type.sectionLead)}>
-              공개 명함 페이지에 의뢰 유형을 노출하고, 검증된 제작자가 지원합니다. 구독과 성사
-              수수료로 지속 가능한 B2B 마켓플레이스를 지향합니다.
+              한 장의 명함이 곧 첫 인사가 됩니다. 소개하고, 응답하고, 다음 이야기로 이어지는 흐름을
+              Linko가 옆에서 돕습니다.
             </p>
           </div>
           <div className="mt-10 grid gap-6 sm:mt-12 sm:grid-cols-2 sm:gap-8 lg:grid-cols-4">
             {[
               {
                 icon: Link2,
-                title: "디지털 명함",
-                body: "슬러그 URL, QR, 테마로 브랜드 톤을 맞춘 공유 경험.",
+                title: "나를 담은 명함",
+                body: "웹 주소·QR·테마로 당신만의 첫인상을 완성하고, 어디서든 펼쳐 보이세요.",
               },
               {
                 icon: BarChart3,
-                title: "조회·클릭 통계",
-                body: "유입과 버튼 클릭을 한눈에. 캠페인 최적화에 활용하세요.",
+                title: "누가 찾아왔는지",
+                body: "방문과 클릭을 조용히 기록해, 어떤 인연이 닿고 있는지 감을 잡을 수 있어요.",
               },
               {
                 icon: MessageSquare,
-                title: "의뢰 등록",
-                body: "블로그·유튜브·숏폼·썸네일 의뢰를 명함과 같은 계정에서 관리.",
+                title: "이야기 이어가기",
+                body: "의뢰와 문의를 같은 공간에 모아, 놓치지 않고 답할 수 있습니다.",
               },
               {
                 icon: Users,
-                title: "제작자 매칭",
-                body: "포트폴리오와 단가로 비교하고, 지원서를 받아 선택합니다.",
+                title: "맞는 사람과 연결",
+                body: "제작자·협업자를 찾고, 제안을 주고받으며 관계를 키워 가세요.",
               },
             ].map((item) => (
               <div
                 key={item.title}
-                className="rounded-2xl border border-slate-200 bg-slate-50 p-5 shadow-sm sm:p-6"
+                className="rounded-2xl border border-slate-200 bg-slate-50/80 p-5 shadow-sm sm:p-6"
               >
                 <item.icon className="h-8 w-8 text-brand-700" aria-hidden />
                 <h3 className={type.featureCardTitle}>{item.title}</h3>
@@ -116,9 +115,9 @@ export function LandingPage() {
         <div className={layout.page}>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <h2 className={type.sectionTitle}>서비스 흐름</h2>
+              <h2 className={type.sectionTitle}>이렇게 이어져요</h2>
               <p className={cn("mt-2 max-w-xl", type.sectionLead)}>
-                사업자와 제작자 모두를 위한 단계형 온보딩.
+                가볍게 시작하고, 천천히 관계를 쌓을 수 있도록 단계를 나눴어요.
               </p>
             </div>
           </div>
@@ -126,18 +125,18 @@ export function LandingPage() {
             {[
               {
                 step: "01",
-                title: "명함 · 의뢰 템플릿",
-                desc: "회원가입 후 디지털 명함을 만들고, 필요한 의뢰 유형을 등록합니다.",
+                title: "프로필 명함 만들기",
+                desc: "가입 후 나를 소개하는 명함을 만들고, 필요하면 의뢰나 문의 유형을 적어 둡니다.",
               },
               {
                 step: "02",
-                title: "제작자 지원",
-                desc: "크리에이터가 포트폴리오와 제안가를 올리면 알림으로 확인합니다.",
+                title: "서로의 이야기",
+                desc: "상대가 명함을 열고, 제작자·협업자는 제안을 남깁니다. 알림으로 놓치지 마세요.",
               },
               {
                 step: "03",
-                title: "선택 · 정산",
-                desc: "지원자 중 파트너를 선택하고, 플랫폼 정책에 따라 결제·정산합니다.",
+                title: "선택과 다음 걸음",
+                desc: "마음에 맞는 인연을 고르고, 정책에 따라 결제·정산을 이어 갑니다.",
               },
             ].map((s) => (
               <li key={s.step} className="relative rounded-2xl border border-slate-200 bg-white p-5 sm:p-6">
@@ -153,40 +152,42 @@ export function LandingPage() {
       <section className={cn("bg-white", section.y)}>
         <div className={layout.page}>
           <div className="text-center">
-            <h2 className={type.sectionTitleCenter}>요금제 미리보기</h2>
-            <p className={cn("mt-2 sm:mt-3", type.sectionLead)}>전체 비교는 요금제 페이지에서 확인하세요.</p>
+            <h2 className={type.sectionTitleCenter}>이용 안내 미리보기</h2>
+            <p className={cn("mt-2 sm:mt-3", type.sectionLead)}>
+              자세한 비교는 이용 안내 페이지에서 확인하세요.
+            </p>
             <Link
               to="/pricing"
               className="mt-4 inline-flex min-h-11 items-center justify-center text-base font-medium text-brand-700 underline-offset-4 hover:underline"
             >
-              요금제 전체 보기 →
+              이용 안내 자세히 보기 →
             </Link>
           </div>
           <div className="mt-8 grid gap-6 sm:mt-10 lg:grid-cols-3">
             <PricingCard
-              name="Starter"
+              name="스타터"
               priceLabel="₩29,000"
-              description="/월 · 소규모 팀"
-              features={["공개 명함 3개", "기본 통계", "의뢰 5건 동시"]}
+              description="월 · 소규모 팀"
+              features={["공개 명함 3개", "방문·클릭 기록", "의뢰 5건까지 동시"]}
               href="/signup"
-              cta="시작하기"
+              cta="무료로 시작"
             />
             <PricingCard
-              name="Pro"
+              name="프로"
               priceLabel="₩59,000"
-              description="/월 · 성장하는 브랜드"
-              features={["무제한 명함", "클릭 퍼널 리포트", "우선 노출"]}
+              description="월 · 성장하는 브랜드"
+              features={["명함 개수 제한 없음", "버튼 클릭 흐름 보기", "목록에서 먼저 보이기"]}
               highlighted
               href="/signup"
-              cta="Pro 선택"
+              cta="프로 플랜 선택"
             />
             <PricingCard
-              name="Creator Plus"
+              name="제작자 플러스"
               priceLabel="₩19,000"
-              description="/월 · 제작자"
-              features={["의뢰 알림", "포트폴리오 강조", "지원서 템플릿"]}
+              description="월 · 제작자"
+              features={["새 의뢰 알림", "프로필 더 잘 보이게", "제안서 양식"]}
               href="/signup"
-              cta="제작자 가입"
+              cta="제작자로 가입"
             />
           </div>
         </div>
@@ -198,14 +199,14 @@ export function LandingPage() {
             <div>
               <h2 className={type.sectionTitle}>추천 제작자</h2>
               <p className={cn("mt-2 max-w-xl", type.sectionLead)}>
-                블로그와 유튜브 제작자를 한곳에서 찾으세요.
+                글·영상·디자인으로 당신의 이야기를 돕는 분들을 만나 보세요.
               </p>
             </div>
             <Link
               to="/creators"
               className="inline-flex min-h-11 shrink-0 items-center text-base font-medium text-brand-700 underline-offset-4 hover:underline sm:justify-center"
             >
-              전체 디렉터리 →
+              제작자 전체 보기 →
             </Link>
           </div>
           <div className="mt-8 grid gap-5 sm:mt-10 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">
@@ -221,22 +222,21 @@ export function LandingPage() {
           <div className="grid gap-8 lg:grid-cols-2 lg:items-center lg:gap-10">
             <div>
               <Video className="h-10 w-10 text-brand-300" aria-hidden />
-              <h2 className="mt-4 break-keep text-2xl font-bold leading-snug md:text-3xl">제작자 모집</h2>
+              <h2 className="mt-4 break-keep text-2xl font-bold leading-snug md:text-3xl">당신의 재능도 연결로</h2>
               <p className="mt-3 max-w-xl text-base leading-relaxed text-white/90">
-                분야별 포트폴리오를 등록하고 의뢰에 지원하세요. Creator Plus로 더 많은 브리프를
-                받아보세요.
+                포트폴리오를 올리고, 의뢰에 응답해 보세요. 누군가의 다음 시작을 함께 만들 수 있습니다.
               </p>
               <Link to="/signup" className="mt-6 inline-block w-full sm:w-auto">
-                <Button size="lg" className="w-full bg-white text-brand-950 hover:bg-brand-50 sm:w-auto">
-                  크리에이터 가입
+                <Button size="lg" variant="solidLight" className="w-full sm:w-auto">
+                  제작자로 참여하기
                 </Button>
               </Link>
             </div>
             <div className="rounded-2xl border border-white/15 bg-white/10 p-5 backdrop-blur-md sm:p-6">
-              <p className="text-sm font-medium text-brand-100">이번 주 신규 의뢰</p>
+              <p className="text-sm font-medium text-brand-100">이번 주 새 의뢰</p>
               <p className="mt-2 text-3xl font-bold tracking-tight text-white md:text-4xl">128건</p>
               <p className="mt-4 text-sm leading-relaxed text-white/85">
-                샘플 지표입니다. 실서비스에서는 대시보드와 연동됩니다.
+                샘플 숫자입니다. 실서비스에서는 내 공간과 연결됩니다.
               </p>
             </div>
           </div>
@@ -245,7 +245,7 @@ export function LandingPage() {
 
       <section className={cn("bg-white", section.y)}>
         <div className={layout.page}>
-          <h2 className={type.sectionTitleCenter}>고객 후기</h2>
+          <h2 className={type.sectionTitleCenter}>이야기들</h2>
           <div className="mt-8 grid gap-5 sm:mt-10 sm:gap-6 md:grid-cols-3">
             {LANDING_TESTIMONIALS.map((t) => (
               <blockquote
@@ -263,7 +263,7 @@ export function LandingPage() {
 
       <section className={cn("bg-slate-50", section.y)}>
         <div className={layout.pageNarrow}>
-          <h2 className={type.sectionTitleCenter}>FAQ</h2>
+          <h2 className={type.sectionTitleCenter}>자주 묻는 질문</h2>
           <dl className="mt-8 space-y-3 sm:mt-10 sm:space-y-4">
             {LANDING_FAQ.map((item) => (
               <div key={item.q} className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
