@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/Button";
+import { linkButtonClassName } from "@/components/ui/buttonStyles";
 import { Card, CardContent } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { layout } from "@/lib/ui-classes";
@@ -29,10 +29,14 @@ export function MyCardsPage() {
             슬러그로 공개 페이지를 만들고 QR로 공유하세요.
           </p>
         </div>
-        <Link to="/cards/new" className="w-full sm:w-auto">
-          <Button className="w-full min-h-[52px] sm:w-auto" size="lg">
-            명함 만들기
-          </Button>
+        <Link
+          to="/cards/new"
+          className={cn(
+            "w-full sm:w-auto",
+            linkButtonClassName({ size: "lg", className: "w-full sm:w-auto" }),
+          )}
+        >
+          명함 만들기
         </Link>
       </div>
 
@@ -62,17 +66,21 @@ export function MyCardsPage() {
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    <Link to={`/c/${card.slug}`} target="_blank" rel="noreferrer">
-                      <Button variant="secondary" size="sm">
-                        <ExternalLink className="h-4 w-4" />
-                        보기
-                      </Button>
+                    <Link
+                      to={`/c/${card.slug}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className={linkButtonClassName({ variant: "secondary", size: "sm", className: "gap-2" })}
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                      보기
                     </Link>
-                    <Link to={`/cards/${card.id}/edit`}>
-                      <Button variant="outline" size="sm">
-                        <Pencil className="h-4 w-4" />
-                        수정하기
-                      </Button>
+                    <Link
+                      to={`/cards/${card.id}/edit`}
+                      className={linkButtonClassName({ variant: "outline", size: "sm", className: "gap-2" })}
+                    >
+                      <Pencil className="h-4 w-4" />
+                      수정하기
                     </Link>
                   </div>
                 </CardContent>

@@ -1,4 +1,5 @@
-import { Button } from "@/components/ui/Button";
+import { linkButtonClassName } from "@/components/ui/buttonStyles";
+import { cn } from "@/lib/utils";
 import { Link } from "react-router-dom";
 
 export function NotFoundPage() {
@@ -11,10 +12,11 @@ export function NotFoundPage() {
       <p className="mt-3 max-w-md text-base leading-relaxed text-slate-600">
         주소가 바뀌었거나 삭제된 페이지일 수 있습니다.
       </p>
-      <Link to="/" className="mt-10 w-full max-w-xs">
-        <Button className="w-full" size="lg">
-          홈으로
-        </Button>
+      <Link
+        to="/"
+        className={cn("mt-10 w-full max-w-xs", linkButtonClassName({ size: "lg", className: "w-full" }))}
+      >
+        홈으로
       </Link>
     </div>
   );

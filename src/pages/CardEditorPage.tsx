@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/Button";
+import { linkButtonClassName } from "@/components/ui/buttonStyles";
 import { Card, CardContent, CardHeader } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
@@ -370,10 +371,18 @@ export function CardEditorPage() {
         </Card>
 
         <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end sm:gap-2">
-          <Link to="/cards" className="w-full sm:w-auto">
-            <Button type="button" variant="secondary" className="w-full min-h-[52px] sm:min-h-11">
-              취소
-            </Button>
+          <Link
+            to="/cards"
+            className={cn(
+              "w-full sm:w-auto",
+              linkButtonClassName({
+                variant: "secondary",
+                size: "lg",
+                className: "w-full sm:min-h-11 sm:w-auto",
+              }),
+            )}
+          >
+            취소
           </Link>
           <Button type="submit" className="w-full min-h-[52px] sm:w-auto sm:min-h-11" size="lg" loading={isSubmitting}>
             저장

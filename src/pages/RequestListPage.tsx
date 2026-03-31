@@ -1,5 +1,5 @@
 import { ServiceRequestCard } from "@/components/ui/ServiceRequestCard";
-import { Button } from "@/components/ui/Button";
+import { linkButtonClassName } from "@/components/ui/buttonStyles";
 import { layout } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/authStore";
@@ -33,10 +33,14 @@ export function RequestListPage() {
           </p>
         </div>
         {user?.role === "client" || user?.role === "company_admin" ? (
-          <Link to="/requests/new" className="w-full sm:w-auto">
-            <Button className="w-full min-h-[52px] sm:w-auto" size="lg">
-              의뢰하기
-            </Button>
+          <Link
+            to="/requests/new"
+            className={cn(
+              "w-full sm:w-auto",
+              linkButtonClassName({ size: "lg", className: "w-full sm:w-auto" }),
+            )}
+          >
+            의뢰하기
           </Link>
         ) : null}
       </div>

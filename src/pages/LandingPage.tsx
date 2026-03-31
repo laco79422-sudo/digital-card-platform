@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/Button";
+import { linkButtonClassName } from "@/components/ui/buttonStyles";
 import { CreatorCard } from "@/components/ui/CreatorCard";
 import { PricingCard } from "@/components/ui/PricingCard";
 import { LANDING_FAQ, LANDING_TESTIMONIALS } from "@/data/sampleData";
@@ -47,16 +47,32 @@ export function LandingPage() {
             <p className={cn("mt-4 sm:mt-5", type.heroTagline)}>연결되는 나의 시작</p>
             <p className={cn("mt-6 sm:mt-7", type.heroStory)}>{HERO_STORY}</p>
             <div className="mt-8 flex flex-col gap-3 sm:mt-10 sm:flex-row sm:items-stretch">
-              <Link to="/signup" className="w-full sm:w-auto">
-                <Button size="lg" variant="solidLight" className="w-full">
-                  연결 시작하기
-                  <ArrowRight className="h-4 w-4 shrink-0 text-slate-900" aria-hidden />
-                </Button>
+              <Link
+                to="/signup"
+                className={cn(
+                  "w-full sm:w-auto",
+                  linkButtonClassName({
+                    variant: "solidLight",
+                    size: "lg",
+                    className: "w-full gap-2 sm:w-auto",
+                  }),
+                )}
+              >
+                연결 시작하기
+                <ArrowRight className="h-4 w-4 shrink-0 text-slate-900" aria-hidden />
               </Link>
-              <Link to="/creators" className="w-full sm:w-auto">
-                <Button size="lg" variant="outlineOnDark" className="w-full">
-                  함께할 사람 둘러보기
-                </Button>
+              <Link
+                to="/creators"
+                className={cn(
+                  "w-full sm:w-auto",
+                  linkButtonClassName({
+                    variant: "outlineOnDark",
+                    size: "lg",
+                    className: "w-full sm:w-auto",
+                  }),
+                )}
+              >
+                함께할 사람 둘러보기
               </Link>
             </div>
             <p className={cn("mt-5 sm:mt-6", type.heroFootnote)}>
@@ -226,10 +242,18 @@ export function LandingPage() {
               <p className="mt-3 max-w-xl text-base leading-relaxed text-white/90">
                 포트폴리오를 올리고, 의뢰에 응답해 보세요. 누군가의 다음 시작을 함께 만들 수 있습니다.
               </p>
-              <Link to="/signup" className="mt-6 inline-block w-full sm:w-auto">
-                <Button size="lg" variant="solidLight" className="w-full sm:w-auto">
-                  제작자로 참여하기
-                </Button>
+              <Link
+                to="/signup"
+                className={cn(
+                  "mt-6 inline-flex w-full sm:w-auto",
+                  linkButtonClassName({
+                    variant: "solidLight",
+                    size: "lg",
+                    className: "w-full sm:w-auto",
+                  }),
+                )}
+              >
+                제작자로 참여하기
               </Link>
             </div>
             <div className="rounded-2xl border border-white/15 bg-white/10 p-5 backdrop-blur-md sm:p-6">

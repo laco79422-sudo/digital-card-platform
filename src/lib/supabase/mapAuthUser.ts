@@ -5,17 +5,28 @@ function normalizeRole(v: unknown): UserRole {
   return "client";
 }
 
-/** Supabase Auth `user_metadata` / OAuth에서 흔한 표시 이름 필드 */
+function stringFromMeta(meta: Record<string, unknown>, key: string): string | null {
+  const v = meta[key];
+  if (typeof v === "string" && v.trim()) return v.trim();
+  return null;
+}
+
+/** Supabase Auth `user_metadata` / OAuth(Google 등)에서 흔한 표시 이름 필드 */
 export function resolveDisplayName(
   meta: Record<string, unknown>,
   email: string | null | undefined,
 ): string {
-  const keys = ["name", "full_name", "display_name", "preferred_username"] as const;
-  for (const k of keys) {
-    const v = meta[k];
-    if (typeof v === "string" && v.trim()) return v.trim();
+  const directKeys = ["name", "full_name", "display_name", "preferred_username"] as const;
+  for (const k of directKeys) {
+    const s = stringFromMeta(meta, k);
+    if (s) return s;
   }
-  const local = email?.split("@")[0]?.trim();
+  const given = stringFromMeta(meta, "given_name");
+  const family = stringFromMeta(meta, "family_name");
+  if (given && family) return `${given} ${family}`.trim();
+  if (given) return given;
+  if (family) return family;
+  const local = typeof email === "string" ? email.split("@")[0]?.trim() : undefined;
   if (local) return local;
   return "사용자";
 }

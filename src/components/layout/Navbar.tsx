@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/Button";
+import { linkButtonClassName } from "@/components/ui/buttonStyles";
 import { signOutApp } from "@/lib/auth/signOutApp";
 import { layout } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
@@ -59,16 +60,14 @@ export function Navbar() {
         </div>
         <div className="hidden items-center gap-2 md:flex">
           {user?.role === "admin" ? (
-            <Link to="/admin">
-              <Button variant="ghost" size="sm">
-                관리자
-              </Button>
+            <Link to="/admin" className={linkButtonClassName({ variant: "ghost", size: "sm" })}>
+              관리자
             </Link>
           ) : null}
           {user ? (
             <>
-              <Link to="/dashboard">
-                <Button size="sm">내 공간</Button>
+              <Link to="/dashboard" className={linkButtonClassName({ size: "sm" })}>
+                내 공간
               </Link>
               <Button
                 type="button"
@@ -84,13 +83,11 @@ export function Navbar() {
             </>
           ) : (
             <>
-              <Link to="/login">
-                <Button variant="ghost" size="sm">
-                  로그인
-                </Button>
+              <Link to="/login" className={linkButtonClassName({ variant: "ghost", size: "sm" })}>
+                로그인
               </Link>
-              <Link to="/signup">
-                <Button size="sm">회원가입</Button>
+              <Link to="/signup" className={linkButtonClassName({ size: "sm" })}>
+                회원가입
               </Link>
             </>
           )}
@@ -134,10 +131,12 @@ export function Navbar() {
             ) : null}
             {user ? (
               <div className="mt-3 flex flex-col gap-0">
-                <Link to="/dashboard" className="block" onClick={() => setOpen(false)}>
-                  <Button className="w-full min-h-[52px]" size="lg">
-                    내 공간
-                  </Button>
+                <Link
+                  to="/dashboard"
+                  className={linkButtonClassName({ size: "lg", className: "w-full" })}
+                  onClick={() => setOpen(false)}
+                >
+                  내 공간
                 </Link>
                 <div className="my-3 border-t border-slate-200" role="separator" />
                 <button
@@ -152,15 +151,23 @@ export function Navbar() {
               </div>
             ) : (
               <div className="mt-3 flex flex-col gap-3">
-                <Link to="/login" onClick={() => setOpen(false)}>
-                  <Button variant="secondary" className="w-full min-h-[52px]" size="lg">
-                    로그인
-                  </Button>
+                <Link
+                  to="/login"
+                  className={linkButtonClassName({
+                    variant: "secondary",
+                    size: "lg",
+                    className: "w-full",
+                  })}
+                  onClick={() => setOpen(false)}
+                >
+                  로그인
                 </Link>
-                <Link to="/signup" onClick={() => setOpen(false)}>
-                  <Button className="w-full min-h-[52px]" size="lg">
-                    회원가입
-                  </Button>
+                <Link
+                  to="/signup"
+                  className={linkButtonClassName({ size: "lg", className: "w-full" })}
+                  onClick={() => setOpen(false)}
+                >
+                  회원가입
                 </Link>
               </div>
             )}

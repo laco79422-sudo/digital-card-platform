@@ -3,44 +3,21 @@ import { layout } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/authStore";
 import { useAppDataStore } from "@/stores/appDataStore";
+import type { User } from "@/types/domain";
 import { CreditCard, Eye, MousePointerClick, Send } from "lucide-react";
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
 
-/** Recharts 비활성화: insertBefore / width·height 경고 회피. 동일 데이터는 아래 표로 표시. */
-function ActivityRecordTable({ rows }: { rows: { date: string; count: number }[] }) {
-  if (rows.length === 0) {
-    return (
-      <div className="mt-6 flex min-h-[18rem] items-center rounded-lg border border-slate-100 bg-slate-50/60 px-4 py-6">
-        <p className="text-sm text-slate-600">
-          최근 14일 동안 저장된 조회 기록이 없어요.
-        </p>
-      </div>
-    );
+function safeDisplayName(user: User | null): string {
+  if (!user) return "사용자";
+  const n = user.name;
+  if (typeof n === "string" && n.trim()) return n.trim();
+  const em = user.email;
+  if (typeof em === "string" && em.includes("@")) {
+    const local = em.split("@")[0]?.trim();
+    if (local) return local;
   }
-
-  return (
-    <div className="mt-6 min-h-[18rem] w-full min-w-0 overflow-x-auto rounded-lg border border-slate-100 bg-slate-50/60">
-      <table className="w-full min-w-[240px] text-left text-sm">
-        <thead>
-          <tr className="border-b border-slate-200 text-slate-500">
-            <th className="px-4 py-3 font-medium">날짜</th>
-            <th className="px-4 py-3 font-medium">조회 수</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row) => (
-            <tr key={row.date} className="border-b border-slate-100 last:border-0">
-              <td className="px-4 py-2.5 text-slate-800 tabular-nums">{row.date}</td>
-              <td className="px-4 py-2.5 font-medium text-slate-900 tabular-nums">
-                {row.count}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
+  return "사용자";
 }
 
 export function DashboardPage() {
@@ -51,41 +28,24 @@ export function DashboardPage() {
   const requests = useAppDataStore((s) => s.serviceRequests);
   const applications = useAppDataStore((s) => s.applications);
 
+  const uid = user?.id ?? "";
   const myCards = useMemo(
-    () => businessCards.filter((c) => c.user_id === user?.id),
-    [businessCards, user?.id],
+    () => (uid ? businessCards.filter((c) => c.user_id === uid) : []),
+    [businessCards, uid],
   );
   const myCardIds = useMemo(() => new Set(myCards.map((c) => c.id)), [myCards]);
 
   const viewsCount = cardViews.filter((v) => myCardIds.has(v.card_id)).length;
   const clicksCount = cardClicks.filter((c) => myCardIds.has(c.card_id)).length;
 
-  const myOpenRequests = requests.filter(
-    (r) => r.client_user_id === user?.id && r.status === "open",
-  ).length;
+  const myOpenRequests = uid
+    ? requests.filter((r) => r.client_user_id === uid && r.status === "open").length
+    : 0;
 
-  const myApps = applications.filter((a) => a.creator_user_id === user?.id);
-
-  const chartData = useMemo(() => {
-    const map = new Map<string, number>();
-    cardViews
-      .filter((v) => myCardIds.has(v.card_id))
-      .forEach((v) => {
-        const d = v.viewed_at.slice(0, 10);
-        map.set(d, (map.get(d) ?? 0) + 1);
-      });
-    return [...map.entries()]
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([date, count]) => ({ date, count }))
-      .slice(-14);
-  }, [cardViews, myCardIds]);
+  const myApps = uid ? applications.filter((a) => a.creator_user_id === uid) : [];
 
   const isCreator = user?.role === "creator";
-
-  const displayName =
-    user?.name?.trim() ||
-    (user?.email?.includes("@") ? user.email.split("@")[0] : null)?.trim() ||
-    "사용자";
+  const displayName = safeDisplayName(user);
 
   return (
     <div className={cn(layout.page, "py-10 sm:py-12")}>
@@ -128,7 +88,7 @@ export function DashboardPage() {
               label="총 조회"
               value={String(viewsCount)}
               icon={Eye}
-              trend="아래 활동 기록에서 일별 조회 수를 확인하세요"
+              trend="활동 기록은 곧 제공될 예정이에요"
             />
             <StatsCard
               label="클릭 수"
@@ -177,7 +137,9 @@ export function DashboardPage() {
           <p className="mt-1 text-[15px] leading-relaxed text-slate-600 sm:text-base">
             최근 14일 동안 내 명함이 몇 번 열렸는지예요. 이 기기·브라우저에 저장된 기록만 보여요.
           </p>
-          <ActivityRecordTable rows={chartData} />
+          <div className="mt-6 flex min-h-[12rem] items-center justify-center rounded-lg border border-dashed border-slate-200 bg-slate-50/80 px-4 py-8">
+            <p className="text-center text-sm font-medium text-slate-600">활동 기록은 준비 중입니다.</p>
+          </div>
         </div>
       ) : null}
     </div>
