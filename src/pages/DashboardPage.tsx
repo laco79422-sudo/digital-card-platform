@@ -1,10 +1,8 @@
-import { StatsCard } from "@/components/ui/StatsCard";
 import { layout } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/authStore";
 import { useAppDataStore } from "@/stores/appDataStore";
 import type { User } from "@/types/domain";
-import { CreditCard, Eye, MousePointerClick, Send } from "lucide-react";
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
 
@@ -18,6 +16,25 @@ function safeDisplayName(user: User | null): string {
     if (local) return local;
   }
   return "사용자";
+}
+
+/** Lucide·StatsCard·중첩 조건부 없이 통계 한 칸만 렌더 (SVG/카드 내부 DOM 최소화) */
+function StatBlock({
+  label,
+  value,
+  sub,
+}: {
+  label: string;
+  value: string;
+  sub?: string;
+}) {
+  return (
+    <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm shadow-slate-900/5">
+      <div className="text-sm font-medium text-slate-600">{label}</div>
+      <div className="mt-1 text-2xl font-semibold tracking-tight text-slate-900">{value}</div>
+      {sub ? <div className="mt-1 text-sm text-slate-500">{sub}</div> : null}
+    </div>
+  );
 }
 
 export function DashboardPage() {
@@ -76,70 +93,61 @@ export function DashboardPage() {
       </div>
 
       <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {!isCreator ? (
-          <>
-            <StatsCard
-              label="내 명함"
-              value={String(myCards.length)}
-              icon={CreditCard}
-              hint="공개 링크와 QR로 공유하세요"
-            />
-            <StatsCard
-              label="총 조회"
-              value={String(viewsCount)}
-              icon={Eye}
-              trend="활동 기록은 곧 제공될 예정이에요"
-            />
-            <StatsCard
-              label="클릭 수"
-              value={String(clicksCount)}
-              icon={MousePointerClick}
-              hint="명함 속 버튼을 누른 횟수예요"
-            />
-            <StatsCard
-              label="진행 중 의뢰"
-              value={String(myOpenRequests)}
-              icon={Send}
-            />
-          </>
+        {isCreator ? (
+          <StatBlock
+            key="creator-apps"
+            label="보낸 제안"
+            value={String(myApps.length)}
+            sub="의뢰에 보낸 제안 개수예요"
+          />
         ) : (
-          <>
-            <StatsCard
-              label="보낸 제안"
-              value={String(myApps.length)}
-              icon={Send}
-              hint="의뢰에 보낸 제안 개수예요"
-            />
-            <StatsCard
-              label="답을 기다리는 중"
-              value={String(myApps.filter((a) => a.status === "pending").length)}
-              icon={MousePointerClick}
-            />
-            <StatsCard
-              label="내 명함"
-              value={String(myCards.length)}
-              icon={CreditCard}
-              hint="제작자 계정으로 만든 명함이에요"
-            />
-            <StatsCard
-              label="총 조회"
-              value={String(viewsCount)}
-              icon={Eye}
-              hint="내 명함이 열린 횟수예요"
-            />
-          </>
+          <StatBlock
+            key="client-cards"
+            label="내 명함"
+            value={String(myCards.length)}
+            sub="공개 링크와 QR로 공유하세요"
+          />
+        )}
+        {isCreator ? (
+          <StatBlock
+            key="creator-pending"
+            label="답을 기다리는 중"
+            value={String(myApps.filter((a) => a.status === "pending").length)}
+          />
+        ) : (
+          <StatBlock key="client-views" label="총 조회" value={String(viewsCount)} />
+        )}
+        {isCreator ? (
+          <StatBlock
+            key="creator-mycards"
+            label="내 명함"
+            value={String(myCards.length)}
+            sub="제작자 계정으로 만든 명함이에요"
+          />
+        ) : (
+          <StatBlock
+            key="client-clicks"
+            label="클릭 수"
+            value={String(clicksCount)}
+            sub="명함 속 버튼 클릭 횟수예요"
+          />
+        )}
+        {isCreator ? (
+          <StatBlock
+            key="creator-views"
+            label="총 조회"
+            value={String(viewsCount)}
+            sub="내 명함이 열린 횟수예요"
+          />
+        ) : (
+          <StatBlock key="client-requests" label="진행 중 의뢰" value={String(myOpenRequests)} />
         )}
       </div>
 
       {!isCreator ? (
-        <div className="mt-10 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
-          <h2 className="break-keep text-lg font-semibold text-slate-900 sm:text-xl">활동 기록</h2>
-          <p className="mt-1 text-[15px] leading-relaxed text-slate-600 sm:text-base">
-            최근 14일 동안 내 명함이 몇 번 열렸는지예요. 이 기기·브라우저에 저장된 기록만 보여요.
-          </p>
-          <div className="mt-6 flex min-h-[12rem] items-center justify-center rounded-lg border border-dashed border-slate-200 bg-slate-50/80 px-4 py-8">
-            <p className="text-center text-sm font-medium text-slate-600">활동 기록은 준비 중입니다.</p>
-          </div>
+        <div className="mt-10 rounded-2xl border border-slate-200 bg-white p-4 sm:p-6">
+          <h2 className="text-lg font-semibold text-slate-900 sm:text-xl">활동 기록</h2>
+          <p className="mt-3 text-sm text-slate-600">활동 기록은 준비 중입니다.</p>
         </div>
       ) : null}
     </div>
