@@ -20,12 +20,11 @@ import {
 } from "@/utils/validators";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Globe } from "lucide-react";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { z } from "zod";
 
-/** 가입 완료 후 로그인 화면에 넘기는 안내 (이메일 인증이 켜져 있을 때) */
 const SIGNUP_SUCCESS_NOTICE = "회원가입이 완료되었습니다. 이메일 인증 후 로그인해 주세요.";
 
 const schema = z.object({
@@ -40,6 +39,12 @@ const schema = z.object({
 
 type FormValues = z.infer<typeof schema>;
 
+/**
+ * 회원가입 화면 상태 (3종)
+ * - loading: 제출 중 — 버튼 비활성 + 문구만 바꿈. 스피너 미사용으로 DOM 자식 수 고정(insertBefore 오류 완화).
+ * - errorMessage: 가입 실패·중복 등 — 폼 아래 고정 영역 한 곳에만 표시.
+ * - 성공 시: 인라인 메시지 대신 /login 또는 /dashboard 로 이동(기존 동작).
+ */
 export function SignupPage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -49,30 +54,25 @@ export function SignupPage() {
   const setSession = useAuthStore((s) => s.setSession);
   const touchActivity = useAuthStore((s) => s.touchActivity);
 
+  const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
   const {
     register,
     handleSubmit,
     watch,
-    formState: { errors, isSubmitting },
-    setError,
-    clearErrors,
+    setValue,
+    formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: { role: "client", name: "", email: "", password: "" },
   });
 
   const emailValue = watch("email") ?? "";
-
-  /** 이메일: DB 조회 없이 형식만 구분 (빈칸 / 틀린 형식 / 형식 OK) */
   const emailFieldStatus = useMemo(() => getSignupEmailFieldStatus(emailValue), [emailValue]);
 
-  const isDuplicateEmailError = errors.email?.type === "duplicate";
-
-  /** 형식 OK 일 때는 안내 문구를 숨깁니다(요청: 형식 안내만, 중복은 가입 시에만). */
-  const emailHintText = useMemo(() => {
-    if (isDuplicateEmailError && errors.email?.message) {
-      return errors.email.message;
-    }
+  /** 이메일 칸 아래: 형식 안내만 (서버 중복 메시지는 errorMessage로만 표시) */
+  const emailFormatHint = useMemo(() => {
     switch (emailFieldStatus) {
       case "empty":
         return signupEmailHint.empty;
@@ -81,87 +81,75 @@ export function SignupPage() {
       case "valid":
         return null;
     }
-  }, [emailFieldStatus, isDuplicateEmailError, errors.email?.message]);
-
-  const emailHintClassName = useMemo(() => {
-    if (isDuplicateEmailError || emailFieldStatus === "invalid") {
-      return "font-medium text-red-600";
-    }
-    return "text-slate-600";
-  }, [emailFieldStatus, isDuplicateEmailError]);
+  }, [emailFieldStatus]);
 
   useEffect(() => {
     if (!authReady) return;
     const oauthErr = (location.state as { oauthError?: string } | null)?.oauthError;
     if (oauthErr) {
-      setError("root", { message: oauthErr });
+      setErrorMessage(oauthErr);
       navigate(".", { replace: true, state: {} });
     }
-  }, [authReady, location.state, navigate, setError]);
+  }, [authReady, location.state, navigate]);
 
   const onSubmit = async (values: FormValues) => {
-    clearErrors("root");
-    clearErrors("email");
+    setErrorMessage(null);
+
     if (!isSupabaseConfigured) {
-      setError("root", {
-        message: "서비스에 연결할 수 없습니다. 잠시 후 다시 시도해 주세요.",
-      });
+      setErrorMessage("서비스에 연결할 수 없습니다. 잠시 후 다시 시도해 주세요.");
       return;
     }
 
-    const emailTrimmed = values.email.trim();
+    setLoading(true);
+    try {
+      const { data, errorMessage: serverMsg } = await signUpWithEmail({
+        email: values.email.trim(),
+        password: values.password,
+        name: values.name.trim(),
+        userType: values.role,
+      });
 
-    // 실제 가입: Supabase Auth signUp (중복은 응답 메시지로만 처리, SQL 함수 불필요)
-    const { data, errorMessage } = await signUpWithEmail({
-      email: emailTrimmed,
-      password: values.password,
-      name: values.name.trim(),
-      userType: values.role,
-    });
-
-    if (errorMessage) {
-      if (errorMessage === DUPLICATE_EMAIL_MESSAGE) {
-        setError("email", { type: "duplicate", message: errorMessage });
-      } else {
-        setError("root", { message: errorMessage });
+      if (serverMsg) {
+        setErrorMessage(serverMsg);
+        if (serverMsg === DUPLICATE_EMAIL_MESSAGE) {
+          setValue("password", "");
+        }
+        return;
       }
-      return;
-    }
 
-    if (!data) {
-      setError("root", {
-        message: "회원가입을 완료하지 못했습니다. 잠시 후 다시 시도해 주세요.",
-      });
-      return;
-    }
+      if (!data) {
+        setErrorMessage("회원가입을 완료하지 못했습니다. 잠시 후 다시 시도해 주세요.");
+        return;
+      }
 
-    if (data.session?.user) {
-      setSession(data.session);
-      setUser(mapSupabaseUser(data.session.user));
-      touchActivity();
-      navigate("/dashboard", { replace: true });
-      return;
-    }
+      if (data.session?.user) {
+        setSession(data.session);
+        setUser(mapSupabaseUser(data.session.user));
+        touchActivity();
+        navigate("/dashboard", { replace: true });
+        return;
+      }
 
-    if (data.user) {
-      navigate("/login", {
-        replace: true,
-        state: { signupNotice: SIGNUP_SUCCESS_NOTICE },
-      });
-      return;
-    }
+      if (data.user) {
+        navigate("/login", {
+          replace: true,
+          state: { signupNotice: SIGNUP_SUCCESS_NOTICE },
+        });
+        return;
+      }
 
-    setError("root", {
-      message: "회원가입을 완료하지 못했습니다. 잠시 후 다시 시도해 주세요.",
-    });
+      setErrorMessage("회원가입을 완료하지 못했습니다. 잠시 후 다시 시도해 주세요.");
+    } catch {
+      setErrorMessage("회원가입 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const googleSignIn = async () => {
-    clearErrors("root");
-    const { errorMessage } = await signInWithGoogle();
-    if (errorMessage) {
-      setError("root", { message: errorMessage });
-    }
+    setErrorMessage(null);
+    const { errorMessage: msg } = await signInWithGoogle();
+    if (msg) setErrorMessage(msg);
   };
 
   if (!authReady) {
@@ -199,12 +187,13 @@ export function SignupPage() {
               </p>
             </div>
           ) : null}
+
           <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
             <div>
               <label className="text-base font-medium text-slate-800" htmlFor="role">
                 유형
               </label>
-              <Select id="role" className="mt-1" {...register("role")}>
+              <Select id="role" className="mt-1" {...register("role")} disabled={loading}>
                 <option value="client">사업자</option>
                 <option value="creator">제작자</option>
               </Select>
@@ -213,7 +202,7 @@ export function SignupPage() {
               <label className="text-base font-medium text-slate-800" htmlFor="name">
                 이름
               </label>
-              <Input id="name" className="mt-1" {...register("name")} autoComplete="name" />
+              <Input id="name" className="mt-1" {...register("name")} autoComplete="name" disabled={loading} />
               {errors.name ? <p className="mt-1 text-xs text-red-600">{errors.name.message}</p> : null}
             </div>
             <div>
@@ -225,24 +214,23 @@ export function SignupPage() {
                 type="email"
                 autoComplete="email"
                 className="mt-1"
+                disabled={loading}
                 {...register("email", {
-                  onChange: () => clearErrors("email"),
+                  onChange: () => setErrorMessage(null),
                 })}
               />
-              {emailHintText != null ? (
-                <p className={cn("mt-1.5 text-xs leading-relaxed", emailHintClassName)} role="status">
-                  {emailHintText}
-                  {isDuplicateEmailError ? (
-                    <>
-                      {" "}
-                      <Link to="/login" className="font-medium text-brand-700 underline">
-                        로그인하기
-                      </Link>
-                    </>
-                  ) : null}
+              {emailFormatHint != null ? (
+                <p
+                  className={cn(
+                    "mt-1.5 text-xs leading-relaxed",
+                    emailFieldStatus === "invalid" ? "font-medium text-red-600" : "text-slate-600",
+                  )}
+                  role="status"
+                >
+                  {emailFormatHint}
                 </p>
               ) : null}
-              {errors.email && !isDuplicateEmailError ? (
+              {errors.email ? (
                 <p className="mt-1 text-xs text-red-600" role="alert">
                   {errors.email.message}
                 </p>
@@ -257,22 +245,49 @@ export function SignupPage() {
                 type="password"
                 autoComplete="new-password"
                 className="mt-1"
+                disabled={loading}
                 {...register("password")}
               />
               {errors.password ? (
                 <p className="mt-1 text-xs text-red-600">{errors.password.message}</p>
               ) : null}
             </div>
-            {errors.root ? <p className="text-sm text-red-600">{errors.root.message}</p> : null}
-            <Button type="submit" className="w-full" size="lg" loading={isSubmitting} disabled={isSubmitting}>
-              {isSubmitting ? "가입 처리 중..." : "회원가입"}
+
+            {/* 서버/중복 등 제출 결과만 이 블록에 표시 (portal·토스트 없음) */}
+            <div className="min-h-[1.5rem] space-y-1">
+              {errorMessage ? (
+                <p className="text-sm font-medium text-red-600" role="alert">
+                  {errorMessage}
+                  {errorMessage === DUPLICATE_EMAIL_MESSAGE ? (
+                    <>
+                      {" "}
+                      <Link to="/login" className="font-medium text-brand-700 underline">
+                        로그인하기
+                      </Link>
+                    </>
+                  ) : null}
+                </p>
+              ) : null}
+            </div>
+
+            {/* loading 시 스피너를 넣지 않아 자식 노드 수가 바뀌지 않게 함 → insertBefore 오류 완화 */}
+            <Button type="submit" className="w-full" size="lg" disabled={loading}>
+              {loading ? "가입 처리 중..." : "회원가입"}
             </Button>
           </form>
+
           <p className="mt-4 text-center text-xs leading-relaxed text-slate-500">
             구글 로그인은 위에서 입력한 이메일·비밀번호 가입과 별도로 진행됩니다.
           </p>
           <div className="mt-3">
-            <Button type="button" variant="secondary" className="w-full" size="lg" onClick={() => void googleSignIn()}>
+            <Button
+              type="button"
+              variant="secondary"
+              className="w-full"
+              size="lg"
+              disabled={loading}
+              onClick={() => void googleSignIn()}
+            >
               <Globe className="h-4 w-4 shrink-0" aria-hidden />
               구글로 시작하기
             </Button>

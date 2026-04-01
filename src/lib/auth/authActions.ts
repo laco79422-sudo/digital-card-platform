@@ -35,7 +35,6 @@ export type SignUpWithEmailParams = {
   email: string;
   password: string;
   name: string;
-  /** 사업자(client) / 제작자(creator) 등 — user_metadata.userType 으로 저장 */
   userType: string;
 };
 
@@ -44,35 +43,57 @@ export type SignUpWithEmailResult = {
   errorMessage: string | null;
 };
 
+/** Supabase가 보내는 문자열로 중복 가입 여부를 1차 판별합니다. */
+function looksLikeDuplicateEmailError(message: string): boolean {
+  const m = message.toLowerCase();
+  return (
+    m.includes("already registered") ||
+    m.includes("user already registered") ||
+    m.includes("email address is already registered") ||
+    m.includes("already been registered")
+  );
+}
+
 export async function signUpWithEmail(params: SignUpWithEmailParams): Promise<SignUpWithEmailResult> {
   if (!isSupabaseConfigured || !supabase) {
     return { data: null, errorMessage: getSupabaseConfigErrorMessage() };
   }
-  // Supabase Auth: user_metadata 에 이름·유형만 넣음 (별도 SQL 함수 불필요)
-  const { data, error } = await supabase.auth.signUp({
-    email: params.email,
-    password: params.password,
-    options: {
-      data: {
-        name: params.name,
-        userType: params.userType,
+
+  try {
+    const { data, error } = await supabase.auth.signUp({
+      email: params.email,
+      password: params.password,
+      options: {
+        data: {
+          name: params.name,
+          userType: params.userType,
+        },
+        emailRedirectTo: `${window.location.origin}/dashboard`,
       },
-      emailRedirectTo: `${window.location.origin}/dashboard`,
-    },
-  });
-  if (error) {
-    return { data: null, errorMessage: handleAuthError(error) };
-  }
-  if (data.user && isSignUpDuplicateObfuscatedUser(data.user)) {
-    console.warn("[auth] signUp: duplicate email (obfuscated response, empty identities)", {
-      id: data.user.id,
     });
-    return { data: null, errorMessage: DUPLICATE_EMAIL_MESSAGE };
+
+    if (error) {
+      const raw = error.message ?? "";
+      if (looksLikeDuplicateEmailError(raw)) {
+        return { data: null, errorMessage: DUPLICATE_EMAIL_MESSAGE };
+      }
+      return { data: null, errorMessage: handleAuthError(error) };
+    }
+
+    // HTTP 200 + user는 오지만 identities가 비면 이메일 중복 난독화 응답으로 간주
+    if (data?.user && isSignUpDuplicateObfuscatedUser(data.user)) {
+      return { data: null, errorMessage: DUPLICATE_EMAIL_MESSAGE };
+    }
+
+    return { data: data ?? null, errorMessage: null };
+  } catch {
+    return {
+      data: null,
+      errorMessage: "회원가입 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.",
+    };
   }
-  return { data, errorMessage: null };
 }
 
-/** Google OAuth 시작(전체 페이지 이동). 성공 시 브라우저가 Google/Supabase로 이동합니다. */
 export async function signInWithGoogle(): Promise<{ errorMessage: string | null }> {
   if (!isSupabaseConfigured || !supabase) {
     return { errorMessage: getSupabaseConfigErrorMessage() };
