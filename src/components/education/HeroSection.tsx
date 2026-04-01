@@ -10,12 +10,12 @@ export function HeroSection() {
   return (
     <section
       className="relative overflow-hidden bg-gradient-to-b from-slate-950 via-brand-950 to-brand-900 text-white"
-      aria-label="교육신청 소개"
+      aria-label="진진항아리 소개"
     >
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(96,165,250,0.2),_transparent_55%)]" />
       <div className={cn(layout.page, "relative py-14 sm:py-20 lg:py-24")}>
         <div className="mx-auto max-w-3xl text-center">
-          <p className="text-sm font-medium uppercase tracking-wider text-brand-200/90">교육신청</p>
+          <p className="text-sm font-medium uppercase tracking-wider text-brand-200/90">진진항아리</p>
           <h1 className="mt-4 break-keep text-balance text-3xl font-extrabold leading-tight tracking-tight sm:text-4xl md:text-5xl">
             AI 블로그 · AI 영상 실전 교육
           </h1>
