@@ -81,6 +81,27 @@ export const SAMPLE_CARDS: BusinessCard[] = [
     theme: "navy",
     is_public: true,
     created_at: now,
+    tagline: "B2B 리드 제너레이션 · 콘텐츠 세일즈 퍼널 전문 디지털 명함",
+    trust_line: "중소 팀·스타트업 대상 프로젝트 200건 이상, 전환 중심 캠페인을 설계합니다.",
+    gallery_urls: [
+      "https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&q=80",
+      "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=800&q=80",
+      "https://images.unsplash.com/photo-1600880292203-75761962e213?w=800&q=80",
+    ],
+    services: [
+      {
+        title: "퍼포먼스 마케팅",
+        body: "검색·소셜·랜딩까지 데이터 기반으로 광고 효율을 높입니다.",
+      },
+      {
+        title: "콘텐츠 세일즈 퍼널",
+        body: "백서·웨비나·케이스 스터디로 리드를 교육하고 전환합니다.",
+      },
+      {
+        title: "명함·의뢰 연결",
+        body: "디지털 명함 한 링크로 상담·의뢰까지 한 흐름으로 연결합니다.",
+      },
+    ],
   },
   {
     id: "card-2",
@@ -99,6 +120,17 @@ export const SAMPLE_CARDS: BusinessCard[] = [
     theme: "midnight",
     is_public: true,
     created_at: now,
+    tagline: "브랜드 필름 · 숏폼 · 썸네일 — 영상 디지털 명함",
+    trust_line: "국내 브랜드 런칭 필름 다수, 평균 만족도 4.8/5",
+    gallery_urls: [
+      "https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?w=800&q=80",
+      "https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=800&q=80",
+    ],
+    services: [
+      { title: "기업·제품 필름", body: "런칭·인터뷰·데모 영상 기획부터 배포까지." },
+      { title: "숏폼·릴스", body: "훅·자막·썸네일 최적화로 조회수와 전환을 동시에." },
+      { title: "아트 디렉션", body: "톤앤매너 가이드와 시각 일관성을 맞춥니다." },
+    ],
   },
 ];
 

@@ -1,4 +1,4 @@
-import { CardEditorSamplePreview } from "@/components/card/CardEditorSamplePreview";
+import { DigitalCardPublicView } from "@/components/digital-card/DigitalCardPublicView";
 import { Button } from "@/components/ui/Button";
 import { linkButtonClassName } from "@/components/ui/buttonStyles";
 import { Card, CardContent, CardHeader } from "@/components/ui/Card";
@@ -13,11 +13,16 @@ import { getLinksForCard, slugify, useAppDataStore } from "@/stores/appDataStore
 import type { BusinessCard, CardLink, CardLinkType } from "@/types/domain";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useMemo, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useFieldArray, useForm } from "react-hook-form";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { z } from "zod";
 
 const optionalUrl = z.string().url().or(z.literal(""));
+
+const serviceLineSchema = z.object({
+  title: z.string(),
+  body: z.string(),
+});
 
 const schema = z.object({
   brand_name: z.string().min(1, "브랜드명을 입력하세요"),
@@ -33,6 +38,10 @@ const schema = z.object({
   kakao_url: optionalUrl,
   theme: z.enum(["navy", "slate", "midnight"]),
   is_public: z.enum(["true", "false"]),
+  tagline: z.string().optional(),
+  trust_line: z.string().optional(),
+  gallery_urls_raw: z.string().optional(),
+  services: z.array(serviceLineSchema).max(5),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -49,6 +58,12 @@ function mapLinksToRows(links: CardLink[]): LinkRow[] {
     type: l.type,
     url: l.url,
   }));
+}
+
+function defaultServiceRows(existing: BusinessCard | undefined): { title: string; body: string }[] {
+  const s = existing?.services?.length ? [...existing.services] : [];
+  while (s.length < 3) s.push({ title: "", body: "" });
+  return s.slice(0, 5);
 }
 
 export function CardEditorPage() {
@@ -87,6 +102,10 @@ export function CardEditorPage() {
         kakao_url: existing.kakao_url ?? "",
         theme: existing.theme,
         is_public: existing.is_public ? "true" : "false",
+        tagline: existing.tagline ?? "",
+        trust_line: existing.trust_line ?? "",
+        gallery_urls_raw: existing.gallery_urls?.join("\n") ?? "",
+        services: defaultServiceRows(existing),
       };
     }
     return {
@@ -103,11 +122,16 @@ export function CardEditorPage() {
       kakao_url: "",
       theme: "navy",
       is_public: "true",
+      tagline: "",
+      trust_line: "",
+      gallery_urls_raw: "",
+      services: defaultServiceRows(undefined),
     };
   }, [existing, user]);
 
   const {
     register,
+    control,
     handleSubmit,
     watch,
     setValue,
@@ -116,6 +140,11 @@ export function CardEditorPage() {
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues,
+  });
+
+  const { fields: serviceFields, append: appendService, remove: removeService } = useFieldArray({
+    control,
+    name: "services",
   });
 
   useEffect(() => {
@@ -129,6 +158,48 @@ export function CardEditorPage() {
   }, [existing?.id]);
 
   const brandWatch = watch("brand_name");
+  const w = watch();
+
+  const previewCard: BusinessCard = {
+    id: existing?.id ?? "preview",
+    user_id: user?.id ?? "preview",
+    slug: w.slug?.trim() || "preview",
+    brand_name: w.brand_name?.trim() || "브랜드명",
+    person_name: w.person_name?.trim() || "이름",
+    job_title: w.job_title?.trim() || "직함",
+    intro: w.intro?.trim() || "소개 문구가 여기에 표시됩니다.",
+    phone: w.phone?.trim() || null,
+    email: w.email?.trim() || null,
+    website_url: w.website_url?.trim() || null,
+    blog_url: w.blog_url?.trim() || null,
+    youtube_url: w.youtube_url?.trim() || null,
+    kakao_url: w.kakao_url?.trim() || null,
+    theme: w.theme,
+    is_public: w.is_public === "true",
+    created_at: existing?.created_at ?? new Date().toISOString(),
+    tagline: w.tagline?.trim() || null,
+    trust_line: w.trust_line?.trim() || null,
+    gallery_urls:
+      w.gallery_urls_raw
+        ?.split("\n")
+        .map((l) => l.trim())
+        .filter((l) => l.length > 0) ?? null,
+    services:
+      (w.services ?? []).filter((s) => s.title.trim() && s.body.trim()).length > 0
+        ? (w.services ?? []).filter((s) => s.title.trim() && s.body.trim())
+        : null,
+  };
+
+  const previewLinks: CardLink[] = linkRows
+    .filter((r) => r.label.trim() && r.url.trim())
+    .map((r, i) => ({
+      id: r.id,
+      card_id: "preview",
+      label: r.label,
+      type: r.type,
+      url: r.url,
+      sort_order: i,
+    }));
 
   const onSlugFromBrand = () => {
     const s = slugify(brandWatch || "my-card");
@@ -138,6 +209,13 @@ export function CardEditorPage() {
   const onSave = handleSubmit(async (values) => {
     if (!user) return;
     const cardId = existing?.id ?? crypto.randomUUID();
+    const galleryList =
+      values.gallery_urls_raw
+        ?.split("\n")
+        .map((l) => l.trim())
+        .filter((l) => l.length > 0) ?? [];
+    const serviceList = values.services.filter((s) => s.title.trim() && s.body.trim());
+
     const card: BusinessCard = {
       id: cardId,
       user_id: user.id,
@@ -155,6 +233,10 @@ export function CardEditorPage() {
       theme: values.theme,
       is_public: values.is_public === "true",
       created_at: existing?.created_at ?? new Date().toISOString(),
+      tagline: values.tagline?.trim() || null,
+      trust_line: values.trust_line?.trim() || null,
+      gallery_urls: galleryList.length > 0 ? galleryList : null,
+      services: serviceList.length > 0 ? serviceList : null,
     };
     upsertBusinessCard(card);
     const links: CardLink[] = linkRows
@@ -212,11 +294,21 @@ export function CardEditorPage() {
         </div>
       ) : null}
 
-      {isNew ? (
-        <div className="mb-12 sm:mb-14">
-          <CardEditorSamplePreview />
+      <div className="mb-10 overflow-hidden rounded-2xl border border-slate-200 bg-slate-100 shadow-sm">
+        <p className="border-b border-slate-200 bg-white px-4 py-3 text-center text-sm font-semibold text-slate-800">
+          실시간 미리보기 · 저장 전 공개 페이지와 동일한 구조
+        </p>
+        <div className="max-h-[min(72vh,640px)] overflow-y-auto overscroll-contain bg-slate-100">
+          <DigitalCardPublicView
+            card={previewCard}
+            links={previewLinks}
+            onLinkClick={() => {}}
+            compact
+            hideSticky
+            qrDataUrl={null}
+          />
         </div>
-      ) : null}
+      </div>
 
       <form onSubmit={onSave} className="space-y-6">
         <Card>
@@ -280,6 +372,71 @@ export function CardEditorPage() {
                   <option value="false">비공개</option>
                 </Select>
               </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <h2 className="text-lg font-semibold text-slate-900">공개 명함 · 랜딩</h2>
+            <p className="text-sm text-slate-500">
+              상단 히어로·신뢰·서비스 영역에 반영됩니다. 키워드는 자연스럽게 한 줄 설명과 소개에 녹여 주세요.
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <label className="text-base font-medium text-slate-800">한 줄 설명 (SEO·히어로)</label>
+              <Input
+                className="mt-1"
+                placeholder="예: B2B 퍼포먼스 마케팅 · 리드 제너레이션 전문"
+                {...register("tagline")}
+              />
+            </div>
+            <div>
+              <label className="text-base font-medium text-slate-800">신뢰 한 줄 (후기·성과)</label>
+              <Input className="mt-1" placeholder="예: 누적 컨설팅 120건 이상" {...register("trust_line")} />
+            </div>
+            <div>
+              <label className="text-base font-medium text-slate-800">작업 사진 URL (줄마다 하나)</label>
+              <Textarea
+                className="mt-1 font-mono text-sm"
+                rows={4}
+                placeholder="https://..."
+                {...register("gallery_urls_raw")}
+              />
+              <p className="mt-1 text-xs text-slate-500">비어 있으면 예시 이미지가 표시됩니다.</p>
+            </div>
+            <div>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <label className="text-base font-medium text-slate-800">서비스 (최대 5개)</label>
+                {serviceFields.length < 5 ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => appendService({ title: "", body: "" })}
+                  >
+                    추가
+                  </Button>
+                ) : null}
+              </div>
+              <div className="mt-3 space-y-3">
+                {serviceFields.map((field, idx) => (
+                  <div key={field.id} className="rounded-xl border border-slate-100 bg-slate-50/80 p-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="text-xs font-medium text-slate-500">서비스 {idx + 1}</span>
+                      {serviceFields.length > 3 ? (
+                        <Button type="button" variant="outline" size="sm" onClick={() => removeService(idx)}>
+                          삭제
+                        </Button>
+                      ) : null}
+                    </div>
+                    <Input className="mt-2" placeholder="제목" {...register(`services.${idx}.title`)} />
+                    <Textarea className="mt-2" rows={2} placeholder="짧은 설명" {...register(`services.${idx}.body`)} />
+                  </div>
+                ))}
+              </div>
+              <p className="mt-2 text-xs text-slate-500">제목·설명이 모두 비어 있으면 기본 서비스 안내가 표시됩니다.</p>
             </div>
           </CardContent>
         </Card>

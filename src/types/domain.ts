@@ -10,6 +10,12 @@ export interface User {
   created_at: string;
 }
 
+/** 랜딩형 디지털 명함 — 서비스 블록 한 줄 */
+export type DigitalCardServiceLine = {
+  title: string;
+  body: string;
+};
+
 export interface BusinessCard {
   id: string;
   user_id: string;
@@ -27,6 +33,14 @@ export interface BusinessCard {
   theme: "navy" | "slate" | "midnight";
   is_public: boolean;
   created_at: string;
+  /** Hero/SEO 한 줄 (비어 있으면 직함·소개로 보완) */
+  tagline?: string | null;
+  /** 신뢰 영역 갤러리 이미지 URL */
+  gallery_urls?: string[] | null;
+  /** 서비스 3~5개 */
+  services?: DigitalCardServiceLine[] | null;
+  /** 후기·성과 한 줄 */
+  trust_line?: string | null;
 }
 
 export type CardLinkType = "custom" | "phone" | "email" | "kakao" | "youtube" | "blog" | "website";
