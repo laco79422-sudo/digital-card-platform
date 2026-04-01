@@ -17,7 +17,7 @@ import { PublicCardPage } from "@/pages/PublicCardPage";
 import { RequestCreatePage } from "@/pages/RequestCreatePage";
 import { RequestListPage } from "@/pages/RequestListPage";
 import { SignupPage } from "@/pages/SignupPage";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 
 function AppRoutes() {
   useSupabaseAuthSync();
@@ -30,6 +30,7 @@ function AppRoutes() {
         <Route index element={<LandingPage />} />
         <Route path="pricing" element={<PricingPage />} />
         <Route path="login" element={<LoginPage />} />
+        <Route path="mypage" element={<Navigate to="/dashboard" replace />} />
         <Route path="signup" element={<SignupPage />} />
         <Route path="creators" element={<CreatorDirectoryPage />} />
         <Route path="creators/:id" element={<CreatorProfilePage />} />

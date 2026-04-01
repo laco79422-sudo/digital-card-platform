@@ -65,6 +65,18 @@ export function useSupabaseAuthSync() {
       setAuthLoading(false);
     };
 
+    /** 모바일 등에서 저장소 복원 직후 세션을 확실히 읽기 위해 `getSession`으로 한 번 부트스트랩합니다. */
+    void (async () => {
+      try {
+        const {
+          data: { session },
+        } = await client.auth.getSession();
+        await applySessionOrClear(session);
+      } catch {
+        setAuthLoading(false);
+      }
+    })();
+
     const {
       data: { subscription },
     } = client.auth.onAuthStateChange((_event, session) => {
