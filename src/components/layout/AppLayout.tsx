@@ -1,3 +1,4 @@
+import { AuthOAuthErrorBridge } from "@/components/layout/AuthOAuthErrorBridge";
 import { DashboardNavbar } from "@/components/layout/DashboardNavbar";
 import { Footer } from "@/components/layout/Footer";
 import { Navbar } from "@/components/layout/Navbar";
@@ -9,6 +10,7 @@ export function AppLayout() {
 
   return (
     <div className="flex min-h-dvh flex-col">
+      <AuthOAuthErrorBridge />
       {isDashboard ? <DashboardNavbar /> : <Navbar />}
       <main className="flex-1">
         <Outlet />

@@ -1,20 +1,19 @@
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
+import { InactivityToast } from "@/components/auth/InactivityToast";
+import { useAuthReady } from "@/hooks/useAuthReady";
+import { signInWithEmail, signInWithGoogle } from "@/lib/auth/authActions";
 import { layout } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
-import { authErrorToKorean } from "@/lib/auth/authErrorMessage";
-import {
-  getSupabaseConfigErrorMessage,
-  isSupabaseConfigured,
-  supabase,
-} from "@/lib/supabase/client";
+import { getSupabaseConfigErrorMessage, isSupabaseConfigured } from "@/lib/supabase/client";
 import { mapSupabaseUser } from "@/lib/supabase/mapAuthUser";
 import { useAuthStore } from "@/stores/authStore";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Globe } from "lucide-react";
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { z } from "zod";
 
 const schema = z.object({
@@ -29,7 +28,11 @@ export function LoginPage() {
   const location = useLocation();
   const from = (location.state as { from?: string } | null)?.from ?? "/dashboard";
   const signupNotice = (location.state as { signupNotice?: string } | null)?.signupNotice;
+  const user = useAuthStore((s) => s.user);
+  const authReady = useAuthReady();
   const setUser = useAuthStore((s) => s.setUser);
+  const setSession = useAuthStore((s) => s.setSession);
+  const touchActivity = useAuthStore((s) => s.touchActivity);
 
   const {
     register,
@@ -39,44 +42,57 @@ export function LoginPage() {
     clearErrors,
   } = useForm<FormValues>({ resolver: zodResolver(schema) });
 
+  useEffect(() => {
+    if (!authReady) return;
+    const oauthErr = (location.state as { oauthError?: string } | null)?.oauthError;
+    if (oauthErr) {
+      setError("root", { message: oauthErr });
+      navigate(".", { replace: true, state: {} });
+    }
+  }, [authReady, location.state, navigate, setError]);
+
   const onSubmit = async (values: FormValues) => {
     clearErrors("root");
-    if (!isSupabaseConfigured || !supabase) {
+    if (!isSupabaseConfigured) {
       setError("root", { message: getSupabaseConfigErrorMessage() });
       return;
     }
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email: values.email,
-      password: values.password,
-    });
-    if (error) {
-      setError("root", { message: authErrorToKorean(error.message) });
+    const { user: u, session: sess, errorMessage } = await signInWithEmail(values.email, values.password);
+    if (errorMessage) {
+      setError("root", { message: errorMessage });
       return;
     }
-    if (!data.user) {
+    if (!u) {
       setError("root", {
         message: "로그인에 성공했지만 사용자 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.",
       });
       return;
     }
-    setUser(mapSupabaseUser(data.user));
+    if (sess) setSession(sess);
+    setUser(mapSupabaseUser(u));
+    touchActivity();
     navigate(from, { replace: true });
   };
 
-  const googlePlaceholder = async () => {
+  const googleSignIn = async () => {
     clearErrors("root");
-    if (!isSupabaseConfigured || !supabase) {
-      setError("root", { message: getSupabaseConfigErrorMessage() });
-      return;
-    }
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: `${window.location.origin}/dashboard` },
-    });
-    if (error) {
-      setError("root", { message: authErrorToKorean(error.message) });
+    const { errorMessage } = await signInWithGoogle();
+    if (errorMessage) {
+      setError("root", { message: errorMessage });
     }
   };
+
+  if (!authReady) {
+    return (
+      <div className={cn(layout.pageAuth, "flex min-h-[50vh] items-center justify-center py-12 sm:py-20")}>
+        <p className="text-sm text-slate-500">화면을 불러오는 중…</p>
+      </div>
+    );
+  }
+
+  if (user) {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   return (
     <div className={cn(layout.pageAuth, "py-12 sm:py-20 lg:py-24")}>
@@ -89,6 +105,7 @@ export function LoginPage() {
           </p>
         </CardHeader>
         <CardContent>
+          <InactivityToast authReady={authReady} />
           {!isSupabaseConfigured ? (
             <div
               role="alert"
@@ -136,8 +153,11 @@ export function LoginPage() {
               로그인
             </Button>
           </form>
-          <div className="mt-4">
-            <Button type="button" variant="secondary" className="w-full" size="lg" onClick={googlePlaceholder}>
+          <p className="mt-4 text-center text-xs leading-relaxed text-slate-500">
+            구글 로그인은 입력한 이메일/비밀번호와 별도로 진행됩니다.
+          </p>
+          <div className="mt-3">
+            <Button type="button" variant="secondary" className="w-full" size="lg" onClick={() => void googleSignIn()}>
               <Globe className="h-4 w-4 shrink-0" aria-hidden />
               구글로 시작하기
             </Button>

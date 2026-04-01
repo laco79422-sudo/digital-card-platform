@@ -2,19 +2,20 @@ import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
+import { InactivityToast } from "@/components/auth/InactivityToast";
+import { useAuthReady } from "@/hooks/useAuthReady";
+import { DUPLICATE_EMAIL_MESSAGE } from "@/lib/auth/authErrorMessage";
+import { signInWithGoogle, signUpWithEmail } from "@/lib/auth/authActions";
 import { layout } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
-import { authErrorToKorean } from "@/lib/auth/authErrorMessage";
-import {
-  getSupabaseConfigErrorMessage,
-  isSupabaseConfigured,
-  supabase,
-} from "@/lib/supabase/client";
+import { getSupabaseConfigErrorMessage, isSupabaseConfigured } from "@/lib/supabase/client";
 import { mapSupabaseUser } from "@/lib/supabase/mapAuthUser";
 import { useAuthStore } from "@/stores/authStore";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Globe } from "lucide-react";
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { z } from "zod";
 
 const schema = z.object({
@@ -28,7 +29,12 @@ type FormValues = z.infer<typeof schema>;
 
 export function SignupPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const user = useAuthStore((s) => s.user);
+  const authReady = useAuthReady();
   const setUser = useAuthStore((s) => s.setUser);
+  const setSession = useAuthStore((s) => s.setSession);
+  const touchActivity = useAuthStore((s) => s.touchActivity);
 
   const {
     register,
@@ -41,29 +47,46 @@ export function SignupPage() {
     defaultValues: { role: "client" },
   });
 
+  useEffect(() => {
+    if (!authReady) return;
+    const oauthErr = (location.state as { oauthError?: string } | null)?.oauthError;
+    if (oauthErr) {
+      setError("root", { message: oauthErr });
+      navigate(".", { replace: true, state: {} });
+    }
+  }, [authReady, location.state, navigate, setError]);
+
   const onSubmit = async (values: FormValues) => {
     clearErrors("root");
-    if (!isSupabaseConfigured || !supabase) {
+    clearErrors("email");
+    if (!isSupabaseConfigured) {
       setError("root", { message: getSupabaseConfigErrorMessage() });
       return;
     }
-    const { data, error } = await supabase.auth.signUp({
+    const { data, errorMessage } = await signUpWithEmail({
       email: values.email,
       password: values.password,
-      options: {
-        data: {
-          name: values.name,
-          role: values.role,
-        },
-        emailRedirectTo: `${window.location.origin}/dashboard`,
-      },
+      name: values.name,
+      role: values.role,
     });
-    if (error) {
-      setError("root", { message: authErrorToKorean(error.message) });
+    if (errorMessage) {
+      if (errorMessage === DUPLICATE_EMAIL_MESSAGE) {
+        setError("email", { type: "duplicate", message: errorMessage });
+      } else {
+        setError("root", { message: errorMessage });
+      }
+      return;
+    }
+    if (!data) {
+      setError("root", {
+        message: "회원가입을 완료하지 못했습니다. 잠시 후 다시 시도해 주세요.",
+      });
       return;
     }
     if (data.session?.user) {
+      setSession(data.session);
       setUser(mapSupabaseUser(data.session.user));
+      touchActivity();
       navigate("/dashboard", { replace: true });
       return;
     }
@@ -82,6 +105,26 @@ export function SignupPage() {
     });
   };
 
+  const googleSignIn = async () => {
+    clearErrors("root");
+    const { errorMessage } = await signInWithGoogle();
+    if (errorMessage) {
+      setError("root", { message: errorMessage });
+    }
+  };
+
+  if (!authReady) {
+    return (
+      <div className={cn(layout.pageAuth, "flex min-h-[50vh] items-center justify-center py-12 sm:py-20")}>
+        <p className="text-sm text-slate-500">화면을 불러오는 중…</p>
+      </div>
+    );
+  }
+
+  if (user) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
   return (
     <div className={cn(layout.pageAuth, "py-12 sm:py-20 lg:py-24")}>
       <Card>
@@ -93,6 +136,7 @@ export function SignupPage() {
           </p>
         </CardHeader>
         <CardContent>
+          <InactivityToast authReady={authReady} />
           {!isSupabaseConfigured ? (
             <div
               role="alert"
@@ -126,8 +170,30 @@ export function SignupPage() {
               <label className="text-base font-medium text-slate-800" htmlFor="email">
                 이메일
               </label>
-              <Input id="email" type="email" className="mt-1" {...register("email")} />
-              {errors.email ? <p className="mt-1 text-xs text-red-600">{errors.email.message}</p> : null}
+              <Input
+                id="email"
+                type="email"
+                className="mt-1"
+                {...register("email", {
+                  onChange: () => {
+                    clearErrors("email");
+                    clearErrors("root");
+                  },
+                })}
+              />
+              {errors.email ? (
+                <p className="mt-1 text-xs text-red-600" role="alert">
+                  {errors.email.message}
+                  {errors.email.type === "duplicate" ? (
+                    <>
+                      {" "}
+                      <Link to="/login" className="font-medium text-brand-700 underline">
+                        로그인하기
+                      </Link>
+                    </>
+                  ) : null}
+                </p>
+              ) : null}
             </div>
             <div>
               <label className="text-base font-medium text-slate-800" htmlFor="password">
@@ -143,6 +209,16 @@ export function SignupPage() {
               회원가입
             </Button>
           </form>
+          <p className="mt-4 text-center text-xs leading-relaxed text-slate-500">
+            구글 로그인은 위에 입력한 이메일/비밀번호와 별도로 진행됩니다. 동일 이메일은 Supabase에서 하나의
+            사용자로 연결되도록 설정할 수 있어요.
+          </p>
+          <div className="mt-3">
+            <Button type="button" variant="secondary" className="w-full" size="lg" onClick={() => void googleSignIn()}>
+              <Globe className="h-4 w-4 shrink-0" aria-hidden />
+              구글로 시작하기
+            </Button>
+          </div>
           <p className="mt-6 text-center text-base leading-relaxed text-slate-600">
             이미 계정이 있나요?{" "}
             <Link to="/login" className="font-medium text-brand-700">

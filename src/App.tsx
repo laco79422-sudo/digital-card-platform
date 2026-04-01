@@ -1,5 +1,6 @@
 import { AppLayout } from "@/components/layout/AppLayout";
 import { ProtectedRoute } from "@/components/layout/ProtectedRoute";
+import { useInactivityLogout } from "@/hooks/useInactivityLogout";
 import { useSupabaseAuthSync } from "@/hooks/useSupabaseAuthSync";
 import { AdminDashboardPage } from "@/pages/AdminDashboardPage";
 import { ApplicationsPage } from "@/pages/ApplicationsPage";
@@ -20,6 +21,7 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 
 function AppRoutes() {
   useSupabaseAuthSync();
+  useInactivityLogout();
 
   return (
     <Routes>

@@ -1,32 +1,76 @@
+import {
+  clearLastActivity,
+  readLastActivityMs,
+  writeActivityTimestamp,
+} from "@/lib/auth/activityStorage";
+import {
+  INACTIVITY_LOGOUT_MESSAGE,
+  INACTIVITY_NOTICE_SESSION_KEY,
+  INACTIVITY_TIMEOUT_MS,
+} from "@/lib/auth/inactivityConstants";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase/client";
 import { mapSupabaseUser } from "@/lib/supabase/mapAuthUser";
 import { useAuthStore } from "@/stores/authStore";
+import type { Session } from "@supabase/supabase-js";
 import { useEffect } from "react";
 
 /**
  * Supabase Auth 세션을 Zustand와 동기화합니다.
- * 세션이 없으면 `user`를 비워 로컬 persist와 실제 로그인 상태를 맞춥니다.
+ * 비활성 시간이 `INACTIVITY_TIMEOUT_MS`를 넘기면 세션을 끊고 로그인 화면 안내용 플래그를 남깁니다.
  */
 export function useSupabaseAuthSync() {
   const setUser = useAuthStore((s) => s.setUser);
+  const setSession = useAuthStore((s) => s.setSession);
+  const setAuthLoading = useAuthStore((s) => s.setAuthLoading);
+  const setLastActivityAt = useAuthStore((s) => s.setLastActivityAt);
 
   useEffect(() => {
-    if (import.meta.env.VITE_USE_MOCK_AUTH === "true") return;
-    if (!isSupabaseConfigured || !supabase) return;
+    if (import.meta.env.VITE_USE_MOCK_AUTH === "true") {
+      setAuthLoading(false);
+      return;
+    }
+    if (!isSupabaseConfigured || !supabase) {
+      setAuthLoading(false);
+      return;
+    }
 
-    supabase.auth.getUser().then(({ data: { user }, error }) => {
-      if (error) return;
-      if (user) setUser(mapSupabaseUser(user));
-      else setUser(null);
-    });
+    const client = supabase;
+
+    const applySessionOrClear = async (session: Session | null) => {
+      if (session?.user) {
+        const last = readLastActivityMs();
+        const now = Date.now();
+        if (last != null && now - last > INACTIVITY_TIMEOUT_MS) {
+          sessionStorage.setItem(INACTIVITY_NOTICE_SESSION_KEY, INACTIVITY_LOGOUT_MESSAGE);
+          await client.auth.signOut();
+          setUser(null);
+          setSession(null);
+          setLastActivityAt(null);
+          clearLastActivity();
+          setAuthLoading(false);
+          return;
+        }
+        if (last == null) {
+          writeActivityTimestamp(now);
+        }
+        setUser(mapSupabaseUser(session.user));
+        setSession(session);
+        setLastActivityAt(readLastActivityMs());
+      } else {
+        setUser(null);
+        setSession(null);
+        setLastActivityAt(null);
+        clearLastActivity();
+      }
+      setAuthLoading(false);
+    };
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) setUser(mapSupabaseUser(session.user));
-      else setUser(null);
+    } = client.auth.onAuthStateChange((_event, session) => {
+      void applySessionOrClear(session);
     });
 
     return () => subscription.unsubscribe();
-  }, [setUser]);
+  }, [setUser, setSession, setAuthLoading, setLastActivityAt]);
 }
