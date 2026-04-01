@@ -41,6 +41,8 @@ export interface BusinessCard {
   services?: DigitalCardServiceLine[] | null;
   /** 후기·성과 한 줄 */
   trust_line?: string | null;
+  /** 히어로 브랜드 대표 이미지 (URL 또는 data URL) */
+  brand_image_url?: string | null;
 }
 
 export type CardLinkType = "custom" | "phone" | "email" | "kakao" | "youtube" | "blog" | "website";

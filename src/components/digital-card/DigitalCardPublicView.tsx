@@ -109,32 +109,41 @@ export function DigitalCardPublicView({
         aria-label="소개"
       >
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(255,255,255,0.12),_transparent_55%)]" />
-        <div className="relative mx-auto max-w-lg">
+        <div className="relative mx-auto w-full max-w-lg px-0">
           <div className="flex flex-col items-center text-center">
-            <div className="flex h-[3.75rem] w-[3.75rem] shrink-0 items-center justify-center rounded-2xl bg-white/15 text-lg font-bold backdrop-blur sm:h-[4.25rem] sm:w-[4.25rem] sm:text-xl">
-              {card.brand_name.slice(0, 2)}
+            <div className="relative w-full max-w-md overflow-hidden rounded-2xl bg-white/10 shadow-lg ring-1 ring-white/15">
+              <div className="relative aspect-[5/3] w-full sm:aspect-[16/9] sm:max-h-[min(42vh,280px)]">
+                {card.brand_image_url ? (
+                  <img
+                    src={card.brand_image_url}
+                    alt=""
+                    className="absolute inset-0 h-full w-full object-cover object-center"
+                    loading="eager"
+                    decoding="async"
+                  />
+                ) : (
+                  <div className="flex h-full min-h-[140px] flex-col items-center justify-center gap-2 px-4 text-white/85">
+                    <ImageIcon className="h-12 w-12 opacity-80 sm:h-14 sm:w-14" aria-hidden />
+                    <span className="text-sm font-medium sm:text-base">이미지를 등록해 주세요</span>
+                  </div>
+                )}
+              </div>
             </div>
-            <p className="mt-4 text-xs font-medium uppercase tracking-wider text-white/75 sm:text-sm">
+            <h1 className="mt-5 break-keep text-2xl font-bold leading-tight tracking-tight text-white sm:text-3xl md:text-4xl">
               {card.brand_name}
-            </p>
-            <h1 className="mt-1 break-keep text-2xl font-bold leading-tight tracking-tight sm:text-3xl">
-              {card.person_name}
             </h1>
+            <p className="mt-2 text-base font-medium text-white/90 sm:text-lg">{card.person_name}</p>
             <Badge
               tone="default"
-              className="mt-3 border border-white/30 bg-white/10 text-xs text-white sm:text-sm"
+              className="mt-2 border border-white/30 bg-white/10 text-[11px] text-white/95 sm:text-xs"
             >
               {card.job_title}
             </Badge>
-            <p className="mt-4 max-w-md text-[15px] leading-relaxed text-white/95 sm:text-base">
+            <p className="mt-4 max-w-md text-[15px] font-medium leading-relaxed text-white/95 sm:text-base">
               {tagline}
             </p>
-            <p className="mt-3 text-sm leading-relaxed text-white/85 sm:text-[15px]">
-              디지털 명함 ·{" "}
-              <span className="font-medium text-white/95">
-                {card.intro.trim().slice(0, 120)}
-                {card.intro.length > 120 ? "…" : ""}
-              </span>
+            <p className="mt-3 max-w-md whitespace-pre-wrap break-words text-sm leading-relaxed text-white/88 sm:text-[15px]">
+              {card.intro.trim()}
             </p>
             <div className="mt-6 flex w-full max-w-md flex-col gap-3 sm:flex-row sm:justify-center">
               <Button
