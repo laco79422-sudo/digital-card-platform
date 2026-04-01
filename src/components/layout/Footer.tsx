@@ -29,6 +29,11 @@ export function Footer() {
                 </Link>
               </li>
               <li>
+                <Link to="/education" className="hover:text-brand-800">
+                  교육신청
+                </Link>
+              </li>
+              <li>
                 <Link to="/creators" className="hover:text-brand-800">
                   제작자 둘러보기
                 </Link>

@@ -18,6 +18,8 @@ import type {
   CardLink,
   CardView,
   CreatorProfile,
+  EducationApplication,
+  InstructorApplication,
   MainBanner,
   Payment,
   ServiceApplication,
@@ -48,6 +50,8 @@ interface AppDataState {
   banners: MainBanner[];
   featuredCreatorIds: string[];
   platformUsers: typeof SAMPLE_USERS;
+  educationApplications: EducationApplication[];
+  instructorApplications: InstructorApplication[];
 
   setBusinessCards: (cards: BusinessCard[]) => void;
   upsertBusinessCard: (card: BusinessCard) => void;
@@ -60,6 +64,8 @@ interface AppDataState {
   upsertCreatorProfile: (c: CreatorProfile) => void;
   setFeaturedCreatorIds: (ids: string[]) => void;
   setBanners: (b: MainBanner[]) => void;
+  addEducationApplication: (a: EducationApplication) => void;
+  addInstructorApplication: (a: InstructorApplication) => void;
 }
 
 export const useAppDataStore = create<AppDataState>()(
@@ -77,6 +83,8 @@ export const useAppDataStore = create<AppDataState>()(
       banners: [...SAMPLE_BANNERS],
       featuredCreatorIds: [...FEATURED_CREATOR_IDS],
       platformUsers: [...SAMPLE_USERS],
+      educationApplications: [],
+      instructorApplications: [],
 
       setBusinessCards: (businessCards) => set({ businessCards }),
       upsertBusinessCard: (card) =>
@@ -111,11 +119,15 @@ export const useAppDataStore = create<AppDataState>()(
         })),
       setFeaturedCreatorIds: (featuredCreatorIds) => set({ featuredCreatorIds }),
       setBanners: (banners) => set({ banners }),
+      addEducationApplication: (a) =>
+        set((s) => ({ educationApplications: [...s.educationApplications, a] })),
+      addInstructorApplication: (a) =>
+        set((s) => ({ instructorApplications: [...s.instructorApplications, a] })),
     }),
     {
       name: "linko-app-data",
       storage: createJSONStorage(() => localStorage),
-      version: 1,
+      version: 2,
       partialize: (state) => ({
         businessCards: state.businessCards,
         cardLinks: state.cardLinks,
@@ -129,6 +141,8 @@ export const useAppDataStore = create<AppDataState>()(
         banners: state.banners,
         featuredCreatorIds: state.featuredCreatorIds,
         platformUsers: state.platformUsers,
+        educationApplications: state.educationApplications,
+        instructorApplications: state.instructorApplications,
       }),
       merge: (persisted, current) => {
         const p = persisted as Partial<AppDataState> | undefined;
@@ -150,6 +164,14 @@ export const useAppDataStore = create<AppDataState>()(
             ? p.featuredCreatorIds
             : current.featuredCreatorIds,
           platformUsers: mergeById(current.platformUsers, p.platformUsers),
+          educationApplications: mergeById(
+            current.educationApplications,
+            p.educationApplications,
+          ),
+          instructorApplications: mergeById(
+            current.instructorApplications,
+            p.instructorApplications,
+          ),
         };
       },
     },

@@ -157,3 +157,29 @@ export interface MainBanner {
   cta_href: string;
   sort_order: number;
 }
+
+/** 교육 신청 (AI 블로그·영상 실전 교육) */
+export type EducationInterest = "blog" | "video" | "both";
+
+export interface EducationApplication {
+  id: string;
+  name: string;
+  phone: string;
+  email: string;
+  interest: EducationInterest;
+  message: string;
+  created_at: string;
+}
+
+/** 강사 지원 */
+export interface InstructorApplication {
+  id: string;
+  name: string;
+  phone: string;
+  email: string;
+  specialty: string;
+  lecture_topics: string;
+  experience: string;
+  portfolio_url: string;
+  created_at: string;
+}

@@ -8,6 +8,7 @@ import { CardEditorPage } from "@/pages/CardEditorPage";
 import { CreatorDirectoryPage } from "@/pages/CreatorDirectoryPage";
 import { CreatorProfilePage } from "@/pages/CreatorProfilePage";
 import { DashboardPage } from "@/pages/DashboardPage";
+import { EducationPage } from "@/pages/EducationPage";
 import { LandingPage } from "@/pages/LandingPage";
 import { LoginPage } from "@/pages/LoginPage";
 import { MyCardsPage } from "@/pages/MyCardsPage";
@@ -29,6 +30,7 @@ function AppRoutes() {
       <Route element={<AppLayout />}>
         <Route index element={<LandingPage />} />
         <Route path="pricing" element={<PricingPage />} />
+        <Route path="education" element={<EducationPage />} />
         <Route path="login" element={<LoginPage />} />
         <Route path="mypage" element={<Navigate to="/dashboard" replace />} />
         <Route path="signup" element={<SignupPage />} />
