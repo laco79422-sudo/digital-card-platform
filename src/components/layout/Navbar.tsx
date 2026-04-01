@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/Button";
 import { linkButtonClassName } from "@/components/ui/buttonStyles";
 import { signOutApp } from "@/lib/auth/signOutApp";
+import { BRAND_DISPLAY_NAME } from "@/lib/brand";
 import { layout } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/authStore";
@@ -46,9 +47,11 @@ export function Navbar() {
             <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-700 to-brand-900 text-sm font-bold text-white shadow-sm">
               L
             </span>
-            <span className="truncate font-semibold tracking-tight text-slate-900 sm:hidden">Linko</span>
+            <span className="max-w-[11rem] truncate font-semibold tracking-tight text-slate-900 sm:max-w-none sm:hidden">
+              {BRAND_DISPLAY_NAME}
+            </span>
             <span className="hidden truncate font-semibold tracking-tight text-slate-900 sm:inline">
-              Linko 명함
+              {BRAND_DISPLAY_NAME}
             </span>
           </Link>
           <nav className="hidden items-center gap-6 md:flex">

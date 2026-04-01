@@ -1,3 +1,4 @@
+import { BRAND_DISPLAY_NAME, brandCta } from "@/lib/brand";
 import { layout } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/authStore";
@@ -66,13 +67,13 @@ export function DashboardPage() {
 
   return (
     <div className={cn(layout.page, "py-10 sm:py-12")}>
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="text-sm font-semibold text-brand-800">Linko 명함</p>
-          <h1 className="mt-1 break-keep text-2xl font-bold leading-snug tracking-tight text-slate-900 md:text-3xl">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="space-y-2 sm:space-y-2.5">
+          <p className="text-xs font-semibold uppercase tracking-wide text-brand-800">{BRAND_DISPLAY_NAME}</p>
+          <h1 className="break-keep text-2xl font-bold leading-snug tracking-tight text-slate-900 md:text-3xl">
             내 공간
           </h1>
-          <p className="mt-1 text-base leading-relaxed text-slate-600">
+          <p className="text-base leading-relaxed text-slate-600">
             안녕하세요, <span className="font-medium text-slate-900">{displayName}</span>님
           </p>
         </div>
@@ -81,7 +82,7 @@ export function DashboardPage() {
             to="/cards/new"
             className="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-brand-800 px-5 text-base font-semibold text-white hover:bg-brand-900 sm:min-h-0 sm:py-2.5"
           >
-            명함 만들기
+            {brandCta.createDigitalCard}
           </Link>
           <Link
             to="/requests/new"

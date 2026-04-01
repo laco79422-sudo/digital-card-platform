@@ -1,5 +1,6 @@
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { BRAND_DISPLAY_NAME } from "@/lib/brand";
 import { layout } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
 import { getLinksForCard, useAppDataStore } from "@/stores/appDataStore";
@@ -163,7 +164,7 @@ export function PublicCardPage() {
               to="/"
               className="inline-flex min-h-10 items-center justify-center text-sm text-slate-500 hover:text-brand-700"
             >
-              Linko 명함으로 만들었어요
+              {BRAND_DISPLAY_NAME}으로 만들었어요
             </Link>
           </div>
         </div>

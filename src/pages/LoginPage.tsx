@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/Input";
 import { InactivityToast } from "@/components/auth/InactivityToast";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { signInWithEmail, signInWithGoogle } from "@/lib/auth/authActions";
+import { BRAND_DISPLAY_NAME } from "@/lib/brand";
 import { layout } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
 import { getSupabaseConfigErrorMessage, isSupabaseConfigured } from "@/lib/supabase/client";
@@ -99,10 +100,10 @@ export function LoginPage() {
     <div className={cn(layout.pageAuth, "py-12 sm:py-20 lg:py-24")}>
       <Card>
         <CardHeader>
-          <p className="text-sm font-semibold text-brand-800">Linko 명함</p>
+          <p className="text-sm font-semibold text-brand-800">{BRAND_DISPLAY_NAME}</p>
           <h1 className="mt-1 text-2xl font-semibold leading-snug tracking-tight text-slate-900">로그인</h1>
           <p className="mt-2 text-base leading-relaxed text-slate-600">
-            연결되는 나의 시작, Linko 명함 계정으로 이어가세요.
+            연결되는 나의 시작, {BRAND_DISPLAY_NAME} 계정으로 이어가세요.
           </p>
         </CardHeader>
         <CardContent>

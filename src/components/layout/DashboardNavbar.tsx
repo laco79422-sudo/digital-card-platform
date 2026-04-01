@@ -1,3 +1,4 @@
+import { BRAND_DISPLAY_NAME, brandCta } from "@/lib/brand";
 import { signOutApp } from "@/lib/auth/signOutApp";
 import { layout } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
@@ -26,15 +27,18 @@ export function DashboardNavbar() {
   return (
     <header className="border-b border-slate-200 bg-white">
       <div className={cn("flex h-14 min-h-14 items-center justify-between gap-4 sm:h-16 sm:min-h-16", layout.page)}>
-        <Link to="/" className="shrink-0 text-sm font-semibold text-slate-900 hover:text-brand-800">
-          Linko 명함
+        <Link
+          to="/"
+          className="min-w-0 max-w-[min(100%,14rem)] shrink-0 truncate text-sm font-semibold text-slate-900 hover:text-brand-800 sm:max-w-xs"
+        >
+          {BRAND_DISPLAY_NAME}
         </Link>
         <div className="flex shrink-0 items-center gap-2 sm:gap-3">
           <Link
             to="/cards/new"
             className="inline-flex min-h-10 items-center justify-center rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-50 sm:px-4"
           >
-            명함 만들기
+            {brandCta.createDigitalCard}
           </Link>
           <button
             type="button"

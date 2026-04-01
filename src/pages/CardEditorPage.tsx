@@ -1,9 +1,11 @@
+import { CardEditorSamplePreview } from "@/components/card/CardEditorSamplePreview";
 import { Button } from "@/components/ui/Button";
 import { linkButtonClassName } from "@/components/ui/buttonStyles";
 import { Card, CardContent, CardHeader } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Textarea } from "@/components/ui/Textarea";
+import { brandCta } from "@/lib/brand";
 import { layout } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/authStore";
@@ -184,9 +186,9 @@ export function CardEditorPage() {
 
   return (
     <div className={cn(layout.pageEditor, "py-10 sm:py-12")}>
-      <div className="mb-6 flex items-center justify-between gap-4">
+      <div className="mb-8 flex items-center justify-between gap-4">
         <h1 className="break-keep text-2xl font-bold leading-snug tracking-tight text-slate-900 md:text-3xl">
-          {isNew ? "명함 만들기" : "명함 수정하기"}
+          {isNew ? brandCta.createDigitalCard : "명함 수정하기"}
         </h1>
         <Link
           to="/cards"
@@ -195,6 +197,27 @@ export function CardEditorPage() {
           목록으로
         </Link>
       </div>
+
+      {isNew ? (
+        <div className="mb-10 space-y-4 text-center sm:mb-12">
+          <p className="mx-auto max-w-2xl break-keep text-balance text-base font-medium leading-relaxed text-slate-800 sm:text-lg">
+            나를 소개하는 가장 쉬운 방법, 린코 디지털 명함
+          </p>
+          <p className="mx-auto max-w-2xl break-keep text-balance text-sm leading-relaxed text-slate-600 sm:text-base">
+            한 번 만들면 링크로 퍼지는 나만의 디지털 명함
+          </p>
+          <p className="mx-auto max-w-xl break-keep text-balance text-sm font-medium leading-relaxed text-brand-800 sm:text-base">
+            이름을 남기는 명함에서, 고객과 연결되는 명함으로
+          </p>
+        </div>
+      ) : null}
+
+      {isNew ? (
+        <div className="mb-12 sm:mb-14">
+          <CardEditorSamplePreview />
+        </div>
+      ) : null}
+
       <form onSubmit={onSave} className="space-y-6">
         <Card>
           <CardHeader>
@@ -235,7 +258,10 @@ export function CardEditorPage() {
                   </Button>
                 </div>
                 {errors.slug ? <p className="mt-1 text-xs text-red-600">{errors.slug.message}</p> : null}
-                <p className="mt-1 text-xs text-slate-400 break-all sm:break-normal">
+                <p className="mt-2 text-sm leading-relaxed text-slate-600">
+                  이 주소가 나만의 디지털 명함 링크로 사용됩니다.
+                </p>
+                <p className="mt-1 text-xs text-slate-500 break-all sm:break-normal">
                   링크: /c/{watch("slug") || "..."}
                 </p>
               </div>

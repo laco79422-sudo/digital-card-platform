@@ -6,6 +6,7 @@ import { InactivityToast } from "@/components/auth/InactivityToast";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { DUPLICATE_EMAIL_MESSAGE } from "@/lib/auth/authErrorMessage";
 import { signInWithGoogle, signUpWithEmail } from "@/lib/auth/authActions";
+import { BRAND_DISPLAY_NAME } from "@/lib/brand";
 import { layout } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
 import { isSupabaseConfigured } from "@/lib/supabase/client";
@@ -168,7 +169,7 @@ export function SignupPage() {
     <div className={cn(layout.pageAuth, "py-12 sm:py-20 lg:py-24")}>
       <Card>
         <CardHeader>
-          <p className="text-sm font-semibold text-brand-800">Linko 명함</p>
+          <p className="text-sm font-semibold text-brand-800">{BRAND_DISPLAY_NAME}</p>
           <h1 className="mt-1 text-2xl font-semibold leading-snug tracking-tight text-slate-900">회원가입</h1>
           <p className="mt-2 text-base leading-relaxed text-slate-600">
             이름과 이메일로 계정을 만든 뒤, 대시보드에서 명함과 의뢰를 이용할 수 있어요.

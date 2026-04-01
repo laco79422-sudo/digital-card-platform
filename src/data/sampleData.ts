@@ -274,7 +274,7 @@ export const SAMPLE_PAYMENTS: Payment[] = [
 export const SAMPLE_BANNERS: MainBanner[] = [
   {
     id: "bnr-1",
-    title: "Linko 명함 — 연결되는 나의 시작",
+    title: "Linko 디지털 명함 — 연결되는 나의 시작",
     subtitle: "이름으로 열리는 소개, 블로그·영상·디자인 파트너까지 한곳에서 만나 보세요.",
     cta_label: "무료로 시작하기",
     cta_href: "/signup",

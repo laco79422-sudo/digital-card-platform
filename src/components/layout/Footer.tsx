@@ -1,3 +1,4 @@
+import { BRAND_DISPLAY_NAME } from "@/lib/brand";
 import { layout } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
 import { Link } from "react-router-dom";
@@ -12,7 +13,7 @@ export function Footer() {
               <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-700 to-brand-900 text-sm font-bold text-white shadow-sm">
                 L
               </span>
-              <span className="font-semibold text-slate-900">Linko 명함</span>
+              <span className="font-semibold text-slate-900">{BRAND_DISPLAY_NAME}</span>
             </div>
             <p className="mt-3 text-[15px] leading-relaxed text-slate-600 sm:text-base">
               Link는 만나고, Go는 나아갑니다. 당신의 이름으로 시작되는 연결—소개와 만남, 협업까지 한곳에서
@@ -61,7 +62,7 @@ export function Footer() {
           </div>
         </div>
         <p className="mt-10 border-t border-slate-200 pt-8 text-center text-xs text-slate-400">
-          © {new Date().getFullYear()} Linko 명함
+          © {new Date().getFullYear()} {BRAND_DISPLAY_NAME}
         </p>
       </div>
     </footer>

@@ -1,6 +1,7 @@
 import { linkButtonClassName } from "@/components/ui/buttonStyles";
 import { Card, CardContent } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { brandCta } from "@/lib/brand";
 import { layout } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/authStore";
@@ -36,7 +37,7 @@ export function MyCardsPage() {
             linkButtonClassName({ size: "lg", className: "w-full sm:w-auto" }),
           )}
         >
-          명함 만들기
+          {brandCta.createDigitalCard}
         </Link>
       </div>
 
@@ -47,7 +48,7 @@ export function MyCardsPage() {
             title="아직 명함이 없습니다"
             description="첫 명함으로 당신의 이야기를 열고, 연결을 시작해 보세요."
             action={() => (window.location.href = "/cards/new")}
-            actionLabel="명함 만들기"
+            actionLabel={brandCta.createDigitalCard}
           />
         </div>
       ) : (
