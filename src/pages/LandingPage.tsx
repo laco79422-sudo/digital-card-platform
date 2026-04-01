@@ -2,7 +2,7 @@ import { linkButtonClassName } from "@/components/ui/buttonStyles";
 import { CreatorCard } from "@/components/ui/CreatorCard";
 import { PricingCard } from "@/components/ui/PricingCard";
 import { LANDING_FAQ, LANDING_TESTIMONIALS } from "@/data/sampleData";
-import { layout, section, type } from "@/lib/ui-classes";
+import { form, layout, section, type } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
 import { useAppDataStore } from "@/stores/appDataStore";
 import {
@@ -14,15 +14,10 @@ import {
   Video,
 } from "lucide-react";
 import { useMemo } from "react";
-import { Link } from "react-router-dom";
-
-const HERO_STORY = `당신의 이름이 하나의 연결이 되는 순간,
-Linko는 사람과 사람을 이어줍니다.
-단순한 명함이 아니라,
-당신을 보여주고, 연결을 만들고,
-기회를 이어가는 새로운 시작입니다.`;
+import { Link, useNavigate } from "react-router-dom";
 
 export function LandingPage() {
+  const navigate = useNavigate();
   const featuredCreatorIds = useAppDataStore((s) => s.featuredCreatorIds);
   const creators = useAppDataStore((s) => s.creators);
   const featured = useMemo(
@@ -33,33 +28,153 @@ export function LandingPage() {
     [featuredCreatorIds, creators],
   );
 
+  const sampleCreator = featured[0] ?? null;
+
+  const flowItems = [
+    {
+      icon: Link2,
+      title: "나를 담은 명함",
+      body: "웹 주소·QR·테마로 첫인상을 완성하고, 어디서든 펼쳐 보이세요.",
+    },
+    {
+      icon: BarChart3,
+      title: "누가 찾아왔는지",
+      body: "방문과 클릭을 기록해, 어떤 인연이 닿고 있는지 감을 잡을 수 있어요.",
+    },
+    {
+      icon: MessageSquare,
+      title: "이야기 이어가기",
+      body: "의뢰와 문의를 한곳에 모아, 놓치지 않고 답할 수 있습니다.",
+    },
+    {
+      icon: Users,
+      title: "맞는 사람과 연결",
+      body: "제작자·협업자를 찾고, 제안을 주고받으며 관계를 키워 가세요.",
+    },
+  ] as const;
+
   return (
     <>
       <section className="relative overflow-hidden bg-gradient-to-b from-slate-900 via-brand-950 to-brand-950 text-white">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(96,165,250,0.18),_transparent_55%)]" />
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(96,165,250,0.2),_transparent_55%)]" />
         <div className={cn("relative", layout.page, section.yHero)}>
-          <div className="max-w-3xl">
+          <div className="mx-auto flex max-w-4xl flex-col items-center text-center">
             <p className={type.heroKicker}>
               <Link2 className="h-3.5 w-3.5 shrink-0 opacity-90" aria-hidden />
               Link + Go · 연결하고 나아가요
             </p>
-            <h1 className={cn("mt-5 sm:mt-6", type.heroTitle)}>Linko 명함</h1>
-            <p className={cn("mt-4 sm:mt-5", type.heroTagline)}>연결되는 나의 시작</p>
-            <p className={cn("mt-6 sm:mt-7", type.heroStory)}>{HERO_STORY}</p>
-            <div className="mt-8 flex flex-col gap-3 sm:mt-10 sm:flex-row sm:items-stretch">
+
+            <h1 className={cn("mt-6 sm:mt-8", type.heroMain)}>
+              나를 소개하는 가장 쉬운 방법, 린코 디지털 명함
+            </h1>
+
+            <p className={type.heroSub}>
+              한 번 만들면 링크로 퍼지는 나만의 디지털 명함
+            </p>
+
+            {/* 홍보 흐름 안내: 한눈에 읽히는 4카드 */}
+            <div
+              className="mt-10 w-full max-w-3xl rounded-2xl border border-white/15 bg-white/5 p-5 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.35)] backdrop-blur-sm sm:mt-12 sm:p-7"
+              aria-label="서비스 안내"
+            >
+              <p className="text-sm font-semibold text-brand-100 sm:text-base">홍보 흐름 안내</p>
+              <div className="mt-5 grid gap-4 text-left sm:grid-cols-2 sm:gap-5">
+                {flowItems.map((item) => (
+                  <div
+                    key={item.title}
+                    className="flex gap-3 rounded-xl border border-white/10 bg-white/5 p-4 sm:p-4"
+                  >
+                    <item.icon className="mt-0.5 h-6 w-6 shrink-0 text-brand-300" aria-hidden />
+                    <div>
+                      <h3 className="text-sm font-semibold text-white sm:text-sm">{item.title}</h3>
+                      <p className="mt-1.5 text-[13px] leading-relaxed text-white/85 sm:text-[15px]">{item.body}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <p
+              className={cn(
+                type.heroLead,
+                "mt-10 max-w-2xl rounded-2xl border border-brand-400/40 bg-brand-600/25 px-5 py-4 text-base font-semibold text-brand-50 shadow-lg sm:mt-12 sm:px-6 sm:py-5 sm:text-lg md:text-xl",
+              )}
+            >
+              이름을 남기는 명함에서, 고객과 연결되는 명함으로
+            </p>
+
+            <div className="mt-8 w-full sm:mt-10">
+              <p className="text-sm font-medium text-brand-100/95">명함 샘플 미리보기</p>
+              <div className="mx-auto mt-4 max-w-[22rem]">
+                {sampleCreator ? (
+                  <CreatorCard creator={sampleCreator} />
+                ) : (
+                  <div className="rounded-2xl border border-white/20 bg-white/10 p-6 text-left shadow-lg backdrop-blur-md">
+                    <p className="text-xs font-medium uppercase tracking-wide text-brand-200/90">Sample</p>
+                    <p className="mt-3 text-xl font-bold text-white">김링코</p>
+                    <p className="mt-1 text-sm text-white/80">디지털 명함 · 제작자</p>
+                    <p className="mt-4 text-[15px] leading-relaxed text-white/88">
+                      링크 하나로 프로필·포트폴리오·문의를 연결합니다. 실제 명함은 가입 후 바로 편집할 수 있어요.
+                    </p>
+                    <div className="mt-4 flex flex-wrap gap-1.5">
+                      <span className="rounded-full bg-white/15 px-2.5 py-1 text-xs text-white/95">프로필</span>
+                      <span className="rounded-full bg-white/15 px-2.5 py-1 text-xs text-white/95">QR</span>
+                      <span className="rounded-full bg-white/15 px-2.5 py-1 text-xs text-white/95">문의</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="mt-10 w-full max-w-md sm:mt-12">
+              <p className="text-sm font-medium text-white/90">디지털 명함 만들기</p>
+              <form
+                className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-stretch"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  navigate("/signup");
+                }}
+              >
+                <label htmlFor="landing-email" className="sr-only">
+                  이메일
+                </label>
+                <input
+                  id="landing-email"
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                  placeholder="이메일 주소를 입력하세요"
+                  className={cn(form.input, "border-white/25 bg-white/95 text-slate-900 placeholder:text-slate-500")}
+                />
+                <button
+                  type="submit"
+                  className={cn(
+                    "inline-flex min-h-12 shrink-0 items-center justify-center gap-2 rounded-xl px-5 text-base font-semibold text-slate-900 shadow-md",
+                    "bg-white hover:bg-white/95 focus:outline-none focus:ring-2 focus:ring-white/60 focus:ring-offset-2 focus:ring-offset-brand-950 sm:px-6",
+                  )}
+                >
+                  시작하기
+                  <ArrowRight className="h-4 w-4 shrink-0" aria-hidden />
+                </button>
+              </form>
+              <p className={cn("mt-4", type.heroFootnote)}>
+                첫 명함은 무료로, 이름 하나로 오늘부터 연결을 열어 보세요.
+              </p>
+            </div>
+
+            <div className="mt-8 flex w-full max-w-lg flex-col gap-3 sm:mt-10 sm:flex-row sm:justify-center">
               <Link
                 to="/signup"
                 className={cn(
                   "w-full sm:w-auto",
                   linkButtonClassName({
-                    variant: "solidLight",
+                    variant: "outlineOnDark",
                     size: "lg",
-                    className: "w-full gap-2 sm:w-auto",
+                    className: "w-full sm:w-auto",
                   }),
                 )}
               >
-                연결 시작하기
-                <ArrowRight className="h-4 w-4 shrink-0 text-slate-900" aria-hidden />
+                회원가입으로 이동
               </Link>
               <Link
                 to="/creators"
@@ -75,9 +190,6 @@ export function LandingPage() {
                 함께할 사람 둘러보기
               </Link>
             </div>
-            <p className={cn("mt-5 sm:mt-6", type.heroFootnote)}>
-              첫 명함은 무료로, 이름 하나로 오늘부터 연결을 열어 보세요.
-            </p>
           </div>
         </div>
       </section>

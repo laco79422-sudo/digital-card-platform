@@ -33,8 +33,14 @@ export const section = {
 export const type = {
   heroKicker:
     "inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-medium text-white sm:text-sm",
+  /** 랜딩 최상단 메인 헤드라인 (최대 강조) */
+  heroMain:
+    "break-keep text-balance text-3xl font-extrabold leading-[1.18] tracking-tight text-white sm:text-4xl md:text-5xl lg:text-[3.15rem] lg:leading-[1.15] xl:text-6xl",
   heroTitle:
     "break-keep text-4xl font-bold leading-[1.15] tracking-tight text-white md:text-5xl lg:text-[2.75rem] lg:leading-[1.12] xl:text-6xl",
+  /** 랜딩 서브 헤드라인 (헤드라인 바로 아래) */
+  heroSub:
+    "mx-auto mt-5 max-w-2xl break-keep text-balance text-base font-normal leading-relaxed text-white/92 sm:mt-6 sm:text-lg md:text-xl md:leading-relaxed",
   heroLead:
     "break-keep text-base font-normal leading-relaxed text-white/92 max-w-xl sm:text-[17px] md:max-w-2xl",
   /** Hero 부제 · 연결 메시지 */
