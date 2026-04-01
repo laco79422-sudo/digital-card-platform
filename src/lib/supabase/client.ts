@@ -62,6 +62,7 @@ if (!isSupabaseConfigured) {
   logSupabaseConfigError();
 }
 
+/** 세션은 Supabase에 맡기고, 비활성 자동 로그아웃·`app_last_activity_at`은 `@/lib/auth/inactivityConstants`에서 관리합니다. */
 export const supabase: SupabaseClient | null = isSupabaseConfigured
   ? createClient(url, anonKey, {
       auth: {
