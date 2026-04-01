@@ -1,0 +1,34 @@
+---
+description: Git은 항상 main만 사용·“깃허브에 올려줘” 시 고정 시퀀스
+alwaysApply: true
+---
+
+# Git·Netlify (Linko 명함 프로젝트)
+
+## 브랜치
+
+- **새 브랜치를 만들지 않는다.** 기능·수정 모두 **`main`에만** 반영한다.
+
+## “깃허브에 올려줘” 요청 시 (이 순서만)
+
+에이전트는 사용자에게 맡기지 말고 **아래를 그대로 실행**한다.
+
+```bash
+git checkout main
+git pull origin main
+git add .
+git commit -m "작업 내용 요약"
+git push origin main
+```
+
+- 커밋 메시지 `"작업 내용 요약"`은 실제 변경에 맞는 한 줄로 바꾼다.
+
+## 작업 후 반드시 사용자에게 알릴 것
+
+1. **main 반영 여부** — 커밋이 `main`에 포함되었는지  
+2. **push 성공 여부** — `git push origin main` 결과  
+3. **Netlify 자동 배포 대상 여부** — `main`에 푸시되면 Netlify가 연동되어 있을 때 일반적으로 자동 배포 트리거됨을 안내 (연동 설정은 저장소·Netlify 대시보드 기준)
+
+## 참고
+
+Netlify는 보통 **`main`** 푸시를 기준으로 빌드한다. PR/머지 없이 위 흐름만 사용한다.

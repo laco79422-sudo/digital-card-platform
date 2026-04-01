@@ -42,9 +42,11 @@ export function mapSupabaseUser(sessionUser: {
   user_metadata?: Record<string, unknown>;
 }): User {
   const meta = sessionUser.user_metadata ?? {};
+  // 이메일 가입 시 userType만 넣은 경우와 예전 role 필드 모두 지원
+  const roleRaw = meta.role ?? meta.userType;
   return {
     id: sessionUser.id,
-    role: normalizeRole(meta.role),
+    role: normalizeRole(roleRaw),
     name: resolveDisplayName(meta, sessionUser.email),
     email: sessionUser.email ?? "",
     phone: typeof meta.phone === "string" ? meta.phone : null,

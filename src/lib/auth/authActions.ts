@@ -35,7 +35,8 @@ export type SignUpWithEmailParams = {
   email: string;
   password: string;
   name: string;
-  role: string;
+  /** 사업자(client) / 제작자(creator) 등 — user_metadata.userType 으로 저장 */
+  userType: string;
 };
 
 export type SignUpWithEmailResult = {
@@ -47,13 +48,14 @@ export async function signUpWithEmail(params: SignUpWithEmailParams): Promise<Si
   if (!isSupabaseConfigured || !supabase) {
     return { data: null, errorMessage: getSupabaseConfigErrorMessage() };
   }
+  // Supabase Auth: user_metadata 에 이름·유형만 넣음 (별도 SQL 함수 불필요)
   const { data, error } = await supabase.auth.signUp({
     email: params.email,
     password: params.password,
     options: {
       data: {
         name: params.name,
-        role: params.role,
+        userType: params.userType,
       },
       emailRedirectTo: `${window.location.origin}/dashboard`,
     },

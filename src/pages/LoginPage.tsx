@@ -14,11 +14,12 @@ import { Globe } from "lucide-react";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
+import { signupPasswordMessages, SIGNUP_PASSWORD_MIN_LENGTH } from "@/utils/validators";
 import { z } from "zod";
 
 const schema = z.object({
   email: z.string().min(1, "이메일을 입력하세요").email("형식이 올바르지 않습니다"),
-  password: z.string().min(6, "6자 이상 입력하세요"),
+  password: z.string().min(SIGNUP_PASSWORD_MIN_LENGTH, signupPasswordMessages.tooShort),
 });
 
 type FormValues = z.infer<typeof schema>;

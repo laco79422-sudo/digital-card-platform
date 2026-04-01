@@ -5,77 +5,40 @@ import { Select } from "@/components/ui/Select";
 import { InactivityToast } from "@/components/auth/InactivityToast";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { DUPLICATE_EMAIL_MESSAGE } from "@/lib/auth/authErrorMessage";
-import {
-  SIGNUP_EMAIL_ALREADY_REGISTERED,
-  SIGNUP_EMAIL_GUIDE_AVAILABLE,
-  SIGNUP_EMAIL_GUIDE_CHECKING,
-  SIGNUP_EMAIL_GUIDE_DEFAULT,
-  SIGNUP_EMAIL_GUIDE_FORMAT,
-  SIGNUP_EMAIL_RPC_UNAVAILABLE,
-  fetchIsEmailRegistered,
-  isValidSignupEmailFormat,
-} from "@/lib/auth/checkEmailAvailability";
 import { signInWithGoogle, signUpWithEmail } from "@/lib/auth/authActions";
 import { layout } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
-import { getSupabaseConfigErrorMessage, isSupabaseConfigured } from "@/lib/supabase/client";
+import { isSupabaseConfigured } from "@/lib/supabase/client";
 import { mapSupabaseUser } from "@/lib/supabase/mapAuthUser";
 import { useAuthStore } from "@/stores/authStore";
+import {
+  getSignupEmailFieldStatus,
+  signupEmailHint,
+  signupNameMessages,
+  signupPasswordMessages,
+  SIGNUP_PASSWORD_MIN_LENGTH,
+} from "@/utils/validators";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Globe } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { Controller, useForm } from "react-hook-form";
+import { useEffect, useMemo } from "react";
+import { useForm } from "react-hook-form";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { z } from "zod";
 
+/** 가입 완료 후 로그인 화면에 넘기는 안내 (이메일 인증이 켜져 있을 때) */
+const SIGNUP_SUCCESS_NOTICE = "회원가입이 완료되었습니다. 이메일 인증 후 로그인해 주세요.";
+
 const schema = z.object({
-  name: z.string().min(2, "이름을 입력하세요"),
+  name: z.string().min(1, signupNameMessages.required),
   email: z
     .string()
-    .min(1, "이메일을 입력해 주세요.")
-    .email("올바른 이메일 형식이 아닙니다."),
-  password: z.string().min(6),
+    .min(1, signupEmailHint.empty)
+    .email(signupEmailHint.invalidFormat),
+  password: z.string().min(SIGNUP_PASSWORD_MIN_LENGTH, signupPasswordMessages.tooShort),
   role: z.enum(["client", "creator"]),
 });
 
 type FormValues = z.infer<typeof schema>;
-
-type EmailHelpKind =
-  | "default"
-  | "format_error"
-  | "pending_check"
-  | "checking"
-  | "registered"
-  | "available"
-  | "unavailable";
-
-function emailHelpLabel(kind: EmailHelpKind): string {
-  switch (kind) {
-    case "format_error":
-      return SIGNUP_EMAIL_GUIDE_FORMAT;
-    case "checking":
-      return SIGNUP_EMAIL_GUIDE_CHECKING;
-    case "registered":
-      return SIGNUP_EMAIL_ALREADY_REGISTERED;
-    case "available":
-      return SIGNUP_EMAIL_GUIDE_AVAILABLE;
-    case "unavailable":
-      return SIGNUP_EMAIL_RPC_UNAVAILABLE;
-    case "default":
-    case "pending_check":
-    default:
-      return SIGNUP_EMAIL_GUIDE_DEFAULT;
-  }
-}
-
-function emailHelpClass(kind: EmailHelpKind): string {
-  if (kind === "format_error" || kind === "registered") {
-    return "font-medium text-red-600";
-  }
-  if (kind === "available") return "text-green-700";
-  if (kind === "unavailable") return "text-amber-800";
-  return "text-slate-600";
-}
 
 export function SignupPage() {
   const navigate = useNavigate();
@@ -86,14 +49,10 @@ export function SignupPage() {
   const setSession = useAuthStore((s) => s.setSession);
   const touchActivity = useAuthStore((s) => s.touchActivity);
 
-  const [emailHelp, setEmailHelp] = useState<EmailHelpKind>("default");
-  const seqRef = useRef(0);
-  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
   const {
     register,
-    control,
     handleSubmit,
+    watch,
     formState: { errors, isSubmitting },
     setError,
     clearErrors,
@@ -102,25 +61,34 @@ export function SignupPage() {
     defaultValues: { role: "client", name: "", email: "", password: "" },
   });
 
-  const runEmailAvailability = useCallback(async (raw: string, generation: number) => {
-    const trimmed = raw.trim();
-    if (!trimmed || !isValidSignupEmailFormat(raw)) return;
-    if (generation !== seqRef.current) return;
-    setEmailHelp("checking");
-    const result = await fetchIsEmailRegistered(trimmed);
-    if (generation !== seqRef.current) return;
-    if (!result.ok) {
-      setEmailHelp("unavailable");
-      return;
-    }
-    setEmailHelp(result.registered ? "registered" : "available");
-  }, []);
+  const emailValue = watch("email") ?? "";
 
-  useEffect(() => {
-    return () => {
-      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
-    };
-  }, []);
+  /** 이메일: DB 조회 없이 형식만 구분 (빈칸 / 틀린 형식 / 형식 OK) */
+  const emailFieldStatus = useMemo(() => getSignupEmailFieldStatus(emailValue), [emailValue]);
+
+  const isDuplicateEmailError = errors.email?.type === "duplicate";
+
+  /** 형식 OK 일 때는 안내 문구를 숨깁니다(요청: 형식 안내만, 중복은 가입 시에만). */
+  const emailHintText = useMemo(() => {
+    if (isDuplicateEmailError && errors.email?.message) {
+      return errors.email.message;
+    }
+    switch (emailFieldStatus) {
+      case "empty":
+        return signupEmailHint.empty;
+      case "invalid":
+        return signupEmailHint.invalidFormat;
+      case "valid":
+        return null;
+    }
+  }, [emailFieldStatus, isDuplicateEmailError, errors.email?.message]);
+
+  const emailHintClassName = useMemo(() => {
+    if (isDuplicateEmailError || emailFieldStatus === "invalid") {
+      return "font-medium text-red-600";
+    }
+    return "text-slate-600";
+  }, [emailFieldStatus, isDuplicateEmailError]);
 
   useEffect(() => {
     if (!authReady) return;
@@ -135,50 +103,38 @@ export function SignupPage() {
     clearErrors("root");
     clearErrors("email");
     if (!isSupabaseConfigured) {
-      setError("root", { message: getSupabaseConfigErrorMessage() });
+      setError("root", {
+        message: "서비스에 연결할 수 없습니다. 잠시 후 다시 시도해 주세요.",
+      });
       return;
     }
 
     const emailTrimmed = values.email.trim();
-    if (!isValidSignupEmailFormat(values.email)) {
-      setEmailHelp("format_error");
-      setError("email", { message: SIGNUP_EMAIL_GUIDE_FORMAT });
-      return;
-    }
 
-    if (emailHelp === "checking") {
-      setError("root", { message: "이메일 확인 중입니다. 잠시 후 다시 시도해 주세요." });
-      return;
-    }
-
-    const finalCheck = await fetchIsEmailRegistered(emailTrimmed);
-    if (finalCheck.ok && finalCheck.registered) {
-      setEmailHelp("registered");
-      setError("email", { type: "duplicate", message: DUPLICATE_EMAIL_MESSAGE });
-      return;
-    }
-
+    // 실제 가입: Supabase Auth signUp (중복은 응답 메시지로만 처리, SQL 함수 불필요)
     const { data, errorMessage } = await signUpWithEmail({
       email: emailTrimmed,
       password: values.password,
-      name: values.name,
-      role: values.role,
+      name: values.name.trim(),
+      userType: values.role,
     });
+
     if (errorMessage) {
       if (errorMessage === DUPLICATE_EMAIL_MESSAGE) {
-        setEmailHelp("registered");
         setError("email", { type: "duplicate", message: errorMessage });
       } else {
         setError("root", { message: errorMessage });
       }
       return;
     }
+
     if (!data) {
       setError("root", {
         message: "회원가입을 완료하지 못했습니다. 잠시 후 다시 시도해 주세요.",
       });
       return;
     }
+
     if (data.session?.user) {
       setSession(data.session);
       setUser(mapSupabaseUser(data.session.user));
@@ -186,16 +142,15 @@ export function SignupPage() {
       navigate("/dashboard", { replace: true });
       return;
     }
+
     if (data.user) {
       navigate("/login", {
         replace: true,
-        state: {
-          signupNotice:
-            "가입 확인 메일을 보냈어요. 메일의 링크를 연 뒤 로그인해 주세요. (대시보드에서 이메일 인증을 끈 경우에는 바로 로그인을 시도해 보세요.)",
-        },
+        state: { signupNotice: SIGNUP_SUCCESS_NOTICE },
       });
       return;
     }
+
     setError("root", {
       message: "회원가입을 완료하지 못했습니다. 잠시 후 다시 시도해 주세요.",
     });
@@ -208,12 +163,6 @@ export function SignupPage() {
       setError("root", { message: errorMessage });
     }
   };
-
-  const submitBlocked =
-    isSubmitting ||
-    emailHelp === "registered" ||
-    emailHelp === "checking" ||
-    emailHelp === "format_error";
 
   if (!authReady) {
     return (
@@ -244,10 +193,9 @@ export function SignupPage() {
               role="alert"
               className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-3 text-sm text-amber-950"
             >
-              <p className="font-semibold">Supabase 연결 정보가 없거나 올바르지 않습니다</p>
-              <p className="mt-1 leading-relaxed text-amber-900">{getSupabaseConfigErrorMessage()}</p>
-              <p className="mt-2 text-xs text-amber-800/90">
-                프로젝트 루트 `.env`에 값을 넣은 뒤 반드시 개발 서버를 다시 시작하세요.
+              <p className="font-semibold">서비스 연결을 확인할 수 없습니다</p>
+              <p className="mt-1 leading-relaxed text-amber-900">
+                앱 설정이 완료되지 않았을 수 있어요. 잠시 후 다시 시도하거나 관리자에게 문의해 주세요.
               </p>
             </div>
           ) : null}
@@ -265,85 +213,36 @@ export function SignupPage() {
               <label className="text-base font-medium text-slate-800" htmlFor="name">
                 이름
               </label>
-              <Input id="name" className="mt-1" {...register("name")} />
+              <Input id="name" className="mt-1" {...register("name")} autoComplete="name" />
               {errors.name ? <p className="mt-1 text-xs text-red-600">{errors.name.message}</p> : null}
             </div>
             <div>
               <label className="text-base font-medium text-slate-800" htmlFor="email">
                 이메일
               </label>
-              <Controller
-                name="email"
-                control={control}
-                render={({ field }) => (
-                  <Input
-                    id="email"
-                    type="email"
-                    autoComplete="email"
-                    className="mt-1"
-                    {...field}
-                    onBlur={(e) => {
-                      field.onBlur();
-                      if (debounceTimerRef.current) {
-                        clearTimeout(debounceTimerRef.current);
-                        debounceTimerRef.current = null;
-                      }
-                      seqRef.current += 1;
-                      const generation = seqRef.current;
-                      const raw = e.target.value;
-                      clearErrors("email");
-                      clearErrors("root");
-                      if (!raw.trim()) {
-                        setEmailHelp("default");
-                        return;
-                      }
-                      if (!isValidSignupEmailFormat(raw)) {
-                        setEmailHelp("format_error");
-                        return;
-                      }
-                      void runEmailAvailability(raw, generation);
-                    }}
-                    onChange={(e) => {
-                      const raw = e.target.value;
-                      field.onChange(raw);
-                      clearErrors("email");
-                      clearErrors("root");
-                      if (debounceTimerRef.current) {
-                        clearTimeout(debounceTimerRef.current);
-                        debounceTimerRef.current = null;
-                      }
-                      seqRef.current += 1;
-                      const generation = seqRef.current;
-                      if (!raw.trim()) {
-                        setEmailHelp("default");
-                        return;
-                      }
-                      if (!isValidSignupEmailFormat(raw)) {
-                        setEmailHelp("format_error");
-                        return;
-                      }
-                      setEmailHelp("pending_check");
-                      debounceTimerRef.current = setTimeout(() => {
-                        debounceTimerRef.current = null;
-                        if (generation !== seqRef.current) return;
-                        void runEmailAvailability(raw, generation);
-                      }, 500);
-                    }}
-                  />
-                )}
+              <Input
+                id="email"
+                type="email"
+                autoComplete="email"
+                className="mt-1"
+                {...register("email", {
+                  onChange: () => clearErrors("email"),
+                })}
               />
-              <p className={cn("mt-1.5 text-xs leading-relaxed", emailHelpClass(emailHelp))} role="status">
-                {emailHelpLabel(emailHelp)}
-                {emailHelp === "registered" ? (
-                  <>
-                    {" "}
-                    <Link to="/login" className="font-medium text-brand-700 underline">
-                      로그인하기
-                    </Link>
-                  </>
-                ) : null}
-              </p>
-              {errors.email && errors.email.type !== "duplicate" ? (
+              {emailHintText != null ? (
+                <p className={cn("mt-1.5 text-xs leading-relaxed", emailHintClassName)} role="status">
+                  {emailHintText}
+                  {isDuplicateEmailError ? (
+                    <>
+                      {" "}
+                      <Link to="/login" className="font-medium text-brand-700 underline">
+                        로그인하기
+                      </Link>
+                    </>
+                  ) : null}
+                </p>
+              ) : null}
+              {errors.email && !isDuplicateEmailError ? (
                 <p className="mt-1 text-xs text-red-600" role="alert">
                   {errors.email.message}
                 </p>
@@ -353,19 +252,24 @@ export function SignupPage() {
               <label className="text-base font-medium text-slate-800" htmlFor="password">
                 비밀번호
               </label>
-              <Input id="password" type="password" autoComplete="new-password" className="mt-1" {...register("password")} />
+              <Input
+                id="password"
+                type="password"
+                autoComplete="new-password"
+                className="mt-1"
+                {...register("password")}
+              />
               {errors.password ? (
                 <p className="mt-1 text-xs text-red-600">{errors.password.message}</p>
               ) : null}
             </div>
             {errors.root ? <p className="text-sm text-red-600">{errors.root.message}</p> : null}
-            <Button type="submit" className="w-full" size="lg" loading={isSubmitting} disabled={submitBlocked}>
-              회원가입
+            <Button type="submit" className="w-full" size="lg" loading={isSubmitting} disabled={isSubmitting}>
+              {isSubmitting ? "가입 처리 중..." : "회원가입"}
             </Button>
           </form>
           <p className="mt-4 text-center text-xs leading-relaxed text-slate-500">
-            구글 로그인은 위에 입력한 이메일/비밀번호와 별도로 진행됩니다. 동일 이메일은 Supabase에서 하나의
-            사용자로 연결되도록 설정할 수 있어요.
+            구글 로그인은 위에서 입력한 이메일·비밀번호 가입과 별도로 진행됩니다.
           </p>
           <div className="mt-3">
             <Button type="button" variant="secondary" className="w-full" size="lg" onClick={() => void googleSignIn()}>

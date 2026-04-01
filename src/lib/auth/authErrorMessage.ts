@@ -1,4 +1,5 @@
-const DUPLICATE_EMAIL_MESSAGE = "이미 가입된 이메일입니다. 로그인해 주세요.";
+/** 회원가입 시 이미 존재하는 이메일 (signUp 오류·난독화 응답 처리와 동일 문구) */
+const DUPLICATE_EMAIL_MESSAGE = "이미 등록된 이메일입니다. 로그인해 주세요.";
 const LINKING_MESSAGE = "이미 이메일로 가입된 계정입니다. 로그인 후 연동해 주세요.";
 
 /** Supabase Auth 오류를 로그하고 UI용 한글 문구로 반환합니다. */
