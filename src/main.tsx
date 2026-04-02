@@ -1,5 +1,6 @@
 import "@/index.css";
 import App from "@/App";
+import { AppErrorBoundary } from "@/components/errors/AppErrorBoundary";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
@@ -8,6 +9,8 @@ if (!el) throw new Error("Root element #root not found");
 
 createRoot(el).render(
   <StrictMode>
-    <App />
+    <AppErrorBoundary>
+      <App />
+    </AppErrorBoundary>
   </StrictMode>,
 );

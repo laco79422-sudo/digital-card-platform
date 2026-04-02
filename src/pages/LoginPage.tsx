@@ -9,12 +9,14 @@ import { layout } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
 import { getSupabaseConfigErrorMessage, isSupabaseConfigured } from "@/lib/supabase/client";
 import { mapSupabaseUser } from "@/lib/supabase/mapAuthUser";
+import { useDevMountLog } from "@/dev/renderDiagnostics";
 import { useAuthStore } from "@/stores/authStore";
 import { Globe } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 
 export function LoginPage() {
+  useDevMountLog("LoginPage");
   const navigate = useNavigate();
   const location = useLocation();
   const from = (location.state as { from?: string } | null)?.from ?? "/dashboard";

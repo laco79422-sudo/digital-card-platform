@@ -1,5 +1,6 @@
 import { SiteLinkPreviewSeo } from "@/components/seo/SiteLinkPreviewSeo";
 import { linkButtonClassName } from "@/components/ui/buttonStyles";
+import { useDevMountLog } from "@/dev/renderDiagnostics";
 import { CreatorCard } from "@/components/ui/CreatorCard";
 import { PricingCard } from "@/components/ui/PricingCard";
 import { LANDING_FAQ, LANDING_TESTIMONIALS } from "@/data/sampleData";
@@ -18,6 +19,7 @@ import { useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 export function LandingPage() {
+  useDevMountLog("LandingPage");
   const navigate = useNavigate();
   const featuredCreatorIds = useAppDataStore((s) => s.featuredCreatorIds);
   const creators = useAppDataStore((s) => s.creators);
