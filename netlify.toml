@@ -5,6 +5,13 @@
 [build.environment]
   NODE_VERSION = "20"
 
+# OG 이미지가 CDN에서 image/png로 안정적으로 제공되도록 (스크래퍼 호환)
+[[headers]]
+  for = "/og-image.png"
+  [headers.values]
+    Content-Type = "image/png"
+    Cache-Control = "public, max-age=604800"
+
 [[redirects]]
   from = "/*"
   to = "/index.html"

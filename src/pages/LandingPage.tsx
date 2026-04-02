@@ -1,3 +1,4 @@
+import { SiteLinkPreviewSeo } from "@/components/seo/SiteLinkPreviewSeo";
 import { linkButtonClassName } from "@/components/ui/buttonStyles";
 import { CreatorCard } from "@/components/ui/CreatorCard";
 import { PricingCard } from "@/components/ui/PricingCard";
@@ -55,6 +56,7 @@ export function LandingPage() {
 
   return (
     <>
+      <SiteLinkPreviewSeo />
       <section className="relative overflow-hidden bg-gradient-to-b from-slate-900 via-brand-950 to-brand-950 text-white">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(96,165,250,0.2),_transparent_55%)]" />
         <div className={cn("relative", layout.page, section.yHero)}>

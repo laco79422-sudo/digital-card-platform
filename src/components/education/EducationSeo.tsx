@@ -1,3 +1,4 @@
+import { SITE_OG_DESCRIPTION, SITE_OG_TITLE } from "@/lib/siteLinkPreview";
 import { useEffect } from "react";
 
 const TITLE =
@@ -27,7 +28,9 @@ export function EducationSeo() {
     metaKw.setAttribute("content", KEYWORDS);
 
     return () => {
-      document.title = "Linko 디지털 명함 - 연결되는 나의 시작";
+      document.title = SITE_OG_TITLE;
+      const metaDesc = document.querySelector('meta[name="description"]');
+      if (metaDesc) metaDesc.setAttribute("content", SITE_OG_DESCRIPTION);
     };
   }, []);
 
