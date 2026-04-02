@@ -27,8 +27,8 @@ function isValidEmailFormat(raw: string): boolean {
 }
 
 /**
- * 모바일 자동완성·Samsung Pass 등으로 인해 React state와 DOM이 어긋나는 경우를 줄이기 위해
- * controlled 입력 + ref 동기화를 함께 사용합니다.
+ * 표준 로그인 폼(id/name/autocomplete)으로 모바일·Samsung Pass·브라우저 자동완성과 호환합니다.
+ * controlled + ref + submit/onBlur 시 DOM 재동기화로 자동입력 후에도 서버로 정확한 값이 전달됩니다.
  */
 export function StableLoginForm({
   onCredentialsSubmit,
@@ -56,9 +56,6 @@ export function StableLoginForm({
     const pw = passwordRef.current?.value ?? "";
     setEmail(em);
     setPassword(pw);
-    if (import.meta.env.DEV) {
-      console.log("[StableLoginForm] syncFromDom", { emailLen: em.length, passwordLen: pw.length });
-    }
     return { email: em, password: pw };
   }, []);
 
@@ -110,19 +107,32 @@ export function StableLoginForm({
   const showRoot = rootError || externalError;
 
   return (
-    <form noValidate className="space-y-4" onSubmit={(e) => void handleSubmit(e)}>
-      <div>
-        <label className="text-base font-medium text-slate-800" htmlFor="stable-login-email">
+    <form
+      id="linko-login-form"
+      name="login"
+      method="post"
+      autoComplete="on"
+      noValidate
+      className="space-y-4 pb-6 sm:pb-8"
+      onSubmit={(e) => void handleSubmit(e)}
+    >
+      <div className="space-y-1">
+        <label className="text-base font-medium text-slate-800" htmlFor="email">
           이메일
         </label>
         <input
-          id="stable-login-email"
+          id="email"
           ref={emailRef}
           name="email"
           type="email"
           inputMode="email"
+          enterKeyHint="next"
           autoComplete="username email"
-          className={cn(loginInputClass, "mt-1")}
+          autoCapitalize="none"
+          autoCorrect="off"
+          spellCheck={false}
+          placeholder="example@email.com"
+          className={cn(loginInputClass, "mt-0")}
           value={email}
           disabled={busy}
           onChange={(e) => {
@@ -134,20 +144,22 @@ export function StableLoginForm({
           onInput={(e) => {
             setEmail((e.target as HTMLInputElement).value);
           }}
+          onBlur={() => syncFromDom()}
         />
         {emailError ? <p className="mt-1.5 text-sm text-red-600">{emailError}</p> : null}
       </div>
-      <div>
-        <label className="text-base font-medium text-slate-800" htmlFor="stable-login-password">
+      <div className="space-y-1">
+        <label className="text-base font-medium text-slate-800" htmlFor="password">
           비밀번호
         </label>
         <input
-          id="stable-login-password"
+          id="password"
           ref={passwordRef}
           name="password"
           type="password"
+          enterKeyHint="go"
           autoComplete="current-password"
-          className={cn(loginInputClass, "mt-1")}
+          className={cn(loginInputClass, "mt-0")}
           value={password}
           disabled={busy}
           onChange={(e) => {
@@ -159,6 +171,7 @@ export function StableLoginForm({
           onInput={(e) => {
             setPassword((e.target as HTMLInputElement).value);
           }}
+          onBlur={() => syncFromDom()}
         />
         {passwordError ? <p className="mt-1.5 text-sm text-red-600">{passwordError}</p> : null}
       </div>
@@ -167,9 +180,11 @@ export function StableLoginForm({
           {rootError ?? externalError}
         </p>
       ) : null}
-      <Button type="submit" className="w-full min-h-[52px] sm:min-h-12" size="lg" loading={busy} disabled={busy}>
-        로그인
-      </Button>
+      <div className="pt-1">
+        <Button type="submit" className="w-full min-h-[52px] sm:min-h-12" size="lg" loading={busy} disabled={busy}>
+          로그인
+        </Button>
+      </div>
     </form>
   );
 }

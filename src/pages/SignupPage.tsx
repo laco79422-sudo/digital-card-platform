@@ -189,7 +189,14 @@ export function SignupPage() {
             </div>
           ) : null}
 
-          <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
+          <form
+            id="linko-signup-form"
+            name="signup"
+            method="post"
+            autoComplete="on"
+            className="space-y-4 pb-6 sm:pb-8"
+            onSubmit={handleSubmit(onSubmit)}
+          >
             <div>
               <label className="text-base font-medium text-slate-800" htmlFor="role">
                 유형
@@ -203,7 +210,14 @@ export function SignupPage() {
               <label className="text-base font-medium text-slate-800" htmlFor="name">
                 이름
               </label>
-              <Input id="name" className="mt-1" {...register("name")} autoComplete="name" disabled={loading} />
+              <Input
+                id="name"
+                className="mt-1"
+                autoComplete="name"
+                enterKeyHint="next"
+                {...register("name")}
+                disabled={loading}
+              />
               {errors.name ? <p className="mt-1 text-xs text-red-600">{errors.name.message}</p> : null}
             </div>
             <div>
@@ -213,12 +227,18 @@ export function SignupPage() {
               <Input
                 id="email"
                 type="email"
-                autoComplete="email"
+                inputMode="email"
+                enterKeyHint="next"
+                autoComplete="username email"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
+                placeholder="example@email.com"
                 className="mt-1"
-                disabled={loading}
                 {...register("email", {
                   onChange: () => setErrorMessage(null),
                 })}
+                disabled={loading}
               />
               {emailFormatHint != null ? (
                 <p
@@ -244,10 +264,11 @@ export function SignupPage() {
               <Input
                 id="password"
                 type="password"
+                enterKeyHint="done"
                 autoComplete="new-password"
                 className="mt-1"
-                disabled={loading}
                 {...register("password")}
+                disabled={loading}
               />
               {errors.password ? (
                 <p className="mt-1 text-xs text-red-600">{errors.password.message}</p>
