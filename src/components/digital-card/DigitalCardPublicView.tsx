@@ -17,6 +17,7 @@ import { layout } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
 import type { BusinessCard, CardLink } from "@/types/domain";
 import {
+  Copy,
   ExternalLink,
   Headphones,
   ImageIcon,
@@ -24,11 +25,13 @@ import {
   MessageCircle,
   Phone,
   Quote,
+  Share2,
   Sparkles,
   Star,
   Video,
   Zap,
 } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
 const themeClass: Record<string, string> = {
@@ -52,6 +55,10 @@ function iconForLinkType(t: CardLink["type"]) {
     default:
       return ExternalLink;
   }
+}
+
+function buildViralShareText(cardUrl: string): string {
+  return `이거 한번 눌러봐\n내 명함인데 링크 하나야\n\n${cardUrl}`;
 }
 
 function navigateCta(href: string) {
@@ -108,6 +115,59 @@ export function DigitalCardPublicView({
 
   const tertiaryLinks =
     hero.mode === "from-links" ? sortedUsableLinks(links).slice(2) : extraLinks;
+
+  const [shareOrigin, setShareOrigin] = useState("");
+  const [copyDone, setCopyDone] = useState(false);
+  const [kakaoHint, setKakaoHint] = useState(false);
+
+  useEffect(() => {
+    if (compact) return;
+    setShareOrigin(window.location.origin);
+  }, [compact]);
+
+  const cardPublicUrl = useMemo(
+    () => (shareOrigin ? `${shareOrigin}/c/${encodeURIComponent(card.slug)}` : ""),
+    [shareOrigin, card.slug],
+  );
+
+  const shareBundle = useMemo(
+    () => (cardPublicUrl ? buildViralShareText(cardPublicUrl) : ""),
+    [cardPublicUrl],
+  );
+
+  const copyViralShare = useCallback(async () => {
+    if (!shareBundle) return;
+    try {
+      await navigator.clipboard.writeText(shareBundle);
+      setCopyDone(true);
+      window.setTimeout(() => setCopyDone(false), 2200);
+    } catch {
+      window.prompt("아래 내용을 복사해 주세요", shareBundle);
+    }
+  }, [shareBundle]);
+
+  const kakaoViralShare = useCallback(async () => {
+    if (!cardPublicUrl || !shareBundle) return;
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `${card.person_name}의 디지털 명함`,
+          text: shareBundle,
+          url: cardPublicUrl,
+        });
+        return;
+      } catch {
+        /* 사용자 취소 등 */
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(shareBundle);
+      setKakaoHint(true);
+      window.setTimeout(() => setKakaoHint(false), 2600);
+    } catch {
+      window.prompt("카카오톡에 붙여넣을 내용입니다", shareBundle);
+    }
+  }, [card.person_name, cardPublicUrl, shareBundle]);
 
   const PrimaryHeroIcon =
     hero.mode === "from-links" && hero.primaryLinkType
@@ -372,6 +432,77 @@ export function DigitalCardPublicView({
               className="mt-3 h-36 w-36 rounded-xl border border-slate-100 bg-white p-2"
             />
           </div>
+        ) : null}
+
+        {!compact && cardPublicUrl ? (
+          <section
+            className="rounded-2xl border-2 border-dashed border-brand-300/80 bg-gradient-to-b from-brand-50/90 via-white to-slate-50/90 p-5 shadow-[0_16px_40px_-20px_rgba(15,23,42,0.25)] sm:p-7"
+            aria-label="이 명함 공유하기"
+          >
+            <p className="text-center text-[15px] font-semibold leading-snug text-slate-800 sm:text-lg">
+              👇 이런 명함 만들어보세요
+            </p>
+            <p className="mx-auto mt-3 max-w-sm text-pretty text-center text-sm leading-relaxed text-slate-600">
+              링크를 넘기면 바로 열립니다. 받는 사람도 가입 없이{" "}
+              <span className="font-semibold text-slate-800">내 명함 만들기</span>로 이어져요.
+            </p>
+
+            <div className="mt-6 flex flex-col gap-3">
+              <Link
+                to="/create-card"
+                className={cn(
+                  linkButtonClassName({ variant: "primary", size: "lg" }),
+                  "w-full min-h-[52px] justify-center shadow-md",
+                )}
+              >
+                내 명함 만들기
+              </Link>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="min-h-[48px] w-full flex-1 gap-2"
+                  onClick={() => void kakaoViralShare()}
+                >
+                  <Share2 className="h-4 w-4 shrink-0" aria-hidden />
+                  카카오톡 공유
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="min-h-[48px] w-full flex-1 gap-2"
+                  onClick={() => void copyViralShare()}
+                >
+                  <Copy className="h-4 w-4 shrink-0" aria-hidden />
+                  {copyDone ? "복사됨!" : "링크 복사"}
+                </Button>
+              </div>
+            </div>
+
+            <div className="mt-4 rounded-xl border border-slate-200/80 bg-white/90 px-3 py-3 text-left">
+              <p className="text-[11px] font-bold uppercase tracking-wide text-slate-500">공유 시 이런 메시지</p>
+              <pre className="mt-2 whitespace-pre-wrap break-words font-sans text-sm leading-relaxed text-slate-800">
+                {shareBundle}
+              </pre>
+            </div>
+
+            {kakaoHint ? (
+              <p className="mt-3 text-center text-sm font-medium text-brand-800">
+                메시지를 복사했어요. 카카오톡 채팅에 붙여넣어 보내 보세요.
+              </p>
+            ) : null}
+
+            <p className="mt-5 text-center text-sm text-slate-600">
+              친구·동료 대신 만들어 주기 →{" "}
+              <Link to="/create-for-others" className="font-semibold text-brand-800 underline-offset-2 hover:underline">
+                명함 대신 만들어주기
+              </Link>
+            </p>
+            <p className="mt-2 text-center text-xs leading-relaxed text-slate-500">
+              {BRAND_DISPLAY_NAME}은 명함 제작 도구가 아니라,{" "}
+              <span className="font-medium text-slate-700">공유로 퍼지는 연결 구조</span>예요.
+            </p>
+          </section>
         ) : null}
 
         <div className="pb-2 text-center">
