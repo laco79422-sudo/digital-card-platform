@@ -71,7 +71,7 @@ export function LandingPage() {
     }
     setEmailError(null);
     setLandingEmail(t);
-    navigate("/create-card");
+    navigate("/create-card?sample=1");
   };
 
   return (
@@ -95,8 +95,25 @@ export function LandingPage() {
               링크 하나로 고객과 연결되는 명함
             </p>
             <p className="mt-2 max-w-sm text-center text-sm leading-relaxed text-slate-300/90 sm:text-[15px]">
-              지금 바로 만들어보고, 필요할 때 저장하세요
+              예시가 자동으로 채워집니다 · 바로 보고 수정해 보세요
             </p>
+
+            <div className="mt-8 w-full max-w-md sm:mt-10">
+              <Link
+                to="/create-card?sample=1"
+                className={cn(
+                  "flex min-h-[52px] w-full items-center justify-center gap-2 rounded-xl px-5 text-base font-bold text-white shadow-lg",
+                  "bg-gradient-to-r from-brand-500 to-brand-700 hover:from-brand-400 hover:to-brand-600",
+                  "focus:outline-none focus:ring-2 focus:ring-white/50 focus:ring-offset-2 focus:ring-offset-brand-950",
+                )}
+              >
+                샘플로 바로 시작하기
+                <ArrowRight className="h-5 w-5 shrink-0" aria-hidden />
+              </Link>
+              <p className="mt-3 text-center text-xs leading-relaxed text-slate-300/95 sm:text-sm">
+                눌러서 이동하면 이름·소개·버튼이 채워진 예시 명함을 바로 편집할 수 있어요.
+              </p>
+            </div>
 
             {/* 홍보 흐름 안내: 한눈에 읽히는 4카드 */}
             <div
@@ -137,7 +154,7 @@ export function LandingPage() {
             </div>
 
             <div className="mt-10 w-full max-w-md sm:mt-12">
-              <p className="text-sm font-medium text-white/90">이메일만 넣고 명함 만들기 시작</p>
+              <p className="text-sm font-medium text-white/90">이메일을 넣고 같은 샘플로 시작하기</p>
               <form
                 className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-stretch"
                 onSubmit={onStartCard}
@@ -166,7 +183,7 @@ export function LandingPage() {
                     "bg-white hover:bg-white/95 focus:outline-none focus:ring-2 focus:ring-white/60 focus:ring-offset-2 focus:ring-offset-brand-950 sm:px-6",
                   )}
                 >
-                  시작하기
+                  시작하기 (샘플 + 내 이메일)
                   <ArrowRight className="h-4 w-4 shrink-0" aria-hidden />
                 </button>
               </form>
@@ -182,7 +199,7 @@ export function LandingPage() {
 
             <div className="mt-8 flex w-full max-w-lg flex-col gap-3 sm:mt-10 sm:flex-row sm:justify-center">
               <Link
-                to="/create-card"
+                to="/create-card?sample=1"
                 onClick={() => clearLandingEmail()}
                 className={cn(
                   "w-full sm:w-auto",
@@ -193,7 +210,7 @@ export function LandingPage() {
                   }),
                 )}
               >
-                이메일 없이 바로 만들기
+                이메일 없이 샘플로 시작
               </Link>
               <Link
                 to="/creators"

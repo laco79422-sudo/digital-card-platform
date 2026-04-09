@@ -19,12 +19,17 @@ import {
 import { getLinksForCard, useAppDataStore } from "@/stores/appDataStore";
 import type { CardLink, CardLinkType } from "@/types/domain";
 import {
+  getSampleCardDraft,
+  getSampleLinkRows,
+  parseWantsSample,
+} from "@/lib/cardEditorSampleData";
+import {
   clearLandingEmail,
   consumePendingCardDraft,
   getLandingEmail,
   savePendingCardDraft,
 } from "@/lib/pendingCardStorage";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, Navigate, useLocation, useNavigate, useParams } from "react-router-dom";
 
 type LinkRow = { id: string; label: string; type: CardLinkType; url: string };
@@ -53,10 +58,13 @@ export function CardEditorPage() {
   const setCardLinks = useAppDataStore((s) => s.setCardLinks);
 
   const isNew = !id || id === "new";
+  const wantsSample = useMemo(() => parseWantsSample(location.search), [location.search]);
+
   const routeKey = useMemo(() => {
-    if (isGuestRoute) return "create-card";
-    return isNew ? "new" : (id ?? "");
-  }, [isGuestRoute, isNew, id]);
+    if (isGuestRoute) return wantsSample ? "create-card-sample" : "create-card";
+    if (!isNew && id) return id;
+    return wantsSample ? "new-sample" : "new";
+  }, [isGuestRoute, isNew, id, wantsSample]);
 
   const existing = useMemo(
     () => (!isNew && id ? businessCards.find((c) => c.id === id) : undefined),
@@ -76,17 +84,29 @@ export function CardEditorPage() {
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<string, string>>>({});
 
   useEffect(() => {
+    if (isGuestRoute) return;
     setLinkRows(mapLinksToRows(existingLinks));
-  }, [existing?.id, existingLinks]);
+  }, [existing?.id, existingLinks, isGuestRoute]);
 
-  /** 게스트 /create-card · 가입 후 복원 대기 draft · 일반 편집 순으로 주입 */
+  /** 게스트 /create-card · 가입 후 복원 · ?sample=1 · 일반 신규 순으로 주입 */
   useEffect(() => {
     if (isGuestRoute && !user) {
       const state = useCardEditorDraftStore.getState();
-      if (state.hydratedKey === "create-card") return;
-      replaceDraft(createEmptyDraft({ email: getLandingEmail() ?? "" }));
-      setLinkRows(mapLinksToRows([]));
-      setHydratedKey("create-card");
+      if (state.hydratedKey === routeKey) return;
+
+      const emailHint = getLandingEmail()?.trim();
+      if (wantsSample) {
+        replaceDraft(
+          getSampleCardDraft({
+            email: emailHint || "hello@linko.app",
+          }),
+        );
+        setLinkRows(getSampleLinkRows());
+      } else {
+        replaceDraft(createEmptyDraft({ email: emailHint ?? "" }));
+        setLinkRows(mapLinksToRows([]));
+      }
+      setHydratedKey(routeKey);
       return;
     }
 
@@ -105,9 +125,29 @@ export function CardEditorPage() {
             : mapLinksToRows([]),
         );
         clearLandingEmail();
-        setHydratedKey("new");
+        setHydratedKey(routeKey);
         return;
       }
+    }
+
+    if (
+      !isGuestRoute &&
+      location.pathname === "/cards/new" &&
+      isNew &&
+      user &&
+      wantsSample &&
+      !existing
+    ) {
+      const state = useCardEditorDraftStore.getState();
+      if (state.hydratedKey === routeKey) return;
+      replaceDraft(
+        getSampleCardDraft({
+          email: user.email?.trim() || "hello@linko.app",
+        }),
+      );
+      setLinkRows(getSampleLinkRows());
+      setHydratedKey(routeKey);
+      return;
     }
 
     if (!isNew && id && !existing) return;
@@ -116,7 +156,7 @@ export function CardEditorPage() {
 
     if (existing) {
       replaceDraft(draftFromBusinessCard(existing));
-    } else {
+    } else if (isNew && user) {
       replaceDraft(
         createEmptyDraft({
           person_name: user?.name ?? "",
@@ -127,6 +167,7 @@ export function CardEditorPage() {
     setHydratedKey(routeKey);
   }, [
     isGuestRoute,
+    wantsSample,
     user,
     location.pathname,
     routeKey,
@@ -138,6 +179,24 @@ export function CardEditorPage() {
     replaceDraft,
     setHydratedKey,
   ]);
+
+  const applySampleDraft = useCallback(() => {
+    const emailFallback = getLandingEmail()?.trim() || user?.email?.trim() || "hello@linko.app";
+    replaceDraft(getSampleCardDraft({ email: emailFallback }));
+    setLinkRows(getSampleLinkRows());
+    setFieldErrors({});
+  }, [replaceDraft, user?.email]);
+
+  const applyEmptyDraft = useCallback(() => {
+    replaceDraft(
+      createEmptyDraft({
+        email: getLandingEmail()?.trim() || user?.email?.trim() || "",
+        person_name: user?.name ?? "",
+      }),
+    );
+    setLinkRows(mapLinksToRows([]));
+    setFieldErrors({});
+  }, [replaceDraft, user?.email, user?.name]);
 
   const onSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -217,7 +276,7 @@ export function CardEditorPage() {
   };
 
   if (user && isGuestRoute) {
-    return <Navigate to="/cards/new" replace />;
+    return <Navigate to={{ pathname: "/cards/new", search: location.search }} replace />;
   }
 
   return (
@@ -239,14 +298,32 @@ export function CardEditorPage() {
       </div>
 
       {isNew || isGuestRoute ? (
-        <div className="mb-10 space-y-4 text-center sm:mb-12">
-          <p className="mx-auto max-w-2xl break-keep text-balance text-base font-medium leading-relaxed text-slate-800 sm:text-lg">
+        <div className="mb-10 space-y-4 sm:mb-12">
+          <div className="rounded-2xl border border-brand-200 bg-brand-50/90 px-4 py-4 text-center sm:px-6 sm:py-5">
+            <p className="text-sm font-semibold text-brand-900 sm:text-base">
+              {wantsSample
+                ? "샘플이 자동으로 채워졌습니다. 원하는 부분만 수정해 보세요."
+                : "필드를 채우면 아래 미리보기에 바로 반영됩니다."}
+            </p>
+            <p className="mt-2 text-sm leading-relaxed text-brand-950/85">
+              완성 예시를 먼저 보고 빠르게 시작할 수 있습니다. 모든 값은 실제 저장·공개에 쓰이는 입력입니다.
+            </p>
+            <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+              <Button type="button" variant="secondary" size="sm" onClick={applySampleDraft}>
+                샘플 다시 불러오기
+              </Button>
+              <Button type="button" variant="outline" size="sm" onClick={applyEmptyDraft}>
+                빈 상태로 시작하기
+              </Button>
+            </div>
+          </div>
+          <p className="text-center text-base font-medium leading-relaxed text-slate-800 sm:text-lg">
             나를 소개하는 가장 쉬운 방법, 린코 디지털 명함
           </p>
-          <p className="mx-auto max-w-2xl break-keep text-balance text-sm leading-relaxed text-slate-600 sm:text-base">
+          <p className="text-center text-sm leading-relaxed text-slate-600 sm:text-base">
             한 번 만들면 링크로 퍼지는 나만의 디지털 명함
           </p>
-          <p className="mx-auto max-w-xl break-keep text-balance text-sm font-medium leading-relaxed text-brand-800 sm:text-base">
+          <p className="text-center text-sm font-medium leading-relaxed text-brand-800 sm:text-base">
             이름을 남기는 명함에서, 고객과 연결되는 명함으로
           </p>
         </div>
