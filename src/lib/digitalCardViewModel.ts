@@ -1,9 +1,17 @@
-import type { BusinessCard, CardLink, DigitalCardServiceLine } from "@/types/domain";
+import type { BusinessCard, CardLink, DigitalCardServiceLine, TrustTestimonial } from "@/types/domain";
 
 const PLACEHOLDER_GALLERY = [
   "https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&q=80",
   "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=800&q=80",
   "https://images.unsplash.com/photo-1600880292203-75761962e213?w=800&q=80",
+  "https://images.unsplash.com/photo-1542744173-8e7e5348bb0c?w=800&q=80",
+  "https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=800&q=80",
+  "https://images.unsplash.com/photo-1552664730-d307ca884978?w=800&q=80",
+];
+
+const DEFAULT_TRUST_TESTIMONIALS: TrustTestimonial[] = [
+  { quote: "명함 하나로 문의가 늘었습니다.", person_name: "김○○", role: "소상공인 · 카페" },
+  { quote: "링크 하나로 상담이 한곳에 모였어요.", person_name: "이○○", role: "프리랜서 마케터" },
 ];
 
 export function effectiveTagline(card: BusinessCard): string {
@@ -14,10 +22,30 @@ export function effectiveTagline(card: BusinessCard): string {
   return `${job} · ${brand} — 디지털 명함으로 만나는 첫인상`;
 }
 
+/** SEO·폴백용 — 첫 후기 인용 또는 기본 문장 */
 export function effectiveTrustLine(card: BusinessCard): string {
+  const fromList = card.trust_testimonials?.find((x) => x.quote.trim())?.quote;
+  if (fromList) return fromList;
   const t = card.trust_line?.trim();
   if (t) return t;
-  return "문의부터 제안까지 한 흐름으로 연결해 드립니다.";
+  return DEFAULT_TRUST_TESTIMONIALS[0].quote;
+}
+
+export function trustMetricForView(card: BusinessCard): string {
+  const m = card.trust_metric?.trim();
+  if (m) return m;
+  return "100+ 디지털 명함 제작";
+}
+
+export function trustTestimonialsForView(card: BusinessCard): TrustTestimonial[] {
+  const from = card.trust_testimonials?.filter((t) => t.quote.trim()) ?? [];
+  if (from.length >= 2) return from.slice(0, 2);
+  if (from.length === 1) return [from[0]];
+  const line = card.trust_line?.trim();
+  if (line) {
+    return [{ quote: line, person_name: "고객 후기", role: "" }];
+  }
+  return [...DEFAULT_TRUST_TESTIMONIALS];
 }
 
 export function galleryImages(card: BusinessCard): string[] {
@@ -32,16 +60,16 @@ export function serviceBlocks(card: BusinessCard): DigitalCardServiceLine[] {
   const job = card.job_title.trim() || "전문 서비스";
   return [
     {
-      title: `${job} 맞춤 제안`,
-      body: "필요에 맞춘 범위와 일정을 먼저 나누고, 투명하게 진행합니다.",
+      title: "검색·SNS 연결",
+      body: `${job} — 유입이 한 링크로 모입니다.`,
     },
     {
-      title: "빠른 소통",
-      body: "전화·카카오·메일로 바로 연결되어 놓치는 문의가 없도록 합니다.",
+      title: "클릭 → 문의",
+      body: "전환 구조 — 버튼·상담으로 바로 이어집니다.",
     },
     {
-      title: "신뢰 가능한 포트폴리오",
-      body: "아래 작업 사진과 채널 링크로 스타일과 톤을 미리 확인해 보세요.",
+      title: "고객 유지",
+      body: "지속 연결 — 명함 수정으로 관계를 이어 갑니다.",
     },
   ];
 }

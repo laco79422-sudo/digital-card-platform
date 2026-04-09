@@ -5,8 +5,11 @@ import type { CardLinkType } from "@/types/domain";
 export const SAMPLE_BRAND_IMAGE_URL =
   "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=600&q=80";
 
-const SAMPLE_GALLERY_LINE =
-  "https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&q=80";
+const SAMPLE_GALLERY_LINES = [
+  "https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&q=80",
+  "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=800&q=80",
+  "https://images.unsplash.com/photo-1600880292203-75761962e213?w=800&q=80",
+].join("\n");
 
 /**
  * 「3초 샘플」용 초안 — 홍보·전환형(유입·클릭) 톤.
@@ -28,13 +31,25 @@ export function getSampleCardDraft(overrides: Partial<CardEditorDraft> = {}): Ca
     theme: "navy",
     is_public: true,
     tagline: "명함 하나로 고객이 먼저 찾아오게 만듭니다",
-    trust_line: "유입부터 문의까지, 한 링크로 이어지는 동선을 함께 만듭니다.",
-    gallery_urls_raw: SAMPLE_GALLERY_LINE,
+    trust_metric: "100+ 디지털 명함 제작",
+    trust_testimonials: [
+      {
+        quote: "명함 하나로 문의가 늘었습니다.",
+        person_name: "박○○",
+        role: "헬스케어 스타트업 마케터",
+      },
+      {
+        quote: "링크만 보내도 상담 동선이 정리됐어요.",
+        person_name: "최○○",
+        role: "1인 창업 · 컨설팅",
+      },
+    ],
+    gallery_urls_raw: SAMPLE_GALLERY_LINES,
     brand_image_url: SAMPLE_BRAND_IMAGE_URL,
     services: [
-      { title: "유입 설계", body: "검색·SNS·오프라인에서 링크 하나로 흐름을 모읍니다." },
-      { title: "전환 구조", body: "버튼·문의·상담까지 이어지는 동선을 함께 잡습니다." },
-      { title: "지속 연결", body: "명함 수정과 방문 기록으로 다음 액션을 다듬을 수 있습니다." },
+      { title: "검색·SNS 연결", body: "유입 설계 — 검색·SNS에서 링크로 연결합니다." },
+      { title: "클릭 → 문의", body: "전환 구조 — 누르면 바로 문의로 이어집니다." },
+      { title: "고객 유지", body: "지속 연결 — 명함으로 관계를 이어 갑니다." },
     ],
     ...overrides,
   });

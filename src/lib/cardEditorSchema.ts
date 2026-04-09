@@ -19,7 +19,16 @@ export const cardEditorSubmitSchema = z.object({
   theme: z.enum(["navy", "slate", "midnight"]),
   is_public: z.boolean(),
   tagline: z.string().optional(),
-  trust_line: z.string().optional(),
+  trust_metric: z.string().optional(),
+  trust_testimonials: z
+    .array(
+      z.object({
+        quote: z.string(),
+        person_name: z.string(),
+        role: z.string(),
+      }),
+    )
+    .length(2),
   gallery_urls_raw: z.string().optional(),
   services: z.array(z.object({ title: z.string(), body: z.string() })).max(5),
   brand_image_url: z.string().nullable().optional(),

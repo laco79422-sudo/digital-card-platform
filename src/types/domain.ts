@@ -16,6 +16,13 @@ export type DigitalCardServiceLine = {
   body: string;
 };
 
+/** 공개 명함 신뢰 영역 — 고객 후기 한 건 */
+export type TrustTestimonial = {
+  quote: string;
+  person_name: string;
+  role: string;
+};
+
 export interface BusinessCard {
   id: string;
   user_id: string;
@@ -39,8 +46,12 @@ export interface BusinessCard {
   gallery_urls?: string[] | null;
   /** 서비스 3~5개 */
   services?: DigitalCardServiceLine[] | null;
-  /** 후기·성과 한 줄 */
+  /** 후기·성과 한 줄 (첫 번째 후기 인용과 동기화·API 호환) */
   trust_line?: string | null;
+  /** 성과 수치 등 한 줄 (예: 100+ 명함 제작) — 로컬 우선, Supabase 미동기화 시 생략 */
+  trust_metric?: string | null;
+  /** 고객 후기 최대 2건 — 로컬 우선 */
+  trust_testimonials?: TrustTestimonial[] | null;
   /** 히어로 브랜드 대표 이미지 (URL 또는 data URL) */
   brand_image_url?: string | null;
   /** 히어로 프레임 비율 라벨 (저장·재현용, 예: 16:9) */

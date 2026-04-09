@@ -1,4 +1,4 @@
-import type { BusinessCard, DigitalCardServiceLine } from "@/types/domain";
+import type { BusinessCard, DigitalCardServiceLine, TrustTestimonial } from "@/types/domain";
 import { clampZoom } from "@/lib/brandHeroLayout";
 import { create } from "zustand";
 
@@ -22,7 +22,8 @@ export type CardEditorDraft = {
   theme: "navy" | "slate" | "midnight";
   is_public: boolean;
   tagline: string;
-  trust_line: string;
+  trust_metric: string;
+  trust_testimonials: TrustTestimonial[];
   gallery_urls_raw: string;
   services: DigitalCardServiceLine[];
   brand_image_url: string | null;
@@ -44,36 +45,61 @@ function emptyServiceRows(): DigitalCardServiceLine[] {
   ];
 }
 
+function emptyTrustTestimonial(): TrustTestimonial {
+  return { quote: "", person_name: "", role: "" };
+}
+
+function normalizeTrustTestimonialRows(raw?: TrustTestimonial[] | null): TrustTestimonial[] {
+  const a = raw?.[0] ?? emptyTrustTestimonial();
+  const b = raw?.[1] ?? emptyTrustTestimonial();
+  return [
+    { quote: a.quote ?? "", person_name: a.person_name ?? "", role: a.role ?? "" },
+    { quote: b.quote ?? "", person_name: b.person_name ?? "", role: b.role ?? "" },
+  ];
+}
+
 /** 저장소·세션 등에서 온 초안에 빠진 필드를 채웁니다 */
-export function mergeDraftDefaults(partial: Partial<CardEditorDraft> & { services?: CardEditorDraft["services"] }): CardEditorDraft {
+export function mergeDraftDefaults(
+  partial: Partial<CardEditorDraft> & { services?: CardEditorDraft["services"]; trust_line?: string },
+): CardEditorDraft {
   const base = createEmptyDraft();
   const services =
     partial.services && partial.services.length >= 3 ? partial.services : base.services;
+  let trust_testimonials = normalizeTrustTestimonialRows(partial.trust_testimonials);
+  const legacyTrust = partial.trust_line?.trim();
+  if (legacyTrust && !trust_testimonials[0].quote.trim() && !trust_testimonials[1].quote.trim()) {
+    trust_testimonials = [{ quote: legacyTrust, person_name: "", role: "" }, trust_testimonials[1]];
+  }
+  const { trust_line: _omitLegacyTrust, ...partialRest } = partial as Partial<CardEditorDraft> & {
+    trust_line?: string;
+  };
   return {
     ...base,
-    ...partial,
+    ...partialRest,
     services,
-    brand_image_frame_ratio: partial.brand_image_frame_ratio?.trim() || base.brand_image_frame_ratio,
+    trust_metric: partialRest.trust_metric !== undefined ? partialRest.trust_metric : base.trust_metric,
+    trust_testimonials,
+    brand_image_frame_ratio: partialRest.brand_image_frame_ratio?.trim() || base.brand_image_frame_ratio,
     brand_image_natural_width:
-      partial.brand_image_natural_width !== undefined
-        ? partial.brand_image_natural_width
+      partialRest.brand_image_natural_width !== undefined
+        ? partialRest.brand_image_natural_width
         : base.brand_image_natural_width,
     brand_image_natural_height:
-      partial.brand_image_natural_height !== undefined
-        ? partial.brand_image_natural_height
+      partialRest.brand_image_natural_height !== undefined
+        ? partialRest.brand_image_natural_height
         : base.brand_image_natural_height,
     brand_image_zoom:
-      partial.brand_image_zoom !== undefined && !Number.isNaN(partial.brand_image_zoom)
-        ? clampZoom(partial.brand_image_zoom)
+      partialRest.brand_image_zoom !== undefined && !Number.isNaN(partialRest.brand_image_zoom)
+        ? clampZoom(partialRest.brand_image_zoom)
         : base.brand_image_zoom,
     brand_image_pan_x:
-      partial.brand_image_pan_x !== undefined ? clampPan(partial.brand_image_pan_x) : base.brand_image_pan_x,
+      partialRest.brand_image_pan_x !== undefined ? clampPan(partialRest.brand_image_pan_x) : base.brand_image_pan_x,
     brand_image_pan_y:
-      partial.brand_image_pan_y !== undefined ? clampPan(partial.brand_image_pan_y) : base.brand_image_pan_y,
-    brand_image_url: partial.brand_image_url !== undefined ? partial.brand_image_url : base.brand_image_url,
+      partialRest.brand_image_pan_y !== undefined ? clampPan(partialRest.brand_image_pan_y) : base.brand_image_pan_y,
+    brand_image_url: partialRest.brand_image_url !== undefined ? partialRest.brand_image_url : base.brand_image_url,
     brand_image_legacy_object_position:
-      partial.brand_image_legacy_object_position !== undefined
-        ? partial.brand_image_legacy_object_position
+      partialRest.brand_image_legacy_object_position !== undefined
+        ? partialRest.brand_image_legacy_object_position
         : base.brand_image_legacy_object_position ?? null,
   };
 }
@@ -94,7 +120,8 @@ export function createEmptyDraft(overrides: Partial<CardEditorDraft> = {}): Card
     theme: "navy",
     is_public: true,
     tagline: "",
-    trust_line: "",
+    trust_metric: "",
+    trust_testimonials: [emptyTrustTestimonial(), emptyTrustTestimonial()],
     gallery_urls_raw: "",
     services: emptyServiceRows(),
     brand_image_url: null,
@@ -127,7 +154,14 @@ export function draftFromBusinessCard(card: BusinessCard): CardEditorDraft {
     theme: card.theme,
     is_public: card.is_public,
     tagline: card.tagline ?? "",
-    trust_line: card.trust_line ?? "",
+    trust_metric: card.trust_metric ?? "",
+    trust_testimonials: normalizeTrustTestimonialRows(
+      card.trust_testimonials?.filter((t) => t.quote.trim()).length
+        ? card.trust_testimonials
+        : card.trust_line?.trim()
+          ? [{ quote: card.trust_line, person_name: "", role: "" }]
+          : undefined,
+    ),
     gallery_urls_raw: card.gallery_urls?.join("\n") ?? "",
     services: svc.slice(0, 5),
     brand_image_url: card.brand_image_url ?? null,
@@ -182,6 +216,17 @@ export function draftToBusinessCard(
     draft.brand_image_natural_width > 0 &&
     draft.brand_image_natural_height > 0;
 
+  const trimmedTestimonials = draft.trust_testimonials
+    .map((t) => ({
+      quote: t.quote.trim(),
+      person_name: t.person_name.trim(),
+      role: t.role.trim(),
+    }))
+    .filter((t) => t.quote.length > 0);
+  const trust_testimonials = trimmedTestimonials.length > 0 ? trimmedTestimonials : null;
+  const trust_line = trimmedTestimonials[0]?.quote ?? null;
+  const trust_metric = draft.trust_metric.trim() || null;
+
   return {
     id: opts.id,
     user_id: opts.user_id,
@@ -200,7 +245,9 @@ export function draftToBusinessCard(
     is_public: draft.is_public,
     created_at: opts.created_at,
     tagline: draft.tagline.trim() || null,
-    trust_line: draft.trust_line.trim() || null,
+    trust_line,
+    trust_metric,
+    trust_testimonials,
     gallery_urls: galleryList.length > 0 ? galleryList : null,
     services: serviceList.length > 0 ? serviceList : null,
     brand_image_frame_ratio: draft.brand_image_frame_ratio?.trim() || "16:9",
@@ -225,6 +272,7 @@ type CardEditorDraftState = {
   setServiceRow: (index: number, patch: Partial<DigitalCardServiceLine>) => void;
   appendServiceRow: () => void;
   removeServiceRow: (index: number) => void;
+  setTrustTestimonialRow: (index: 0 | 1, patch: Partial<TrustTestimonial>) => void;
   setHydratedKey: (key: string | null) => void;
 };
 
@@ -248,6 +296,13 @@ export const useCardEditorDraftStore = create<CardEditorDraftState>((set) => ({
       if (s.draft.services.length <= 3) return s;
       const services = s.draft.services.filter((_, i) => i !== index);
       return { draft: { ...s.draft, services } };
+    }),
+  setTrustTestimonialRow: (index, patch) =>
+    set((s) => {
+      const trust_testimonials = s.draft.trust_testimonials.map((row, i) =>
+        i === index ? { ...row, ...patch } : row,
+      );
+      return { draft: { ...s.draft, trust_testimonials } };
     }),
   setHydratedKey: (key) => set({ hydratedKey: key }),
 }));

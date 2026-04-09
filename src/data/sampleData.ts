@@ -83,6 +83,19 @@ export const SAMPLE_CARDS: BusinessCard[] = [
     created_at: now,
     tagline: "B2B 리드 제너레이션 · 콘텐츠 세일즈 퍼널 전문 디지털 명함",
     trust_line: "중소 팀·스타트업 대상 프로젝트 200건 이상, 전환 중심 캠페인을 설계합니다.",
+    trust_metric: "200+ B2B 프로젝트",
+    trust_testimonials: [
+      {
+        quote: "명함 하나로 문의가 늘었습니다.",
+        person_name: "정○○",
+        role: "스타트업 마케팅 리드",
+      },
+      {
+        quote: "유입부터 상담까지 한 링크로 정리돼 팀이 편해졌어요.",
+        person_name: "한○○",
+        role: "중소기업 실장",
+      },
+    ],
     gallery_urls: [
       "https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&q=80",
       "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=800&q=80",
@@ -122,9 +135,18 @@ export const SAMPLE_CARDS: BusinessCard[] = [
     created_at: now,
     tagline: "브랜드 필름 · 숏폼 · 썸네일 — 영상 디지털 명함",
     trust_line: "국내 브랜드 런칭 필름 다수, 평균 만족도 4.8/5",
+    trust_metric: "누적 필름 150+편",
+    trust_testimonials: [
+      {
+        quote: "런칭 필름 덕분에 문의가 바로 들어왔습니다.",
+        person_name: "서○○",
+        role: "브랜드 매니저",
+      },
+    ],
     gallery_urls: [
       "https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?w=800&q=80",
       "https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=800&q=80",
+      "https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?w=800&q=80",
     ],
     services: [
       { title: "기업·제품 필름", body: "런칭·인터뷰·데모 영상 기획부터 배포까지." },

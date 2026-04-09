@@ -46,6 +46,7 @@ export function CardForm({
   const setServiceRow = useCardEditorDraftStore((s) => s.setServiceRow);
   const appendServiceRow = useCardEditorDraftStore((s) => s.appendServiceRow);
   const removeServiceRow = useCardEditorDraftStore((s) => s.removeServiceRow);
+  const setTrustTestimonialRow = useCardEditorDraftStore((s) => s.setTrustTestimonialRow);
 
   const onSlugFromBrand = () => {
     const s = slugify(draft.brand_name || "my-card");
@@ -246,20 +247,51 @@ export function CardForm({
             />
           </div>
           <div>
-            <label className="text-base font-medium text-slate-800">신뢰 한 줄 (후기·성과)</label>
+            <label className="text-base font-medium text-slate-800">성과·신뢰 수치 (한 줄)</label>
             <Input
               className="mt-1"
-              placeholder="예: 누적 컨설팅 120건 이상"
-              value={draft.trust_line}
-              onChange={(e) => setDraft({ trust_line: e.target.value })}
+              placeholder="예: 100+ 명함 제작 · 프로젝트 200건+"
+              value={draft.trust_metric}
+              onChange={(e) => setDraft({ trust_metric: e.target.value })}
             />
+            <p className="mt-1 text-xs text-slate-500">신뢰 영역 상단에 강조됩니다. Supabase 연동 시 로컬에만 저장될 수 있습니다.</p>
+          </div>
+          <div className="space-y-3">
+            <p className="text-base font-medium text-slate-800">고객 후기 (최대 2건)</p>
+            {([0, 1] as const).map((idx) => (
+              <div key={idx} className="rounded-xl border border-slate-100 bg-slate-50/80 p-3">
+                <span className="text-xs font-semibold text-slate-600">후기 {idx + 1}</span>
+                <Textarea
+                  className="mt-2"
+                  rows={2}
+                  placeholder="예: 명함 하나로 문의가 늘었습니다"
+                  value={draft.trust_testimonials[idx].quote}
+                  onChange={(e) => setTrustTestimonialRow(idx, { quote: e.target.value })}
+                />
+                <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                  <Input
+                    placeholder="고객 이름"
+                    value={draft.trust_testimonials[idx].person_name}
+                    onChange={(e) => setTrustTestimonialRow(idx, { person_name: e.target.value })}
+                  />
+                  <Input
+                    placeholder="직업 · 업종"
+                    value={draft.trust_testimonials[idx].role}
+                    onChange={(e) => setTrustTestimonialRow(idx, { role: e.target.value })}
+                  />
+                </div>
+              </div>
+            ))}
+            <p className="text-xs text-slate-500">
+              저장 시 첫 번째 후기는 기존 「신뢰 한 줄」필드와 동기화됩니다. 비워 두면 예시 후기가 표시됩니다.
+            </p>
           </div>
           <div>
-            <label className="text-base font-medium text-slate-800">작업 사진 URL (줄마다 하나)</label>
+            <label className="text-base font-medium text-slate-800">프로젝트·작업 이미지 URL (줄마다 하나, 3~6장 권장)</label>
             <Textarea
               className="mt-1 font-mono text-sm"
-              rows={4}
-              placeholder="https://..."
+              rows={5}
+              placeholder={"https://...\nhttps://..."}
               value={draft.gallery_urls_raw}
               onChange={(e) => setDraft({ gallery_urls_raw: e.target.value })}
             />

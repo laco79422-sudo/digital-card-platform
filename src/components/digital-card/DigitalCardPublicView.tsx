@@ -1,15 +1,17 @@
 import { BrandHeroFrame } from "@/components/digital-card/BrandHeroFrame";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { linkButtonClassName } from "@/components/ui/buttonStyles";
 import { BRAND_DISPLAY_NAME } from "@/lib/brand";
 import {
   effectiveTagline,
-  effectiveTrustLine,
   galleryImages,
   resolveHeroCtas,
   resolveStickyCtas,
   serviceBlocks,
   sortedUsableLinks,
+  trustMetricForView,
+  trustTestimonialsForView,
 } from "@/lib/digitalCardViewModel";
 import { layout } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
@@ -21,6 +23,7 @@ import {
   Mail,
   MessageCircle,
   Phone,
+  Quote,
   Sparkles,
   Star,
   Video,
@@ -90,7 +93,8 @@ export function DigitalCardPublicView({
   const grad = themeClass[card.theme] ?? themeClass.navy;
   const tagline = effectiveTagline(card);
   const hasPitchHeadline = Boolean(card.tagline?.trim());
-  const trust = effectiveTrustLine(card);
+  const trustMetric = trustMetricForView(card);
+  const testimonials = trustTestimonialsForView(card);
   const gallery = galleryImages(card);
   const services = serviceBlocks(card);
   const hero = resolveHeroCtas(card, links);
@@ -217,78 +221,118 @@ export function DigitalCardPublicView({
         </div>
       </section>
 
-      <div className={cn(layout.pageCompact, "-mt-6 space-y-6 sm:-mt-8")}>
+      <div className={cn(layout.pageCompact, "-mt-6 space-y-8 sm:-mt-8")}>
         <section
-          className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-lg shadow-slate-900/5 sm:p-6"
+          className="scroll-mt-4 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-lg shadow-slate-900/5 sm:p-7"
           aria-labelledby="trust-heading"
         >
-          <div className="flex items-center justify-between gap-2">
-            <h2 id="trust-heading" className="text-lg font-bold text-slate-900">
+          <header className="flex flex-col gap-3">
+            <h2 id="trust-heading" className="text-xl font-extrabold tracking-tight text-slate-900 sm:text-2xl">
               작업 &amp; 신뢰
             </h2>
-            <span className="rounded-full bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-800">
+            <span className="w-fit rounded-full bg-brand-600/10 px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-brand-900">
               실제 프로젝트
             </span>
-          </div>
-          <div className="mt-4 flex gap-3 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          </header>
+
+          <p className="mt-6 text-center text-2xl font-extrabold leading-tight text-brand-800 sm:text-left sm:text-3xl">
+            {trustMetric}
+          </p>
+          <p className="mt-2 text-center text-sm font-medium text-slate-600 sm:text-left">
+            누적 사례와 고객 후기로 첫인상을 증명합니다.
+          </p>
+
+          <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {gallery.map((src, i) => (
               <div
                 key={`${src}-${i}`}
-                className="relative h-36 w-48 shrink-0 overflow-hidden rounded-xl bg-slate-100 shadow-inner"
+                className="group relative aspect-[4/3] overflow-hidden rounded-2xl bg-slate-100 shadow-inner ring-1 ring-slate-900/[0.04]"
               >
                 <img
                   src={src}
-                  alt=""
-                  className="h-full w-full object-cover"
+                  alt={`프로젝트 이미지 ${i + 1}`}
+                  className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]"
                   loading={i === 0 ? "eager" : "lazy"}
                   decoding="async"
                 />
               </div>
             ))}
           </div>
-          <div className="mt-5 rounded-xl border border-slate-100 bg-slate-50/90 p-4">
-            <div className="flex items-start gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-100 text-brand-700">
-                <ImageIcon className="h-5 w-5" aria-hidden />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-slate-900">고객 한마디</p>
-                <p className="mt-1 text-[15px] leading-relaxed text-slate-700">{trust}</p>
-              </div>
-            </div>
+
+          <div className="mt-10 space-y-6">
+            {testimonials.map((t, i) => (
+              <figure
+                key={`${t.quote.slice(0, 24)}-${i}`}
+                className="rounded-2xl border border-slate-200/90 bg-gradient-to-br from-white via-white to-slate-50/90 p-5 shadow-sm sm:p-6"
+              >
+                <Quote
+                  className="h-9 w-9 text-brand-200 sm:h-10 sm:w-10"
+                  aria-hidden
+                  strokeWidth={1.25}
+                />
+                <blockquote className="mt-3 text-[17px] font-semibold leading-snug tracking-tight text-slate-900 sm:text-lg">
+                  “{t.quote}”
+                </blockquote>
+                <figcaption className="mt-5 border-t border-slate-100 pt-4 text-sm text-slate-600">
+                  <p className="font-bold text-slate-900">{t.person_name}</p>
+                  {t.role.trim() ? <p className="mt-0.5 text-slate-600">{t.role}</p> : null}
+                </figcaption>
+              </figure>
+            ))}
           </div>
         </section>
 
         <section
           id="services"
-          className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-md sm:p-6"
+          className="scroll-mt-4 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-md sm:p-7"
           aria-labelledby="services-heading"
         >
-          <h2 id="services-heading" className="text-lg font-bold text-slate-900">
+          <h2 id="services-heading" className="text-xl font-extrabold text-slate-900 sm:text-2xl">
             서비스
           </h2>
-          <p className="mt-1 text-sm text-slate-600">
-            {card.brand_name}의 핵심 제공 영역입니다. 디지털 명함·온라인 상담·콘텐츠 연결까지 한곳에서 안내합니다.
+          <p className="mt-2 max-w-xl text-sm font-medium leading-relaxed text-slate-600 sm:text-[15px]">
+            {card.brand_name}의 핵심 영역입니다. 짧게 읽고 바로 연결할 수 있습니다.
           </p>
-          <ul className="mt-5 grid gap-3 sm:grid-cols-2">
+          <ul className="mt-8 grid gap-4 sm:grid-cols-2">
             {services.map((s, idx) => {
               const Icon = serviceIcons[idx % serviceIcons.length];
               return (
                 <li
                   key={`${s.title}-${idx}`}
-                  className="flex gap-3 rounded-xl border border-slate-100 bg-slate-50/80 p-4"
+                  className="flex gap-4 rounded-2xl border border-slate-100 bg-slate-50/90 p-5 sm:p-6"
                 >
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white shadow-sm">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm ring-1 ring-slate-900/[0.04]">
                     <Icon className="h-5 w-5 text-brand-700" aria-hidden />
                   </div>
-                  <div>
-                    <p className="font-semibold text-slate-900">{s.title}</p>
-                    <p className="mt-1 text-sm leading-relaxed text-slate-600">{s.body}</p>
+                  <div className="min-w-0">
+                    <p className="text-base font-bold text-slate-900">{s.title}</p>
+                    <p className="mt-2 text-sm leading-relaxed text-slate-600 sm:text-[15px]">{s.body}</p>
                   </div>
                 </li>
               );
             })}
           </ul>
+
+          <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-center">
+            <Link
+              to="/create-card"
+              className={cn(
+                linkButtonClassName({ variant: "primary", size: "lg" }),
+                "w-full min-h-[52px] justify-center sm:w-auto sm:min-w-[12rem]",
+              )}
+            >
+              내 명함 만들기
+            </Link>
+            <Link
+              to="/create-card?sample=true"
+              className={cn(
+                linkButtonClassName({ variant: "outline", size: "lg" }),
+                "w-full min-h-[52px] justify-center sm:w-auto sm:min-w-[12rem]",
+              )}
+            >
+              이 구조 그대로 사용하기
+            </Link>
+          </div>
         </section>
 
         {tertiaryLinks.length > 0 ? (
