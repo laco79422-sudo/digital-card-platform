@@ -1,4 +1,4 @@
-import { MessageCircle, Phone } from "lucide-react";
+import { ExternalLink, MessageCircle, Phone } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -8,9 +8,7 @@ type Props = {
 };
 
 /**
- * 마켓/외주 카드가 아닌 **디지털 명함** 샘플.
- * 링크 이동 없이 시각적 예시만 제공합니다.
- * 샘플 시작 시 자동 채워지는 예시와 톤을 맞춥니다.
+ * 랜딩용 미리보기 — 실제 샘플 편집 데이터와 같은 홍보·전환형 톤.
  */
 export function LandingSampleCard({ variant = "default", className }: Props) {
   const isHero = variant === "hero";
@@ -33,67 +31,72 @@ export function LandingSampleCard({ variant = "default", className }: Props) {
       >
         <p
           className={cn(
-            "font-semibold uppercase tracking-wider text-brand-700",
-            isHero ? "text-sm" : "text-xs",
+            "font-semibold uppercase tracking-[0.18em] text-brand-700",
+            isHero ? "text-xs sm:text-sm" : "text-xs",
           )}
         >
-          디지털 명함
-        </p>
-        <h3
-          className={cn(
-            "font-bold tracking-tight text-slate-900",
-            isHero ? "mt-3 text-2xl sm:text-[1.75rem]" : "mt-2 text-2xl sm:text-[1.65rem]",
-          )}
-        >
-          린코 스튜디오
-        </h3>
-        <p className={cn("font-medium text-slate-700", isHero ? "mt-2 text-base" : "mt-1.5 text-sm")}>
-          송민호 · 디지털 명함 디자이너
+          린코 디지털 명함
         </p>
         <p
           className={cn(
-            "leading-relaxed text-slate-700",
-            isHero ? "mt-5 text-[15px] sm:text-base" : "mt-4 text-[15px] sm:text-base",
+            "mt-3 font-extrabold leading-[1.2] tracking-tight text-slate-900",
+            isHero ? "text-xl sm:text-2xl md:text-[1.65rem]" : "text-lg sm:text-xl",
           )}
         >
-          링크 하나로 나를 소개하고
-          <br className="sm:hidden" /> 고객과 연결되는 디지털 명함을 만듭니다.
+          명함 하나로 고객이 먼저 찾아오게 만듭니다
+        </p>
+        <p className={cn("mt-3 font-semibold text-slate-800", isHero ? "text-base" : "text-sm")}>
+          송민호
+        </p>
+        <p className="mt-1 text-sm font-medium leading-snug text-slate-600">
+          린코 디지털 명함 대표 · 연결을 만드는 사람
+        </p>
+        <p
+          className={cn(
+            "mt-4 leading-relaxed text-slate-700",
+            isHero ? "text-[15px] sm:text-base" : "text-sm sm:text-[15px]",
+          )}
+        >
+          홍보가 되는 명함,
+          <br />
+          연결이 이어지는 구조까지 함께 설계합니다
         </p>
       </div>
-      <div className={cn("space-y-2.5", isHero ? "px-6 py-5 sm:px-8" : "px-5 py-4 sm:px-6")}>
+      <div className={cn("space-y-3", isHero ? "px-6 py-5 sm:px-8" : "px-5 py-4 sm:px-6")}>
         <div className="grid gap-2.5 sm:grid-cols-2">
           <span
             className={cn(
-              "inline-flex items-center justify-center rounded-xl bg-brand-800 font-semibold text-white shadow-sm",
+              "inline-flex items-center justify-center rounded-xl bg-brand-800 font-bold text-white shadow-lg",
               isHero ? "min-h-12 px-4 text-sm sm:text-[15px]" : "min-h-11 px-3 text-sm",
             )}
           >
-            웹사이트
+            내 명함 만들어보기
           </span>
           <span
             className={cn(
-              "inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white font-semibold text-slate-800",
+              "inline-flex items-center justify-center rounded-xl border-2 border-brand-600 bg-white font-bold text-brand-900 shadow-md",
               isHero ? "min-h-12 px-4 text-sm sm:text-[15px]" : "min-h-11 px-3 text-sm",
             )}
           >
-            상담하기
+            무료로 구조 받아보기
           </span>
         </div>
-        <div className="flex flex-wrap gap-2 pt-1">
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-700">
+        <div className="flex flex-wrap gap-2 pt-0.5">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-800">
             <Phone className="h-3.5 w-3.5 shrink-0 text-brand-700" aria-hidden />
-            전화
+            빠른 문의
           </span>
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-700">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-800">
             <MessageCircle className="h-3.5 w-3.5 shrink-0 text-brand-700" aria-hidden />
-            카카오톡
+            카톡 상담
           </span>
-          <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-700">
-            링크
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-800">
+            <ExternalLink className="h-3.5 w-3.5 shrink-0 text-brand-700" aria-hidden />
+            샘플 더 보기
           </span>
         </div>
-        <p className={cn("text-center text-slate-500", isHero ? "pt-1 text-xs sm:text-sm" : "pt-2 text-xs")}>
-          실제 편집 화면에서는 색·버튼·링크를 자유롭게 바꿀 수 있어요.
+        <p className={cn("text-center text-slate-500", isHero ? "text-xs sm:text-sm" : "text-xs")}>
+          위 예시는 편집 화면에서 그대로 수정·저장할 수 있어요.
         </p>
       </div>
     </div>

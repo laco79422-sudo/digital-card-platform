@@ -8,6 +8,7 @@ import {
   resolveHeroCtas,
   resolveStickyCtas,
   serviceBlocks,
+  sortedUsableLinks,
 } from "@/lib/digitalCardViewModel";
 import { layout } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
@@ -50,15 +51,20 @@ function iconForLinkType(t: CardLink["type"]) {
 }
 
 function navigateCta(href: string) {
-  if (href.startsWith("tel:") || href.startsWith("mailto:")) {
-    window.location.href = href;
+  const t = href.trim();
+  if (t.startsWith("tel:") || t.startsWith("mailto:")) {
+    window.location.href = t;
     return;
   }
-  if (href.startsWith("#")) {
-    document.querySelector(href)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  if (t.startsWith("#")) {
+    document.querySelector(t)?.scrollIntoView({ behavior: "smooth", block: "start" });
     return;
   }
-  window.open(href, "_blank", "noopener,noreferrer");
+  if (t.startsWith("/") && !t.startsWith("//")) {
+    window.location.assign(t);
+    return;
+  }
+  window.open(t, "_blank", "noopener,noreferrer");
 }
 
 type Props = {
@@ -82,6 +88,7 @@ export function DigitalCardPublicView({
 }: Props) {
   const grad = themeClass[card.theme] ?? themeClass.navy;
   const tagline = effectiveTagline(card);
+  const hasPitchHeadline = Boolean(card.tagline?.trim());
   const trust = effectiveTrustLine(card);
   const gallery = galleryImages(card);
   const services = serviceBlocks(card);
@@ -93,6 +100,18 @@ export function DigitalCardPublicView({
     if (!u || u.startsWith("#")) return false;
     return true;
   });
+
+  const tertiaryLinks =
+    hero.mode === "from-links" ? sortedUsableLinks(links).slice(2) : extraLinks;
+
+  const PrimaryHeroIcon =
+    hero.mode === "from-links" && hero.primaryLinkType
+      ? iconForLinkType(hero.primaryLinkType)
+      : Phone;
+  const SecondaryHeroIcon =
+    hero.mode === "from-links" && hero.secondaryLinkType
+      ? iconForLinkType(hero.secondaryLinkType)
+      : MessageCircle;
 
   return (
     <div
@@ -129,38 +148,63 @@ export function DigitalCardPublicView({
                 )}
               </div>
             </div>
-            <h1 className="mt-5 break-keep text-2xl font-bold leading-tight tracking-tight text-white sm:text-3xl md:text-4xl">
-              {card.brand_name}
-            </h1>
-            <p className="mt-2 text-base font-medium text-white/90 sm:text-lg">{card.person_name}</p>
-            <Badge
-              tone="default"
-              className="mt-2 border border-white/30 bg-white/10 text-[11px] text-white/95 sm:text-xs"
-            >
-              {card.job_title}
-            </Badge>
-            <p className="mt-4 max-w-md text-[15px] font-medium leading-relaxed text-white/95 sm:text-base">
-              {tagline}
-            </p>
-            <p className="mt-3 max-w-md whitespace-pre-wrap break-words text-sm leading-relaxed text-white/88 sm:text-[15px]">
-              {card.intro.trim()}
-            </p>
-            <div className="mt-6 flex w-full max-w-md flex-col gap-3 sm:flex-row sm:justify-center">
+            {hasPitchHeadline ? (
+              <>
+                <p className="mt-5 max-w-md text-xs font-semibold uppercase tracking-[0.2em] text-white/75 sm:text-sm">
+                  {card.brand_name}
+                </p>
+                <h1 className="mt-3 max-w-xl break-keep text-2xl font-extrabold leading-[1.2] tracking-tight text-white sm:mt-4 sm:text-3xl md:text-4xl">
+                  {card.tagline?.trim()}
+                </h1>
+                <p className="mt-3 text-base font-semibold text-white/95 sm:text-lg">{card.person_name}</p>
+                <Badge
+                  tone="default"
+                  className="mt-2 max-w-md border border-white/30 bg-white/10 px-3 py-1 text-[11px] leading-snug text-white/95 sm:text-xs"
+                >
+                  {card.job_title}
+                </Badge>
+                {card.intro.trim() ? (
+                  <p className="mt-4 max-w-md whitespace-pre-wrap break-words text-sm leading-relaxed text-white/88 sm:text-[15px]">
+                    {card.intro.trim()}
+                  </p>
+                ) : null}
+              </>
+            ) : (
+              <>
+                <h1 className="mt-5 break-keep text-2xl font-bold leading-tight tracking-tight text-white sm:text-3xl md:text-4xl">
+                  {card.brand_name}
+                </h1>
+                <p className="mt-2 text-base font-medium text-white/90 sm:text-lg">{card.person_name}</p>
+                <Badge
+                  tone="default"
+                  className="mt-2 border border-white/30 bg-white/10 text-[11px] text-white/95 sm:text-xs"
+                >
+                  {card.job_title}
+                </Badge>
+                <p className="mt-4 max-w-md text-[15px] font-medium leading-relaxed text-white/95 sm:text-base">
+                  {tagline}
+                </p>
+                <p className="mt-3 max-w-md whitespace-pre-wrap break-words text-sm leading-relaxed text-white/88 sm:text-[15px]">
+                  {card.intro.trim()}
+                </p>
+              </>
+            )}
+            <div className="mt-7 flex w-full max-w-md flex-col gap-3 sm:mt-8 sm:flex-row sm:justify-center">
               <Button
                 type="button"
-                className="min-h-[52px] w-full flex-1 border-0 bg-white text-base font-semibold text-slate-900 shadow-lg hover:bg-white/95 sm:min-h-12"
+                className="min-h-[54px] w-full flex-1 border-0 bg-white text-base font-bold text-slate-900 shadow-[0_12px_40px_-8px_rgba(0,0,0,0.45)] ring-2 ring-white/40 hover:bg-white/95 sm:min-h-[52px]"
                 onClick={() => navigateCta(hero.primary.href)}
               >
-                <Phone className="mr-2 h-5 w-5 shrink-0" aria-hidden />
+                <PrimaryHeroIcon className="mr-2 h-5 w-5 shrink-0" aria-hidden />
                 {hero.primary.label}
               </Button>
               <Button
                 type="button"
                 variant="secondary"
-                className="min-h-[52px] w-full flex-1 border border-white/40 bg-white/10 text-base font-semibold text-white backdrop-blur hover:bg-white/20 sm:min-h-12"
+                className="min-h-[54px] w-full flex-1 border-2 border-white/55 bg-white/15 text-base font-bold text-white shadow-lg backdrop-blur hover:bg-white/25 sm:min-h-[52px]"
                 onClick={() => navigateCta(hero.secondary.href)}
               >
-                <MessageCircle className="mr-2 h-5 w-5 shrink-0" aria-hidden />
+                <SecondaryHeroIcon className="mr-2 h-5 w-5 shrink-0" aria-hidden />
                 {hero.secondary.label}
               </Button>
             </div>
@@ -242,13 +286,13 @@ export function DigitalCardPublicView({
           </ul>
         </section>
 
-        {!compact && extraLinks.length > 0 ? (
+        {tertiaryLinks.length > 0 ? (
           <section className="rounded-2xl border border-slate-200/80 bg-white p-4 sm:p-6">
             <p className="text-center text-xs font-semibold uppercase tracking-wide text-slate-500">
-              더 연결하기
+              {hero.mode === "from-links" ? "빠른 연결" : "더 연결하기"}
             </p>
             <div className="mt-4 flex flex-col gap-2">
-              {extraLinks.map((link) => {
+              {tertiaryLinks.map((link) => {
                 const Icon = iconForLinkType(link.type);
                 return (
                   <Button

@@ -6,6 +6,23 @@ import type { CardLink, CardLinkType } from "@/types/domain";
 
 export type CardPreviewLinkRow = { id: string; label: string; type: CardLinkType; url: string };
 
+function navigatePreviewLink(url: string) {
+  const t = url.trim();
+  if (t.startsWith("tel:") || t.startsWith("mailto:")) {
+    window.location.href = t;
+    return;
+  }
+  if (t.startsWith("#")) {
+    document.querySelector(t)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    return;
+  }
+  if (t.startsWith("/") && !t.startsWith("//")) {
+    window.location.assign(t);
+    return;
+  }
+  window.open(t, "_blank", "noopener,noreferrer");
+}
+
 type Props = {
   linkRows: CardPreviewLinkRow[];
   existingCardId?: string;
@@ -37,7 +54,7 @@ export function CardPreview({ linkRows, existingCardId, createdAt }: Props) {
     <DigitalCardPublicView
       card={card}
       links={previewLinks}
-      onLinkClick={() => {}}
+      onLinkClick={(link) => navigatePreviewLink(link.url)}
       compact
       hideSticky
       qrDataUrl={null}

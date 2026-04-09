@@ -48,6 +48,15 @@ export function serviceBlocks(card: BusinessCard): DigitalCardServiceLine[] {
 
 export type CtaAction = { label: string; href: string; external: boolean };
 
+export type HeroCtaBundle = {
+  primary: CtaAction;
+  secondary: CtaAction;
+  /** 전화번호가 없고 링크가 2개 이상이면 상단 2버튼을 링크 순서로 사용 */
+  mode: "from-links" | "legacy";
+  primaryLinkType?: CardLink["type"];
+  secondaryLinkType?: CardLink["type"];
+};
+
 function telHref(phone: string): string {
   const p = phone.replace(/\s/g, "");
   if (p.startsWith("tel:")) return p;
@@ -59,8 +68,35 @@ function mailHref(email: string): string {
   return `mailto:${email}`;
 }
 
-/** Hero 상단 2버튼: 전화하기 + 상담하기 */
-export function resolveHeroCtas(card: BusinessCard, links: CardLink[]): { primary: CtaAction; secondary: CtaAction } {
+export function sortedUsableLinks(links: CardLink[]): CardLink[] {
+  return [...links]
+    .sort((a, b) => a.sort_order - b.sort_order)
+    .filter((l) => {
+      const u = l.url.trim();
+      return Boolean(l.label.trim() && u && !u.startsWith("#"));
+    });
+}
+
+/**
+ * Hero 상단 2버튼: 전화번호가 있으면 전화·상담 우선(기존),
+ * 없고 등록된 링크가 2개 이상이면 상단 2개 링크(전환형 명함)로 표시합니다.
+ */
+export function resolveHeroCtas(card: BusinessCard, links: CardLink[]): HeroCtaBundle {
+  const usable = sortedUsableLinks(links);
+  const useLinkHero = !card.phone?.trim() && usable.length >= 2;
+
+  if (useLinkHero) {
+    const a = usable[0];
+    const b = usable[1];
+    return {
+      primary: { label: a.label, href: a.url.trim(), external: true },
+      secondary: { label: b.label, href: b.url.trim(), external: true },
+      mode: "from-links",
+      primaryLinkType: a.type,
+      secondaryLinkType: b.type,
+    };
+  }
+
   const kakaoLink =
     card.kakao_url?.trim() ||
     links.find((l) => l.type === "kakao")?.url ||
@@ -88,7 +124,13 @@ export function resolveHeroCtas(card: BusinessCard, links: CardLink[]): { primar
       : { label: "서비스 보기", href: "#services", external: false };
   }
 
-  return { primary, secondary };
+  return {
+    primary,
+    secondary,
+    mode: "legacy",
+    primaryLinkType: card.phone?.trim() ? "phone" : card.email?.trim() ? "email" : "website",
+    secondaryLinkType: kakaoLink ? "kakao" : card.email?.trim() ? "email" : "website",
+  };
 }
 
 /** 하단 sticky: 전화 / 상담 / 문의 */
