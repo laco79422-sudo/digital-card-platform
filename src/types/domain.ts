@@ -43,6 +43,8 @@ export interface BusinessCard {
   trust_line?: string | null;
   /** 히어로 브랜드 대표 이미지 (URL 또는 data URL) */
   brand_image_url?: string | null;
+  /** `object-fit: cover` 기준 초점 (예: "50% 50%"). 미리보기·공개 명함 동일 적용 */
+  brand_image_object_position?: string | null;
 }
 
 export type CardLinkType = "custom" | "phone" | "email" | "kakao" | "youtube" | "blog" | "website";

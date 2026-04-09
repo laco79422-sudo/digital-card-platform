@@ -1,6 +1,12 @@
 import type { BusinessCard, DigitalCardServiceLine } from "@/types/domain";
 import { create } from "zustand";
 
+function focalFromCardField(raw: string | null | undefined): string {
+  const t = raw?.trim();
+  if (!t) return "50% 50%";
+  return t;
+}
+
 /** 편집기·미리보기가 공유하는 단일 드래프트 (리렌더·스크롤 후에도 유지) */
 export type CardEditorDraft = {
   brand_name: string;
@@ -21,6 +27,8 @@ export type CardEditorDraft = {
   gallery_urls_raw: string;
   services: DigitalCardServiceLine[];
   brand_image_url: string | null;
+  /** CSS object-position (퍼센트 2값, 명함 16:9 영역 기준) */
+  brand_image_object_position: string;
 };
 
 function emptyServiceRows(): DigitalCardServiceLine[] {
@@ -29,6 +37,22 @@ function emptyServiceRows(): DigitalCardServiceLine[] {
     { title: "", body: "" },
     { title: "", body: "" },
   ];
+}
+
+/** 저장소·세션 등에서 온 초안에 빠진 필드를 채웁니다 */
+export function mergeDraftDefaults(partial: Partial<CardEditorDraft> & { services?: CardEditorDraft["services"] }): CardEditorDraft {
+  const base = createEmptyDraft();
+  const services =
+    partial.services && partial.services.length >= 3 ? partial.services : base.services;
+  return {
+    ...base,
+    ...partial,
+    services,
+    brand_image_object_position: partial.brand_image_object_position?.trim()
+      ? partial.brand_image_object_position.trim()
+      : base.brand_image_object_position,
+    brand_image_url: partial.brand_image_url !== undefined ? partial.brand_image_url : base.brand_image_url,
+  };
 }
 
 export function createEmptyDraft(overrides: Partial<CardEditorDraft> = {}): CardEditorDraft {
@@ -51,6 +75,7 @@ export function createEmptyDraft(overrides: Partial<CardEditorDraft> = {}): Card
     gallery_urls_raw: "",
     services: emptyServiceRows(),
     brand_image_url: null,
+    brand_image_object_position: "50% 50%",
     ...overrides,
   };
 }
@@ -77,6 +102,7 @@ export function draftFromBusinessCard(card: BusinessCard): CardEditorDraft {
     gallery_urls_raw: card.gallery_urls?.join("\n") ?? "",
     services: svc.slice(0, 5),
     brand_image_url: card.brand_image_url ?? null,
+    brand_image_object_position: focalFromCardField(card.brand_image_object_position),
   };
 }
 
@@ -131,6 +157,9 @@ export function draftToBusinessCard(
     gallery_urls: galleryList.length > 0 ? galleryList : null,
     services: serviceList.length > 0 ? serviceList : null,
     brand_image_url: draft.brand_image_url?.trim() ? draft.brand_image_url : null,
+    brand_image_object_position: draft.brand_image_object_position?.trim()
+      ? draft.brand_image_object_position.trim()
+      : null,
   };
 }
 

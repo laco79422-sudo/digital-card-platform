@@ -14,6 +14,7 @@ import {
   createEmptyDraft,
   draftFromBusinessCard,
   draftToBusinessCard,
+  mergeDraftDefaults,
   useCardEditorDraftStore,
 } from "@/stores/cardEditorDraftStore";
 import { getLinksForCard, useAppDataStore } from "@/stores/appDataStore";
@@ -113,7 +114,7 @@ export function CardEditorPage() {
     if (!isGuestRoute && location.pathname === "/cards/new" && isNew && user) {
       const pending = consumePendingCardDraft();
       if (pending) {
-        replaceDraft(pending.draft);
+        replaceDraft(mergeDraftDefaults(pending.draft));
         setLinkRows(
           pending.linkRows.length > 0
             ? pending.linkRows.map((r) => ({

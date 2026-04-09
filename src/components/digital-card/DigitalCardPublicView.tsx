@@ -131,17 +131,20 @@ export function DigitalCardPublicView({
         <div className="relative mx-auto w-full max-w-lg px-0">
           <div className="flex flex-col items-center text-center">
             <div className="relative w-full max-w-md overflow-hidden rounded-2xl bg-white/10 shadow-lg ring-1 ring-white/15">
-              <div className="relative aspect-[5/3] w-full sm:aspect-[16/9] sm:max-h-[min(42vh,280px)]">
+              <div className="relative aspect-video w-full max-h-[min(42vh,320px)] overflow-hidden">
                 {card.brand_image_url ? (
                   <img
                     src={card.brand_image_url}
                     alt=""
-                    className="absolute inset-0 h-full w-full object-cover object-center"
+                    className="absolute inset-0 h-full w-full object-cover"
+                    style={{
+                      objectPosition: card.brand_image_object_position?.trim() || "50% 50%",
+                    }}
                     loading="eager"
                     decoding="async"
                   />
                 ) : (
-                  <div className="flex h-full min-h-[140px] flex-col items-center justify-center gap-2 px-4 text-white/85">
+                  <div className="flex h-full min-h-[120px] w-full flex-col items-center justify-center gap-2 px-4 text-white/85">
                     <ImageIcon className="h-12 w-12 opacity-80 sm:h-14 sm:w-14" aria-hidden />
                     <span className="text-sm font-medium sm:text-base">이미지를 등록해 주세요</span>
                   </div>

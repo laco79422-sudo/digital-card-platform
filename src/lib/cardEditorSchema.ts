@@ -23,6 +23,7 @@ export const cardEditorSubmitSchema = z.object({
   gallery_urls_raw: z.string().optional(),
   services: z.array(z.object({ title: z.string(), body: z.string() })).max(5),
   brand_image_url: z.string().nullable().optional(),
+  brand_image_object_position: z.string().max(48).optional(),
 });
 
 export function parseCardEditorDraft(draft: CardEditorDraft) {

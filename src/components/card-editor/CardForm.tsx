@@ -73,7 +73,17 @@ export function CardForm({ errors = {} }: { errors?: FieldErrors }) {
           <ImageUploader
             label="브랜드 대표 이미지"
             value={draft.brand_image_url}
-            onChange={(url) => setDraft({ brand_image_url: url })}
+            objectPosition={draft.brand_image_object_position}
+            onUrlChange={(url, opts) => {
+              useCardEditorDraftStore.setState((s) => ({
+                draft: {
+                  ...s.draft,
+                  brand_image_url: url,
+                  brand_image_object_position: opts?.resetPosition ? "50% 50%" : s.draft.brand_image_object_position,
+                },
+              }));
+            }}
+            onObjectPositionChange={(brand_image_object_position) => setDraft({ brand_image_object_position })}
           />
 
           <div className="grid gap-4 border-t border-slate-100 pt-4 sm:grid-cols-2">
