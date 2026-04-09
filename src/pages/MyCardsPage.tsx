@@ -30,15 +30,26 @@ export function MyCardsPage() {
             슬러그로 공개 페이지를 만들고 QR로 공유하세요.
           </p>
         </div>
-        <Link
-          to="/cards/new"
-          className={cn(
-            "w-full sm:w-auto",
-            linkButtonClassName({ size: "lg", className: "w-full sm:w-auto" }),
-          )}
-        >
-          {brandCta.createDigitalCard}
-        </Link>
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+          <Link
+            to="/create-for-others"
+            className={cn(
+              "w-full sm:w-auto",
+              linkButtonClassName({ variant: "outline", size: "lg", className: "w-full sm:w-auto" }),
+            )}
+          >
+            명함 대신 만들어주기
+          </Link>
+          <Link
+            to="/cards/new"
+            className={cn(
+              "w-full sm:w-auto",
+              linkButtonClassName({ size: "lg", className: "w-full sm:w-auto" }),
+            )}
+          >
+            {brandCta.createDigitalCard}
+          </Link>
+        </div>
       </div>
 
       {mine.length === 0 ? (

@@ -9,9 +9,11 @@ import { signInWithGoogle, signUpWithEmail } from "@/lib/auth/authActions";
 import { BRAND_DISPLAY_NAME } from "@/lib/brand";
 import { layout } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
+import { clearInstantCardId, peekInstantCardId } from "@/lib/instantCardStorage";
 import { getLandingEmail, hasPendingCardDraft } from "@/lib/pendingCardStorage";
 import { isSupabaseConfigured } from "@/lib/supabase/client";
 import { mapSupabaseUser } from "@/lib/supabase/mapAuthUser";
+import { useAppDataStore } from "@/stores/appDataStore";
 import { useAuthStore } from "@/stores/authStore";
 import {
   getSignupEmailFieldStatus,
@@ -133,7 +135,15 @@ export function SignupPage() {
         setSession(data.session);
         setUser(mapSupabaseUser(data.session.user));
         touchActivity();
-        navigate(hasPendingCardDraft() ? "/cards/new" : "/dashboard", { replace: true });
+        const instantId = peekInstantCardId();
+        if (instantId) {
+          useAppDataStore.getState().claimInstantGuestCard(data.session.user.id, instantId);
+          clearInstantCardId();
+        }
+        navigate(
+          hasPendingCardDraft() ? "/cards/new" : instantId ? `/cards/${instantId}/edit` : "/dashboard",
+          { replace: true },
+        );
         return;
       }
 

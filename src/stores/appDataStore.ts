@@ -26,6 +26,7 @@ import type {
   ServiceRequest,
   Subscription,
 } from "@/types/domain";
+import { INSTANT_GUEST_USER_ID } from "@/lib/instantCardCreate";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
@@ -66,6 +67,8 @@ interface AppDataState {
   setBanners: (b: MainBanner[]) => void;
   addEducationApplication: (a: EducationApplication) => void;
   addInstructorApplication: (a: InstructorApplication) => void;
+  /** 게스트 즉시 명함 → 로그인 후 내 계정으로 이전 */
+  claimInstantGuestCard: (userId: string, cardId: string) => void;
 }
 
 export const useAppDataStore = create<AppDataState>()(
@@ -123,6 +126,12 @@ export const useAppDataStore = create<AppDataState>()(
         set((s) => ({ educationApplications: [...s.educationApplications, a] })),
       addInstructorApplication: (a) =>
         set((s) => ({ instructorApplications: [...s.instructorApplications, a] })),
+      claimInstantGuestCard: (userId, cardId) =>
+        set((s) => ({
+          businessCards: s.businessCards.map((c) =>
+            c.id === cardId && c.user_id === INSTANT_GUEST_USER_ID ? { ...c, user_id: userId } : c,
+          ),
+        })),
     }),
     {
       name: "linko-app-data",

@@ -4,7 +4,9 @@ import { useInactivityLogout } from "@/hooks/useInactivityLogout";
 import { useSupabaseAuthSync } from "@/hooks/useSupabaseAuthSync";
 import { AdminDashboardPage } from "@/pages/AdminDashboardPage";
 import { ApplicationsPage } from "@/pages/ApplicationsPage";
+import { InstantCardClaimEffect } from "@/components/instant/InstantCardClaimEffect";
 import { CardEditorPage } from "@/pages/CardEditorPage";
+import { CreateCardForOthersPage } from "@/pages/CreateCardForOthersPage";
 import { CreatorDirectoryPage } from "@/pages/CreatorDirectoryPage";
 import { CreatorProfilePage } from "@/pages/CreatorProfilePage";
 import { DashboardPage } from "@/pages/DashboardPage";
@@ -25,16 +27,19 @@ function AppRoutes() {
   useInactivityLogout();
 
   return (
-    <Routes>
-      <Route path="/c/:slug" element={<PublicCardPage />} />
-      <Route element={<AppLayout />}>
-        <Route index element={<LandingPage />} />
-        <Route path="pricing" element={<PricingPage />} />
-        <Route path="education" element={<EducationPage />} />
-        <Route path="login" element={<LoginPage />} />
-        <Route path="mypage" element={<Navigate to="/dashboard" replace />} />
-        <Route path="signup" element={<SignupPage />} />
-        <Route path="create-card" element={<CardEditorPage />} />
+    <>
+      <InstantCardClaimEffect />
+      <Routes>
+        <Route path="/c/:slug" element={<PublicCardPage />} />
+        <Route element={<AppLayout />}>
+          <Route index element={<LandingPage />} />
+          <Route path="pricing" element={<PricingPage />} />
+          <Route path="education" element={<EducationPage />} />
+          <Route path="login" element={<LoginPage />} />
+          <Route path="mypage" element={<Navigate to="/dashboard" replace />} />
+          <Route path="signup" element={<SignupPage />} />
+          <Route path="create-for-others" element={<CreateCardForOthersPage />} />
+          <Route path="create-card" element={<CardEditorPage />} />
         <Route path="creators" element={<CreatorDirectoryPage />} />
         <Route path="creators/:id" element={<CreatorProfilePage />} />
         <Route path="requests" element={<RequestListPage />} />
@@ -95,9 +100,10 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
-        <Route path="*" element={<NotFoundPage />} />
-      </Route>
-    </Routes>
+          <Route path="*" element={<NotFoundPage />} />
+        </Route>
+      </Routes>
+    </>
   );
 }
 

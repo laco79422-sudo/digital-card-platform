@@ -11,6 +11,7 @@ import { useAppDataStore } from "@/stores/appDataStore";
 import {
   ArrowRight,
   BarChart3,
+  Gift,
   Link2,
   MessageSquare,
   Users,
@@ -98,6 +99,21 @@ export function LandingPage() {
                 <p className="text-[11px] text-slate-400/95 sm:text-xs">또는</p>
                 <p>먼저 써보고, 저장할 때 가입하세요.</p>
               </div>
+
+              <Link
+                to="/create-for-others"
+                className={cn(
+                  "mt-5 flex min-h-[52px] w-full items-center justify-center gap-2 rounded-xl border-2 border-white/35 bg-white/10 px-5 text-[15px] font-bold text-white shadow-lg backdrop-blur-sm",
+                  "hover:border-white/50 hover:bg-white/18",
+                  "focus:outline-none focus:ring-2 focus:ring-white/45 focus:ring-offset-2 focus:ring-offset-brand-950",
+                )}
+              >
+                <Gift className="h-5 w-5 shrink-0 opacity-95" aria-hidden />
+                명함 대신 만들어주기
+              </Link>
+              <p className="mt-2 text-center text-xs leading-relaxed text-slate-300/90">
+                이름·직업·연락처만으로 링크가 바로 생깁니다. 보낸 뒤 가입해 수정할 수 있어요.
+              </p>
             </div>
 
             {/* 결과 먼저: CTA 바로 아래 샘플 카드 → 그다음 홍보 흐름 */}

@@ -7,10 +7,12 @@ import { signInWithEmail, signInWithGoogle } from "@/lib/auth/authActions";
 import { BRAND_DISPLAY_NAME } from "@/lib/brand";
 import { layout } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
+import { clearInstantCardId, peekInstantCardId } from "@/lib/instantCardStorage";
 import { hasPendingCardDraft } from "@/lib/pendingCardStorage";
 import { getSupabaseConfigErrorMessage, isSupabaseConfigured } from "@/lib/supabase/client";
 import { mapSupabaseUser } from "@/lib/supabase/mapAuthUser";
 import { useDevMountLog } from "@/dev/renderDiagnostics";
+import { useAppDataStore } from "@/stores/appDataStore";
 import { useAuthStore } from "@/stores/authStore";
 import { Globe } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -59,8 +61,17 @@ export function LoginPage() {
     if (sess) setSession(sess);
     setUser(mapSupabaseUser(u));
     touchActivity();
+    const instantId = peekInstantCardId();
+    if (instantId) {
+      useAppDataStore.getState().claimInstantGuestCard(u.id, instantId);
+      clearInstantCardId();
+    }
     if (hasPendingCardDraft()) {
       navigate("/cards/new", { replace: true });
+      return;
+    }
+    if (instantId) {
+      navigate(`/cards/${instantId}/edit`, { replace: true });
       return;
     }
     navigate(from, { replace: true });
