@@ -4,7 +4,9 @@ import { Card, CardContent, CardHeader } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Textarea } from "@/components/ui/Textarea";
+import { parseCardEditorDraft } from "@/lib/cardEditorSchema";
 import { cn } from "@/lib/utils";
+import { buildViralShareText } from "@/lib/viralShareText";
 import { slugify } from "@/stores/appDataStore";
 import { useCardEditorDraftStore } from "@/stores/cardEditorDraftStore";
 import { Copy, Share2 } from "lucide-react";
@@ -64,12 +66,15 @@ export function CardForm({
   }, [draft.slug, linkOrigin]);
 
   const slugShareText = useMemo(
-    () =>
-      previewCardUrl
-        ? `이거 한번 눌러봐\n내 명함인데 링크 하나야\n\n${previewCardUrl}`
-        : "",
+    () => (previewCardUrl ? buildViralShareText(previewCardUrl) : ""),
     [previewCardUrl],
   );
+
+  const slugShareReady = useMemo(() => {
+    const parsed = parseCardEditorDraft(draft);
+    if (!parsed.success || !draft.is_public) return false;
+    return draft.slug.trim().length >= 2;
+  }, [draft]);
 
   const copySlugLink = useCallback(async () => {
     if (!previewCardUrl) return;
@@ -271,35 +276,55 @@ export function CardForm({
 
               {previewCardUrl ? (
                 <div className="mt-4 space-y-2">
+                  <p className="text-center text-sm font-bold text-slate-900">
+                    지금 이 링크를 고객에게 보내보세요
+                  </p>
                   <p className="text-xs font-medium text-slate-500">미리보기 (저장 후에도 같은 주소)</p>
                   <p className="break-all rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-brand-900">
                     {previewCardUrl}
                   </p>
-                  <div className="flex flex-col gap-2 sm:flex-row">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="min-h-11 w-full flex-1 gap-2"
-                      onClick={() => void copySlugLink()}
-                    >
-                      <Copy className="h-4 w-4 shrink-0" aria-hidden />
-                      {slugCopyDone ? "복사됨!" : "링크 복사하기"}
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      className="min-h-11 w-full flex-1 gap-2"
-                      onClick={() => void kakaoSlugShare()}
-                    >
-                      <Share2 className="h-4 w-4 shrink-0" aria-hidden />
-                      카카오톡으로 보내기
-                    </Button>
-                  </div>
-                  {slugKakaoHint ? (
-                    <p className="text-center text-xs font-medium text-brand-800 sm:text-sm">
-                      메시지를 복사했어요. 카카오톡에 붙여넣어 보내 보세요.
+                  {slugShareReady ? (
+                    <>
+                      <div className="flex flex-col gap-2 sm:flex-row">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="min-h-11 w-full flex-1 gap-2"
+                          onClick={() => void copySlugLink()}
+                        >
+                          <Copy className="h-4 w-4 shrink-0" aria-hidden />
+                          {slugCopyDone ? "복사됨!" : "링크 복사하기"}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          className="min-h-11 w-full flex-1 gap-2"
+                          onClick={() => void kakaoSlugShare()}
+                        >
+                          <Share2 className="h-4 w-4 shrink-0" aria-hidden />
+                          카카오톡 공유
+                        </Button>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        className="min-h-11 w-full gap-2 border-2 border-brand-200/80 bg-white hover:bg-brand-50/80"
+                        onClick={() => void kakaoSlugShare()}
+                      >
+                        내 카카오톡으로 테스트 보내기
+                      </Button>
+                      {slugKakaoHint ? (
+                        <p className="text-center text-xs font-medium text-brand-800 sm:text-sm">
+                          메시지를 복사했어요. 카카오톡에 붙여넣어 보내 보세요.
+                        </p>
+                      ) : null}
+                    </>
+                  ) : (
+                    <p className="rounded-lg border border-amber-100 bg-amber-50/80 px-3 py-2 text-xs leading-relaxed text-amber-950">
+                      명함을 <span className="font-semibold">공개</span>로 두고 필수 정보를 맞추면, 위 주소로 실제
+                      열리는 링크를 카카오톡으로 바로 테스트할 수 있어요.
                     </p>
-                  ) : null}
+                  )}
                 </div>
               ) : (
                 <p className="mt-3 text-xs text-slate-500">

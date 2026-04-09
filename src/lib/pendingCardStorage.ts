@@ -14,6 +14,8 @@ export type PendingCardLinkRow = {
 export type PendingCardPayload = {
   draft: CardEditorDraft;
   linkRows: PendingCardLinkRow[];
+  /** 게스트 편집기에서 공개 미리보기용으로 쓰는 카드 id (가입 시 소유권 이전) */
+  liveCardId?: string;
 };
 
 /** 랜딩에서 시작하기로 넘긴 이메일 (명함 초안 이메일 칸에 이어 쓰기) */

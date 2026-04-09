@@ -15,6 +15,7 @@ import {
   draftToBusinessCard,
   mergeDraftDefaults,
   useCardEditorDraftStore,
+  type CardEditorDraft,
 } from "@/stores/cardEditorDraftStore";
 import { getLinksForCard, useAppDataStore } from "@/stores/appDataStore";
 import type { CardLink, CardLinkType } from "@/types/domain";
@@ -23,14 +24,19 @@ import {
   getSampleLinkRows,
   parseWantsSample,
 } from "@/lib/cardEditorSampleData";
+import { clearEditorLiveCardId, getEditorLiveCardId, setEditorLiveCardId } from "@/lib/editorLiveCardStorage";
+import { INSTANT_GUEST_USER_ID } from "@/lib/instantCardCreate";
+import { clearInstantCardId, setInstantCardId } from "@/lib/instantCardStorage";
 import {
   clearLandingEmail,
   consumePendingCardDraft,
   getLandingEmail,
+  peekPendingCardDraft,
   savePendingCardDraft,
 } from "@/lib/pendingCardStorage";
-import { ArrowRight, Sparkles } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { buildViralShareText } from "@/lib/viralShareText";
+import { ArrowRight, Check, Copy, Loader2, Share2, Sparkles } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, Navigate, useLocation, useNavigate, useParams } from "react-router-dom";
 
 function scrollToId(id: string) {
@@ -115,6 +121,30 @@ function mapLinksToRows(links: CardLink[]): LinkRow[] {
   }));
 }
 
+function draftLinkRowsToCardLinks(draft: CardEditorDraft, rows: LinkRow[], cardId: string): CardLink[] {
+  const filtered = rows.filter((r) => r.label.trim() && r.url.trim());
+  if (filtered.length > 0) {
+    return filtered.map((r, i) => ({
+      id: r.id,
+      card_id: cardId,
+      label: r.label,
+      type: r.type,
+      url: r.url,
+      sort_order: i,
+    }));
+  }
+  return [
+    {
+      id: crypto.randomUUID(),
+      card_id: cardId,
+      label: "웹사이트",
+      type: "website",
+      url: draft.website_url.trim() || "https://example.com",
+      sort_order: 0,
+    },
+  ];
+}
+
 export function CardEditorPage() {
   const { id } = useParams();
   const location = useLocation();
@@ -151,6 +181,20 @@ export function CardEditorPage() {
   const [linkRows, setLinkRows] = useState<LinkRow[]>(() => mapLinksToRows(existingLinks));
   const [submitting, setSubmitting] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<string, string>>>({});
+  const [autosaveStatus, setAutosaveStatus] = useState<"idle" | "saving" | "saved">("idle");
+  const [shareOrigin, setShareOrigin] = useState("");
+  const [heroCopyDone, setHeroCopyDone] = useState(false);
+  const [heroKakaoHint, setHeroKakaoHint] = useState(false);
+
+  const newCardIdRef = useRef<string | null>(null);
+  const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const autosaveStatusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const draft = useCardEditorDraftStore((s) => s.draft);
+
+  useEffect(() => {
+    setShareOrigin(typeof window !== "undefined" ? window.location.origin : "");
+  }, []);
 
   useEffect(() => {
     if (isGuestRoute) return;
@@ -171,9 +215,32 @@ export function CardEditorPage() {
           }),
         );
         setLinkRows(getSampleLinkRows());
+        clearEditorLiveCardId();
+        clearInstantCardId();
       } else {
-        replaceDraft(createEmptyDraft({ email: emailHint ?? "" }));
-        setLinkRows(mapLinksToRows([]));
+        const pending = peekPendingCardDraft();
+        if (pending?.draft) {
+          replaceDraft(mergeDraftDefaults(pending.draft));
+          setLinkRows(
+            pending.linkRows?.length
+              ? pending.linkRows.map((r) => ({
+                  id: r.id,
+                  label: r.label,
+                  type: r.type,
+                  url: r.url,
+                }))
+              : mapLinksToRows([]),
+          );
+          if (pending.liveCardId) {
+            setEditorLiveCardId(pending.liveCardId);
+            setInstantCardId(pending.liveCardId);
+          }
+        } else {
+          replaceDraft(createEmptyDraft({ email: emailHint ?? "" }));
+          setLinkRows(mapLinksToRows([]));
+          clearEditorLiveCardId();
+          clearInstantCardId();
+        }
       }
       setHydratedKey(routeKey);
       return;
@@ -249,11 +316,145 @@ export function CardEditorPage() {
     setHydratedKey,
   ]);
 
+  useEffect(() => {
+    const hydrated = useCardEditorDraftStore.getState().hydratedKey === routeKey;
+    if (!hydrated) return;
+
+    if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current);
+    autosaveTimerRef.current = setTimeout(() => {
+      const dly = useCardEditorDraftStore.getState().draft;
+      const parsed = parseCardEditorDraft(dly);
+      const rowPayload = linkRows.map((r) => ({
+        id: r.id,
+        label: r.label,
+        type: r.type,
+        url: r.url,
+      }));
+
+      setAutosaveStatus("saving");
+
+      if (isGuestRoute && !user) {
+        savePendingCardDraft({
+          draft: dly,
+          linkRows: rowPayload,
+          liveCardId: getEditorLiveCardId() ?? undefined,
+        });
+      }
+
+      if (parsed.success) {
+        let cardId: string | undefined = existing?.id;
+        if (!cardId && user && !isGuestRoute && isNew) {
+          if (!newCardIdRef.current) newCardIdRef.current = crypto.randomUUID();
+          cardId = newCardIdRef.current;
+        }
+        if (!cardId && isGuestRoute && !user) {
+          let lid = getEditorLiveCardId();
+          if (!lid) {
+            lid = crypto.randomUUID();
+            setEditorLiveCardId(lid);
+            setInstantCardId(lid);
+          }
+          cardId = lid;
+        }
+        if (cardId) {
+          const uid = user?.id ?? INSTANT_GUEST_USER_ID;
+          const card = draftToBusinessCard(dly, {
+            id: cardId,
+            user_id: uid,
+            created_at: existing?.created_at ?? new Date().toISOString(),
+          });
+          upsertBusinessCard(card);
+          setCardLinks(cardId, draftLinkRowsToCardLinks(dly, linkRows, cardId));
+          if (isGuestRoute && !user) {
+            savePendingCardDraft({
+              draft: dly,
+              linkRows: rowPayload,
+              liveCardId: cardId,
+            });
+          }
+        }
+      }
+
+      if (autosaveStatusTimerRef.current) clearTimeout(autosaveStatusTimerRef.current);
+      setAutosaveStatus("saved");
+      autosaveStatusTimerRef.current = setTimeout(() => setAutosaveStatus("idle"), 2200);
+    }, 620);
+
+    return () => {
+      if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current);
+      if (autosaveStatusTimerRef.current) clearTimeout(autosaveStatusTimerRef.current);
+    };
+  }, [
+    draft,
+    linkRows,
+    routeKey,
+    existing?.id,
+    existing?.created_at,
+    user,
+    isGuestRoute,
+    isNew,
+    upsertBusinessCard,
+    setCardLinks,
+  ]);
+
+  const heroShareEligible = useMemo(() => {
+    const parsed = parseCardEditorDraft(draft);
+    if (!parsed.success || !draft.is_public) return false;
+    return draft.slug.trim().length >= 2;
+  }, [draft]);
+
+  const heroShareUrl = useMemo(() => {
+    if (!heroShareEligible || !shareOrigin) return "";
+    return `${shareOrigin}/c/${encodeURIComponent(draft.slug.trim())}`;
+  }, [heroShareEligible, shareOrigin, draft.slug]);
+
+  const heroShareText = useMemo(
+    () => (heroShareUrl ? buildViralShareText(heroShareUrl) : ""),
+    [heroShareUrl],
+  );
+
+  const copyHeroShare = useCallback(async () => {
+    if (!heroShareUrl) return;
+    try {
+      await navigator.clipboard.writeText(heroShareUrl);
+      setHeroCopyDone(true);
+      window.setTimeout(() => setHeroCopyDone(false), 2200);
+    } catch {
+      window.prompt("링크를 복사해 주세요", heroShareUrl);
+    }
+  }, [heroShareUrl]);
+
+  const kakaoHeroShare = useCallback(async () => {
+    if (!heroShareUrl || !heroShareText) return;
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `${draft.person_name || draft.brand_name || "내"} 디지털 명함`,
+          text: heroShareText,
+          url: heroShareUrl,
+        });
+        return;
+      } catch {
+        /* 사용자 취소 */
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(heroShareText);
+      setHeroKakaoHint(true);
+      window.setTimeout(() => setHeroKakaoHint(false), 2600);
+    } catch {
+      window.prompt("붙여넣어 보낼 내용입니다", heroShareText);
+    }
+  }, [draft.brand_name, draft.person_name, heroShareText, heroShareUrl]);
+
   const applySampleDraft = useCallback(() => {
     const emailFallback = getLandingEmail()?.trim() || user?.email?.trim() || "hello@linko.app";
     replaceDraft(getSampleCardDraft({ email: emailFallback }));
     setLinkRows(getSampleLinkRows());
     setFieldErrors({});
+    clearEditorLiveCardId();
+    clearInstantCardId();
+    newCardIdRef.current = null;
   }, [replaceDraft, user?.email]);
 
   const applyEmptyDraft = useCallback(() => {
@@ -265,6 +466,9 @@ export function CardEditorPage() {
     );
     setLinkRows(mapLinksToRows([]));
     setFieldErrors({});
+    clearEditorLiveCardId();
+    clearInstantCardId();
+    newCardIdRef.current = null;
   }, [replaceDraft, user?.email, user?.name]);
 
   const handleTrySample = useCallback(() => {
@@ -291,10 +495,13 @@ export function CardEditorPage() {
       if (landing && !d.email.trim()) {
         replaceDraft({ ...d, email: landing });
       }
+      const gid = getEditorLiveCardId();
       savePendingCardDraft({
         draft: useCardEditorDraftStore.getState().draft,
         linkRows,
+        liveCardId: gid ?? undefined,
       });
+      if (gid) setInstantCardId(gid);
       setSubmitting(true);
       try {
         navigate("/signup", {
@@ -313,7 +520,9 @@ export function CardEditorPage() {
 
     setSubmitting(true);
     try {
-      const cardId = existing?.id ?? crypto.randomUUID();
+      let cardId = existing?.id ?? newCardIdRef.current;
+      if (!cardId) cardId = crypto.randomUUID();
+      if (!existing) newCardIdRef.current = cardId;
       const card = draftToBusinessCard(draft, {
         id: cardId,
         user_id: user.id,
@@ -357,10 +566,38 @@ export function CardEditorPage() {
 
   return (
     <div className={cn(layout.pageEditor, "py-8 sm:py-12")}>
-      <div className="mb-6 flex items-center justify-between gap-4 sm:mb-8">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 sm:text-sm">
-          {isGuestRoute ? "실시간 명함 생성기" : isNew ? "새 디지털 명함" : "명함 수정"}
-        </p>
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-4 sm:mb-8">
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 sm:text-sm">
+            {isGuestRoute
+              ? "지금 만들어서 바로 보내는 도구"
+              : isNew
+                ? "새 디지털 명함"
+                : "명함 수정"}
+          </p>
+          {isGuestRoute ? (
+            <p className="mt-1 max-w-md text-xs leading-relaxed text-slate-500 sm:text-sm">
+              입력만으로 자동 저장되고, 링크 하나로 고객·SNS까지 이어져요. 가입은 나중에 해도 됩니다.
+            </p>
+          ) : null}
+          <p
+            className="mt-2 flex min-h-5 flex-wrap items-center gap-1.5 text-xs text-slate-600 sm:text-sm"
+            aria-live="polite"
+          >
+            {autosaveStatus === "saving" ? (
+              <>
+                <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-brand-700" aria-hidden />
+                <span>자동 저장 중...</span>
+              </>
+            ) : null}
+            {autosaveStatus === "saved" ? (
+              <>
+                <Check className="h-3.5 w-3.5 shrink-0 text-emerald-600" aria-hidden />
+                <span className="font-medium text-emerald-800">저장 완료</span>
+              </>
+            ) : null}
+          </p>
+        </div>
         <Link
           to={isGuestRoute ? "/" : "/cards"}
           className="inline-flex min-h-10 shrink-0 items-center text-sm font-medium text-brand-700 sm:text-base"
@@ -375,7 +612,7 @@ export function CardEditorPage() {
       >
         <div className="overflow-hidden rounded-[1.65rem] border border-slate-200/90 bg-slate-100 shadow-[0_28px_64px_-14px_rgba(15,23,42,0.38)] ring-1 ring-slate-900/[0.06]">
           <p className="border-b border-slate-200/90 bg-white px-3 py-2.5 text-center text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500 sm:text-xs">
-            실시간 명함 · 입력하는 순간 완성
+            실시간 명함 · 자동 저장 · 바로 공유
           </p>
           <div className="max-h-[min(76vh,720px)] overflow-y-auto overscroll-contain bg-slate-100">
             <CardPreview
@@ -391,9 +628,67 @@ export function CardEditorPage() {
         </h1>
         <p className="mx-auto mt-3 max-w-md text-pretty text-center text-base leading-relaxed text-slate-600 sm:text-lg">
           {isLiveGenerator
-            ? "입력하는 순간, 명함은 완성됩니다. 링크 한 줄로 만나는 첫인상을 지금 만들어 보세요."
+            ? "입력할 때마다 자동 저장되고, 같은 링크로 고객에게 바로 보낼 수 있어요. 공유로 이어지는 구조예요."
             : "아래에서 내용을 바꾸면 이 미리보기에 바로 반영돼요."}
         </p>
+
+        {heroShareUrl ? (
+          <div className="mx-auto mt-8 w-full max-w-lg rounded-2xl border border-brand-200/90 bg-gradient-to-b from-brand-50/55 to-white p-4 shadow-sm sm:p-5">
+            <p className="text-center text-base font-bold text-slate-900">지금 이 링크를 고객에게 보내보세요</p>
+            <p className="mx-auto mt-2 max-w-sm text-center text-xs leading-relaxed text-slate-600 sm:text-sm">
+              카카오톡 공유 시 기본 메시지가 함께 전달돼요.
+            </p>
+            <button
+              type="button"
+              className="mt-3 w-full break-all rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-left text-sm font-semibold text-brand-900 hover:bg-slate-50"
+              onClick={() => window.open(heroShareUrl, "_blank", "noopener,noreferrer")}
+            >
+              {heroShareUrl}
+            </button>
+            <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+              <Button
+                type="button"
+                variant="outline"
+                className="min-h-11 w-full flex-1 gap-2 sm:flex-1"
+                onClick={() => void copyHeroShare()}
+              >
+                <Copy className="h-4 w-4 shrink-0" aria-hidden />
+                {heroCopyDone ? "복사됨!" : "링크 복사하기"}
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                className="min-h-11 w-full flex-1 gap-2"
+                onClick={() => void kakaoHeroShare()}
+              >
+                <Share2 className="h-4 w-4 shrink-0" aria-hidden />
+                카카오톡 공유
+              </Button>
+            </div>
+            <Button
+              type="button"
+              variant="secondary"
+              className="mt-2 min-h-11 w-full gap-2 border-2 border-brand-200/80 bg-white hover:bg-brand-50/80"
+              onClick={() => void kakaoHeroShare()}
+            >
+              내 카카오톡으로 테스트 보내기
+            </Button>
+            <pre className="mt-3 whitespace-pre-wrap break-words rounded-lg border border-slate-100 bg-slate-50/80 p-3 text-left font-sans text-xs leading-relaxed text-slate-700">
+              {heroShareText}
+            </pre>
+            {heroKakaoHint ? (
+              <p className="mt-2 text-center text-xs font-medium text-brand-800 sm:text-sm">
+                메시지를 복사했어요. 카카오톡에 붙여넣어 내 채팅으로 보내 보세요.
+              </p>
+            ) : null}
+          </div>
+        ) : (
+          <div className="mx-auto mt-8 max-w-md rounded-xl border border-dashed border-slate-200 bg-slate-50/60 px-4 py-3 text-center text-sm leading-relaxed text-slate-600">
+            {!draft.is_public
+              ? "명함을 공개로 설정하면 실제 링크로 열리고, 바로 테스트·공유할 수 있어요."
+              : "필수 정보를 모두 올바르게 채우면 위에서 같은 링크로 공유할 수 있어요."}
+          </div>
+        )}
 
         {isLiveGenerator ? (
           <EditorCtaBand phase="hero" onTrySample={handleTrySample} showTrySample />

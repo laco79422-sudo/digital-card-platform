@@ -14,6 +14,7 @@ import {
   trustTestimonialsForView,
 } from "@/lib/digitalCardViewModel";
 import { layout } from "@/lib/ui-classes";
+import { buildViralShareText } from "@/lib/viralShareText";
 import { cn } from "@/lib/utils";
 import type { BusinessCard, CardLink } from "@/types/domain";
 import {
@@ -55,10 +56,6 @@ function iconForLinkType(t: CardLink["type"]) {
     default:
       return ExternalLink;
   }
-}
-
-function buildViralShareText(cardUrl: string): string {
-  return `이거 한번 눌러봐\n내 명함인데 링크 하나야\n\n${cardUrl}`;
 }
 
 function navigateCta(href: string) {
