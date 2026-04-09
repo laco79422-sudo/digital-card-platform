@@ -88,7 +88,7 @@ export function CardEditorPage() {
     setLinkRows(mapLinksToRows(existingLinks));
   }, [existing?.id, existingLinks, isGuestRoute]);
 
-  /** 게스트 /create-card · 가입 후 복원 · ?sample=1 · 일반 신규 순으로 주입 */
+  /** 게스트 /create-card · 가입 후 복원 · ?sample=true 등 · 일반 신규 순으로 주입 */
   useEffect(() => {
     if (isGuestRoute && !user) {
       const state = useCardEditorDraftStore.getState();

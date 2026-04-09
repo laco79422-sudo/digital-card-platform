@@ -5,8 +5,7 @@ import { PricingCard } from "@/components/ui/PricingCard";
 import { linkButtonClassName } from "@/components/ui/buttonStyles";
 import { useDevMountLog } from "@/dev/renderDiagnostics";
 import { LANDING_FAQ, LANDING_TESTIMONIALS } from "@/data/sampleData";
-import { clearLandingEmail, setLandingEmail } from "@/lib/pendingCardStorage";
-import { form, layout, section, type } from "@/lib/ui-classes";
+import { layout, section, type } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
 import { useAppDataStore } from "@/stores/appDataStore";
 import {
@@ -17,14 +16,11 @@ import {
   Users,
   Video,
 } from "lucide-react";
-import { useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useMemo } from "react";
+import { Link } from "react-router-dom";
 
 export function LandingPage() {
   useDevMountLog("LandingPage");
-  const navigate = useNavigate();
-  const [emailInput, setEmailInput] = useState("");
-  const [emailError, setEmailError] = useState<string | null>(null);
   const featuredCreatorIds = useAppDataStore((s) => s.featuredCreatorIds);
   const creators = useAppDataStore((s) => s.creators);
   const featured = useMemo(
@@ -58,22 +54,6 @@ export function LandingPage() {
     },
   ] as const;
 
-  const onStartCard = (e: React.FormEvent) => {
-    e.preventDefault();
-    const t = emailInput.trim();
-    if (!t) {
-      setEmailError("이메일을 입력해 주세요.");
-      return;
-    }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(t)) {
-      setEmailError("올바른 이메일 형식이 아닙니다.");
-      return;
-    }
-    setEmailError(null);
-    setLandingEmail(t);
-    navigate("/create-card?sample=1");
-  };
-
   return (
     <>
       <SiteLinkPreviewSeo />
@@ -95,12 +75,15 @@ export function LandingPage() {
               링크 하나로 고객과 연결되는 명함
             </p>
             <p className="mt-2 max-w-sm text-center text-sm leading-relaxed text-slate-300/90 sm:text-[15px]">
-              예시가 자동으로 채워집니다 · 바로 보고 수정해 보세요
+              클릭하면 예시가 자동으로 채워집니다
+            </p>
+            <p className="mt-1 max-w-sm text-center text-sm font-medium leading-relaxed text-slate-200/95 sm:text-[15px]">
+              바로 보고 수정해보세요
             </p>
 
             <div className="mt-8 w-full max-w-md sm:mt-10">
               <Link
-                to="/create-card?sample=1"
+                to="/create-card?sample=true"
                 className={cn(
                   "flex min-h-[52px] w-full items-center justify-center gap-2 rounded-xl px-5 text-base font-bold text-white shadow-lg",
                   "bg-gradient-to-r from-brand-500 to-brand-700 hover:from-brand-400 hover:to-brand-600",
@@ -111,7 +94,7 @@ export function LandingPage() {
                 <ArrowRight className="h-5 w-5 shrink-0" aria-hidden />
               </Link>
               <p className="mt-3 text-center text-xs leading-relaxed text-slate-300/95 sm:text-sm">
-                눌러서 이동하면 이름·소개·버튼이 채워진 예시 명함을 바로 편집할 수 있어요.
+                가입 없이 편집하고, 저장할 때 계정을 만들면 됩니다.
               </p>
             </div>
 
@@ -153,69 +136,11 @@ export function LandingPage() {
               </div>
             </div>
 
-            <div className="mt-10 w-full max-w-md sm:mt-12">
-              <p className="text-sm font-medium text-white/90">이메일을 넣고 같은 샘플로 시작하기</p>
-              <form
-                className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-stretch"
-                onSubmit={onStartCard}
-              >
-                <label htmlFor="landing-email" className="sr-only">
-                  이메일
-                </label>
-                <input
-                  id="landing-email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  inputMode="email"
-                  placeholder="이메일 주소를 입력하세요"
-                  value={emailInput}
-                  onChange={(e) => {
-                    setEmailInput(e.target.value);
-                    setEmailError(null);
-                  }}
-                  className={cn(form.input, "border-white/25 bg-white/95 text-slate-900 placeholder:text-slate-500")}
-                />
-                <button
-                  type="submit"
-                  className={cn(
-                    "inline-flex min-h-12 shrink-0 items-center justify-center gap-2 rounded-xl px-5 text-base font-semibold text-slate-900 shadow-md",
-                    "bg-white hover:bg-white/95 focus:outline-none focus:ring-2 focus:ring-white/60 focus:ring-offset-2 focus:ring-offset-brand-950 sm:px-6",
-                  )}
-                >
-                  시작하기 (샘플 + 내 이메일)
-                  <ArrowRight className="h-4 w-4 shrink-0" aria-hidden />
-                </button>
-              </form>
-              {emailError ? (
-                <p className="mt-2 text-sm font-medium text-amber-200" role="alert">
-                  {emailError}
-                </p>
-              ) : null}
-              <p className={cn("mt-4", type.heroFootnote)}>
-                가입 없이 미리 만들고, 저장할 때만 계정을 만들면 됩니다.
-              </p>
-            </div>
-
-            <div className="mt-8 flex w-full max-w-lg flex-col gap-3 sm:mt-10 sm:flex-row sm:justify-center">
-              <Link
-                to="/create-card?sample=1"
-                onClick={() => clearLandingEmail()}
-                className={cn(
-                  "w-full sm:w-auto",
-                  linkButtonClassName({
-                    variant: "outlineOnDark",
-                    size: "lg",
-                    className: "w-full sm:w-auto",
-                  }),
-                )}
-              >
-                이메일 없이 샘플로 시작
-              </Link>
+            <div className="mt-10 flex w-full max-w-lg justify-center sm:mt-12">
               <Link
                 to="/creators"
                 className={cn(
-                  "w-full sm:w-auto",
+                  "w-full max-w-xs sm:w-auto",
                   linkButtonClassName({
                     variant: "outlineOnDark",
                     size: "lg",
