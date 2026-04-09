@@ -6,7 +6,6 @@ import { Card, CardContent, CardHeader } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { parseCardEditorDraft, zodIssuesToFieldErrors } from "@/lib/cardEditorSchema";
-import { brandCta } from "@/lib/brand";
 import { layout } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/authStore";
@@ -30,8 +29,77 @@ import {
   getLandingEmail,
   savePendingCardDraft,
 } from "@/lib/pendingCardStorage";
+import { ArrowRight, Sparkles } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, Navigate, useLocation, useNavigate, useParams } from "react-router-dom";
+
+function scrollToId(id: string) {
+  document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function EditorCtaBand({
+  phase,
+  onTrySample,
+  showTrySample,
+}: {
+  phase: "hero" | "mid" | "bottom";
+  onTrySample: () => void;
+  showTrySample: boolean;
+}) {
+  const goStudio = () => scrollToId("studio-fields");
+  const goSave = () => scrollToId("final-save");
+
+  const gradientBtn =
+    "inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-xl px-5 text-base font-bold text-white shadow-lg sm:w-auto sm:min-w-[10rem] bg-gradient-to-r from-brand-500 to-brand-700 hover:from-brand-400 hover:to-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-400/50";
+
+  if (phase === "hero") {
+    return (
+      <div className="mt-8 flex w-full max-w-lg flex-col gap-3 sm:mx-auto sm:max-w-xl sm:flex-row sm:justify-center">
+        <button type="button" className={gradientBtn} onClick={goStudio}>
+          지금 내 명함 만들기
+          <ArrowRight className="h-5 w-5 shrink-0" aria-hidden />
+        </button>
+        <Button
+          type="button"
+          variant="secondary"
+          className="min-h-[52px] w-full gap-2 sm:w-auto sm:min-w-[10rem]"
+          onClick={() => {
+            onTrySample();
+            scrollToId("card-preview-hero");
+          }}
+        >
+          <Sparkles className="h-4 w-4 shrink-0" aria-hidden />
+          3초 체험하기
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-2xl border border-brand-200/90 bg-gradient-to-br from-brand-50/95 to-white px-4 py-6 shadow-sm sm:px-8 sm:py-8">
+      <p className="text-center text-base font-bold text-brand-950">
+        {phase === "mid" ? "마음에 드나요? 다음 단계로" : "지금 저장하고 링크를 받아보세요"}
+      </p>
+      <p className="mt-2 text-center text-sm leading-relaxed text-slate-600">
+        입력은 그대로 두고, 가입만 하면 같은 명함이 저장됩니다.
+      </p>
+      <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-center">
+        <button type="button" className={gradientBtn} onClick={goSave}>
+          무료로 시작하기
+          <ArrowRight className="h-5 w-5 shrink-0" aria-hidden />
+        </button>
+        <Button type="button" variant="outline" className="min-h-[52px] w-full sm:w-auto" onClick={goStudio}>
+          지금 명함 만들기
+        </Button>
+        {showTrySample ? (
+          <Button type="button" variant="secondary" className="min-h-[52px] w-full sm:w-auto" onClick={onTrySample}>
+            3초 체험하기
+          </Button>
+        ) : null}
+      </div>
+    </div>
+  );
+}
 
 type LinkRow = { id: string; label: string; type: CardLinkType; url: string };
 
@@ -199,6 +267,13 @@ export function CardEditorPage() {
     setFieldErrors({});
   }, [replaceDraft, user?.email, user?.name]);
 
+  const handleTrySample = useCallback(() => {
+    applySampleDraft();
+    scrollToId("card-preview-hero");
+  }, [applySampleDraft]);
+
+  const isLiveGenerator = isGuestRoute || isNew;
+
   const onSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setFieldErrors({});
@@ -281,70 +356,62 @@ export function CardEditorPage() {
   }
 
   return (
-    <div className={cn(layout.pageEditor, "py-10 sm:py-12")}>
-      <div className="mb-8 flex items-center justify-between gap-4">
-        <h1 className="break-keep text-2xl font-bold leading-snug tracking-tight text-slate-900 md:text-3xl">
-          {isGuestRoute
-            ? "명함 만들기"
-            : isNew
-              ? brandCta.createDigitalCard
-              : "명함 수정하기"}
-        </h1>
+    <div className={cn(layout.pageEditor, "py-8 sm:py-12")}>
+      <div className="mb-6 flex items-center justify-between gap-4 sm:mb-8">
+        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 sm:text-sm">
+          {isGuestRoute ? "실시간 명함 생성기" : isNew ? "새 디지털 명함" : "명함 수정"}
+        </p>
         <Link
           to={isGuestRoute ? "/" : "/cards"}
-          className="inline-flex min-h-11 shrink-0 items-center text-base font-medium text-brand-700"
+          className="inline-flex min-h-10 shrink-0 items-center text-sm font-medium text-brand-700 sm:text-base"
         >
           {isGuestRoute ? "홈으로" : "목록으로"}
         </Link>
       </div>
 
-      {isNew || isGuestRoute ? (
-        <div className="mb-10 space-y-4 sm:mb-12">
-          <div className="rounded-2xl border border-brand-200 bg-brand-50/90 px-4 py-4 text-center sm:px-6 sm:py-5">
-            <p className="text-sm font-semibold text-brand-900 sm:text-base">
-              {wantsSample
-                ? "샘플이 자동으로 채워졌습니다. 원하는 부분만 수정해 보세요."
-                : "필드를 채우면 아래 미리보기에 바로 반영됩니다."}
-            </p>
-            <p className="mt-2 text-sm leading-relaxed text-brand-950/85">
-              완성 예시를 먼저 보고 빠르게 시작할 수 있습니다. 모든 값은 실제 저장·공개에 쓰이는 입력입니다.
-            </p>
-            <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
-              <Button type="button" variant="secondary" size="sm" onClick={applySampleDraft}>
-                샘플 다시 불러오기
-              </Button>
-              <Button type="button" variant="outline" size="sm" onClick={applyEmptyDraft}>
-                빈 상태로 시작하기
-              </Button>
-            </div>
+      <section
+        id="card-preview-hero"
+        className="mx-auto w-full max-w-[min(100%,28rem)] scroll-mt-6 sm:max-w-[32rem]"
+      >
+        <div className="overflow-hidden rounded-[1.65rem] border border-slate-200/90 bg-slate-100 shadow-[0_28px_64px_-14px_rgba(15,23,42,0.38)] ring-1 ring-slate-900/[0.06]">
+          <p className="border-b border-slate-200/90 bg-white px-3 py-2.5 text-center text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500 sm:text-xs">
+            실시간 명함 · 입력하는 순간 완성
+          </p>
+          <div className="max-h-[min(76vh,720px)] overflow-y-auto overscroll-contain bg-slate-100">
+            <CardPreview
+              linkRows={linkRows}
+              existingCardId={existing?.id}
+              createdAt={existing?.created_at}
+            />
           </div>
-          <p className="text-center text-base font-medium leading-relaxed text-slate-800 sm:text-lg">
-            나를 소개하는 가장 쉬운 방법, 린코 디지털 명함
-          </p>
-          <p className="text-center text-sm leading-relaxed text-slate-600 sm:text-base">
-            한 번 만들면 링크로 퍼지는 나만의 디지털 명함
-          </p>
-          <p className="text-center text-sm font-medium leading-relaxed text-brand-800 sm:text-base">
-            이름을 남기는 명함에서, 고객과 연결되는 명함으로
-          </p>
         </div>
-      ) : null}
 
-      <div className="mb-10 overflow-hidden rounded-2xl border border-slate-200 bg-slate-100 shadow-sm">
-        <p className="border-b border-slate-200 bg-white px-4 py-3 text-center text-sm font-semibold text-slate-800">
-          실시간 미리보기 · 입력과 동일한 상태로 반영됩니다
+        <h1 className="mt-8 max-w-xl text-balance text-center text-2xl font-extrabold leading-snug tracking-tight text-slate-900 sm:mx-auto sm:mt-10 sm:text-3xl md:text-[1.75rem]">
+          {isLiveGenerator ? "명함 하나로 고객이 먼저 찾아옵니다" : "지금 보이는 대로 저장됩니다"}
+        </h1>
+        <p className="mx-auto mt-3 max-w-md text-pretty text-center text-base leading-relaxed text-slate-600 sm:text-lg">
+          {isLiveGenerator
+            ? "입력하는 순간, 명함은 완성됩니다. 링크 한 줄로 만나는 첫인상을 지금 만들어 보세요."
+            : "아래에서 내용을 바꾸면 이 미리보기에 바로 반영돼요."}
         </p>
-        <div className="max-h-[min(72vh,640px)] overflow-y-auto overscroll-contain bg-slate-100">
-          <CardPreview
-            linkRows={linkRows}
-            existingCardId={existing?.id}
-            createdAt={existing?.created_at}
+
+        {isLiveGenerator ? (
+          <EditorCtaBand phase="hero" onTrySample={handleTrySample} showTrySample />
+        ) : null}
+      </section>
+
+      <form id="editor-main-form" onSubmit={onSave} className="mt-12 space-y-8 sm:mt-16">
+        <div id="studio-fields" className="scroll-mt-24 space-y-8">
+          <CardForm
+            errors={fieldErrors}
+            variant={isLiveGenerator ? "studio" : "default"}
+            midSlot={
+              isLiveGenerator ? (
+                <EditorCtaBand phase="mid" onTrySample={handleTrySample} showTrySample />
+              ) : null
+            }
           />
         </div>
-      </div>
-
-      <form onSubmit={onSave} className="space-y-6">
-        <CardForm errors={fieldErrors} />
 
         <Card>
           <CardHeader>
@@ -426,7 +493,32 @@ export function CardEditorPage() {
           </CardContent>
         </Card>
 
-        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end sm:gap-2">
+        {isLiveGenerator ? (
+          <>
+            <EditorCtaBand phase="bottom" onTrySample={handleTrySample} showTrySample />
+            <div className="rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-5 sm:px-6 sm:py-6">
+              <p className="text-center text-sm font-semibold text-slate-900">새로 시작하고 싶다면</p>
+              <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+                <Button type="button" variant="secondary" size="sm" onClick={applySampleDraft}>
+                  샘플 다시 불러오기
+                </Button>
+                <Button type="button" variant="outline" size="sm" onClick={applyEmptyDraft}>
+                  빈 상태로 시작하기
+                </Button>
+              </div>
+              <p className="mx-auto mt-4 max-w-lg text-center text-sm leading-relaxed text-slate-600">
+                {wantsSample
+                  ? "예시 문구가 이미 채워져 있어요. 원하는 톤으로만 고치면 됩니다. 모든 값은 저장·공개 시 그대로 반영됩니다."
+                  : "필드를 채우면 위 미리보기에 실시간으로 반영됩니다. 완성 예시가 필요하면 샘플을 불러오거나 홈에서 ‘샘플로 바로 시작하기’로 들어올 수 있어요."}
+              </p>
+              <p className="mt-3 text-center text-sm font-medium leading-relaxed text-slate-700">
+                나를 소개하는 가장 쉬운 방법, 린코 디지털 명함 — 링크 하나로 고객과 이어지는 첫인상을 만드세요.
+              </p>
+            </div>
+          </>
+        ) : null}
+
+        <div id="final-save" className="scroll-mt-24 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end sm:gap-2">
           <Link
             to={isGuestRoute ? "/" : "/cards"}
             className={cn(

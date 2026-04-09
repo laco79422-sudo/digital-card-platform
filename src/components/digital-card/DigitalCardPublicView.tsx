@@ -1,3 +1,4 @@
+import { BrandHeroFrame } from "@/components/digital-card/BrandHeroFrame";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { BRAND_DISPLAY_NAME } from "@/lib/brand";
@@ -133,15 +134,16 @@ export function DigitalCardPublicView({
             <div className="relative w-full max-w-md overflow-hidden rounded-2xl bg-white/10 shadow-lg ring-1 ring-white/15">
               <div className="relative aspect-video w-full max-h-[min(42vh,320px)] overflow-hidden">
                 {card.brand_image_url ? (
-                  <img
-                    src={card.brand_image_url}
-                    alt=""
-                    className="absolute inset-0 h-full w-full object-cover"
-                    style={{
-                      objectPosition: card.brand_image_object_position?.trim() || "50% 50%",
-                    }}
-                    loading="eager"
-                    decoding="async"
+                  <BrandHeroFrame
+                    className="absolute inset-0 h-full w-full"
+                    imageUrl={card.brand_image_url}
+                    naturalWidth={card.brand_image_natural_width ?? 0}
+                    naturalHeight={card.brand_image_natural_height ?? 0}
+                    zoom={card.brand_image_zoom ?? 1}
+                    panNormX={card.brand_image_pan_x ?? 0}
+                    panNormY={card.brand_image_pan_y ?? 0}
+                    legacyObjectPosition={card.brand_image_object_position}
+                    imgLoading="eager"
                   />
                 ) : (
                   <div className="flex h-full min-h-[120px] w-full flex-col items-center justify-center gap-2 px-4 text-white/85">

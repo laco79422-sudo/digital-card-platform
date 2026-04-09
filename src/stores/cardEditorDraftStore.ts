@@ -1,10 +1,9 @@
 import type { BusinessCard, DigitalCardServiceLine } from "@/types/domain";
+import { clampZoom } from "@/lib/brandHeroLayout";
 import { create } from "zustand";
 
-function focalFromCardField(raw: string | null | undefined): string {
-  const t = raw?.trim();
-  if (!t) return "50% 50%";
-  return t;
+function clampPan(n: number): number {
+  return Math.max(-1, Math.min(1, n));
 }
 
 /** 편집기·미리보기가 공유하는 단일 드래프트 (리렌더·스크롤 후에도 유지) */
@@ -27,8 +26,14 @@ export type CardEditorDraft = {
   gallery_urls_raw: string;
   services: DigitalCardServiceLine[];
   brand_image_url: string | null;
-  /** CSS object-position (퍼센트 2값, 명함 16:9 영역 기준) */
-  brand_image_object_position: string;
+  brand_image_frame_ratio: string;
+  brand_image_natural_width: number | null;
+  brand_image_natural_height: number | null;
+  brand_image_zoom: number;
+  brand_image_pan_x: number;
+  brand_image_pan_y: number;
+  /** natural 미사용(구 카드)일 때 저장소에 되돌릴 cover 초점 */
+  brand_image_legacy_object_position: string | null;
 };
 
 function emptyServiceRows(): DigitalCardServiceLine[] {
@@ -48,10 +53,28 @@ export function mergeDraftDefaults(partial: Partial<CardEditorDraft> & { service
     ...base,
     ...partial,
     services,
-    brand_image_object_position: partial.brand_image_object_position?.trim()
-      ? partial.brand_image_object_position.trim()
-      : base.brand_image_object_position,
+    brand_image_frame_ratio: partial.brand_image_frame_ratio?.trim() || base.brand_image_frame_ratio,
+    brand_image_natural_width:
+      partial.brand_image_natural_width !== undefined
+        ? partial.brand_image_natural_width
+        : base.brand_image_natural_width,
+    brand_image_natural_height:
+      partial.brand_image_natural_height !== undefined
+        ? partial.brand_image_natural_height
+        : base.brand_image_natural_height,
+    brand_image_zoom:
+      partial.brand_image_zoom !== undefined && !Number.isNaN(partial.brand_image_zoom)
+        ? clampZoom(partial.brand_image_zoom)
+        : base.brand_image_zoom,
+    brand_image_pan_x:
+      partial.brand_image_pan_x !== undefined ? clampPan(partial.brand_image_pan_x) : base.brand_image_pan_x,
+    brand_image_pan_y:
+      partial.brand_image_pan_y !== undefined ? clampPan(partial.brand_image_pan_y) : base.brand_image_pan_y,
     brand_image_url: partial.brand_image_url !== undefined ? partial.brand_image_url : base.brand_image_url,
+    brand_image_legacy_object_position:
+      partial.brand_image_legacy_object_position !== undefined
+        ? partial.brand_image_legacy_object_position
+        : base.brand_image_legacy_object_position ?? null,
   };
 }
 
@@ -75,7 +98,13 @@ export function createEmptyDraft(overrides: Partial<CardEditorDraft> = {}): Card
     gallery_urls_raw: "",
     services: emptyServiceRows(),
     brand_image_url: null,
-    brand_image_object_position: "50% 50%",
+    brand_image_frame_ratio: "16:9",
+    brand_image_natural_width: null,
+    brand_image_natural_height: null,
+    brand_image_zoom: 1,
+    brand_image_pan_x: 0,
+    brand_image_pan_y: 0,
+    brand_image_legacy_object_position: null,
     ...overrides,
   };
 }
@@ -102,7 +131,19 @@ export function draftFromBusinessCard(card: BusinessCard): CardEditorDraft {
     gallery_urls_raw: card.gallery_urls?.join("\n") ?? "",
     services: svc.slice(0, 5),
     brand_image_url: card.brand_image_url ?? null,
-    brand_image_object_position: focalFromCardField(card.brand_image_object_position),
+    brand_image_frame_ratio: card.brand_image_frame_ratio?.trim() || "16:9",
+    brand_image_natural_width: card.brand_image_natural_width ?? null,
+    brand_image_natural_height: card.brand_image_natural_height ?? null,
+    brand_image_zoom:
+      typeof card.brand_image_zoom === "number" && !Number.isNaN(card.brand_image_zoom)
+        ? clampZoom(card.brand_image_zoom)
+        : 1,
+    brand_image_pan_x: clampPan(typeof card.brand_image_pan_x === "number" ? card.brand_image_pan_x : 0),
+    brand_image_pan_y: clampPan(typeof card.brand_image_pan_y === "number" ? card.brand_image_pan_y : 0),
+    brand_image_legacy_object_position:
+      card.brand_image_natural_width && card.brand_image_natural_height
+        ? null
+        : (card.brand_image_object_position?.trim() ?? null),
   };
 }
 
@@ -135,6 +176,12 @@ export function draftToBusinessCard(
     .map((l) => l.trim())
     .filter((l) => l.length > 0);
   const serviceList = draft.services.filter((s) => s.title.trim() && s.body.trim());
+  const hasNewHeroMeta =
+    draft.brand_image_natural_width != null &&
+    draft.brand_image_natural_height != null &&
+    draft.brand_image_natural_width > 0 &&
+    draft.brand_image_natural_height > 0;
+
   return {
     id: opts.id,
     user_id: opts.user_id,
@@ -156,10 +203,16 @@ export function draftToBusinessCard(
     trust_line: draft.trust_line.trim() || null,
     gallery_urls: galleryList.length > 0 ? galleryList : null,
     services: serviceList.length > 0 ? serviceList : null,
+    brand_image_frame_ratio: draft.brand_image_frame_ratio?.trim() || "16:9",
     brand_image_url: draft.brand_image_url?.trim() ? draft.brand_image_url : null,
-    brand_image_object_position: draft.brand_image_object_position?.trim()
-      ? draft.brand_image_object_position.trim()
-      : null,
+    brand_image_natural_width: hasNewHeroMeta ? draft.brand_image_natural_width : null,
+    brand_image_natural_height: hasNewHeroMeta ? draft.brand_image_natural_height : null,
+    brand_image_zoom: hasNewHeroMeta ? clampZoom(draft.brand_image_zoom) : null,
+    brand_image_pan_x: hasNewHeroMeta ? clampPan(draft.brand_image_pan_x) : null,
+    brand_image_pan_y: hasNewHeroMeta ? clampPan(draft.brand_image_pan_y) : null,
+    brand_image_object_position: hasNewHeroMeta
+      ? null
+      : draft.brand_image_legacy_object_position?.trim() || null,
   };
 }
 

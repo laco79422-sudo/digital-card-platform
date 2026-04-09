@@ -4,12 +4,43 @@ import { Card, CardContent, CardHeader } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Textarea } from "@/components/ui/Textarea";
+import { cn } from "@/lib/utils";
 import { slugify } from "@/stores/appDataStore";
 import { useCardEditorDraftStore } from "@/stores/cardEditorDraftStore";
+import type { ReactNode } from "react";
 
 type FieldErrors = Partial<Record<string, string>>;
 
-export function CardForm({ errors = {} }: { errors?: FieldErrors }) {
+function StudioSection({
+  title,
+  subtitle,
+  children,
+}: {
+  title: string;
+  subtitle?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="rounded-2xl border border-slate-200/90 bg-white px-4 py-5 shadow-sm sm:px-6 sm:py-6">
+      <h2 className="text-lg font-bold tracking-tight text-slate-900">{title}</h2>
+      {subtitle ? (
+        <p className="mt-1.5 text-sm leading-relaxed text-slate-600">{subtitle}</p>
+      ) : null}
+      <div className="mt-5">{children}</div>
+    </section>
+  );
+}
+
+export function CardForm({
+  errors = {},
+  variant = "default",
+  midSlot,
+}: {
+  errors?: FieldErrors;
+  /** studio: 양식 느낌 완화, 실시간 명함 조정 톤 */
+  variant?: "default" | "studio";
+  midSlot?: ReactNode;
+}) {
   const draft = useCardEditorDraftStore((s) => s.draft);
   const setDraft = useCardEditorDraftStore((s) => s.setDraft);
   const setServiceRow = useCardEditorDraftStore((s) => s.setServiceRow);
@@ -21,70 +52,116 @@ export function CardForm({ errors = {} }: { errors?: FieldErrors }) {
     if (s) setDraft({ slug: s });
   };
 
-  return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <h2 className="text-lg font-semibold text-slate-900">기본 정보</h2>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="sm:col-span-2">
-              <label className="text-base font-medium text-slate-800">브랜드 / 회사명</label>
-              <Input
-                className="mt-1"
-                value={draft.brand_name}
-                onChange={(e) => setDraft({ brand_name: e.target.value })}
-                autoComplete="organization"
-              />
-              {errors.brand_name ? <p className="mt-1 text-xs text-red-600">{errors.brand_name}</p> : null}
-            </div>
-            <div>
-              <label className="text-base font-medium text-slate-800">이름</label>
-              <Input
-                className="mt-1"
-                value={draft.person_name}
-                onChange={(e) => setDraft({ person_name: e.target.value })}
-                autoComplete="name"
-              />
-              {errors.person_name ? <p className="mt-1 text-xs text-red-600">{errors.person_name}</p> : null}
-            </div>
-            <div>
-              <label className="text-base font-medium text-slate-800">직함</label>
-              <Input
-                className="mt-1"
-                value={draft.job_title}
-                onChange={(e) => setDraft({ job_title: e.target.value })}
-              />
-              {errors.job_title ? <p className="mt-1 text-xs text-red-600">{errors.job_title}</p> : null}
-            </div>
-            <div className="sm:col-span-2">
-              <label className="text-base font-medium text-slate-800">소개</label>
-              <Textarea
-                className="mt-1"
-                rows={4}
-                value={draft.intro}
-                onChange={(e) => setDraft({ intro: e.target.value })}
-              />
-              {errors.intro ? <p className="mt-1 text-xs text-red-600">{errors.intro}</p> : null}
-            </div>
-          </div>
+  const isStudio = variant === "studio";
+  const labelCls = cn("text-base font-medium text-slate-800", isStudio && "text-slate-900");
+  const hintCls = "mt-0.5 text-xs font-medium text-brand-600";
 
-          <ImageUploader
-            label="브랜드 대표 이미지"
-            value={draft.brand_image_url}
-            objectPosition={draft.brand_image_object_position}
-            onUrlChange={(url, opts) => {
-              useCardEditorDraftStore.setState((s) => ({
-                draft: {
-                  ...s.draft,
-                  brand_image_url: url,
-                  brand_image_object_position: opts?.resetPosition ? "50% 50%" : s.draft.brand_image_object_position,
-                },
-              }));
-            }}
-            onObjectPositionChange={(brand_image_object_position) => setDraft({ brand_image_object_position })}
+  const basicBlock = (
+    <>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="sm:col-span-2">
+          <label className={labelCls}>
+            브랜드 / 회사명
+            {isStudio ? <span className={hintCls}> · 위 명함에 바로 반영</span> : null}
+          </label>
+          <Input
+            className="mt-1"
+            value={draft.brand_name}
+            onChange={(e) => setDraft({ brand_name: e.target.value })}
+            autoComplete="organization"
           />
+          {errors.brand_name ? <p className="mt-1 text-xs text-red-600">{errors.brand_name}</p> : null}
+        </div>
+        <div>
+          <label className={labelCls}>
+            이름
+            {isStudio ? <span className={hintCls}> · 즉시 반영</span> : null}
+          </label>
+          <Input
+            className="mt-1"
+            value={draft.person_name}
+            onChange={(e) => setDraft({ person_name: e.target.value })}
+            autoComplete="name"
+          />
+          {errors.person_name ? <p className="mt-1 text-xs text-red-600">{errors.person_name}</p> : null}
+        </div>
+        <div>
+          <label className={labelCls}>
+            직함
+            {isStudio ? <span className={hintCls}> · 즉시 반영</span> : null}
+          </label>
+          <Input
+            className="mt-1"
+            value={draft.job_title}
+            onChange={(e) => setDraft({ job_title: e.target.value })}
+          />
+          {errors.job_title ? <p className="mt-1 text-xs text-red-600">{errors.job_title}</p> : null}
+        </div>
+        <div className="sm:col-span-2">
+          <label className={labelCls}>
+            소개
+            {isStudio ? <span className={hintCls}> · 입력할 때마다 완성되는 문장</span> : null}
+          </label>
+          <Textarea
+            className="mt-1"
+            rows={4}
+            value={draft.intro}
+            onChange={(e) => setDraft({ intro: e.target.value })}
+          />
+          {errors.intro ? <p className="mt-1 text-xs text-red-600">{errors.intro}</p> : null}
+        </div>
+      </div>
+
+      <div className={cn("rounded-xl border border-brand-100 bg-brand-50/40 p-4 sm:p-5", isStudio && "border-brand-200/80 bg-gradient-to-b from-brand-50/60 to-white")}>
+        {isStudio ? (
+          <p className="mb-3 text-sm font-semibold text-brand-900">첫 인상을 만드는 대표 이미지</p>
+        ) : null}
+        <ImageUploader
+          label={isStudio ? "이미지 업로드 & 구도 조정" : "브랜드 대표 이미지"}
+            value={draft.brand_image_url}
+            naturalWidth={draft.brand_image_natural_width}
+            naturalHeight={draft.brand_image_natural_height}
+            zoom={draft.brand_image_zoom}
+            panX={draft.brand_image_pan_x}
+            panY={draft.brand_image_pan_y}
+            legacyObjectPosition={draft.brand_image_legacy_object_position}
+            onUrlChange={(url, meta) => {
+              useCardEditorDraftStore.setState((s) => {
+                const reset = meta?.reset;
+                return {
+                  draft: {
+                    ...s.draft,
+                    brand_image_url: url,
+                    ...(reset
+                      ? {
+                          brand_image_natural_width: meta?.naturalW ?? null,
+                          brand_image_natural_height: meta?.naturalH ?? null,
+                          brand_image_zoom: 1,
+                          brand_image_pan_x: 0,
+                          brand_image_pan_y: 0,
+                          brand_image_legacy_object_position: null,
+                        }
+                      : {}),
+                  },
+                };
+              });
+            }}
+            onZoomChange={(brand_image_zoom) => setDraft({ brand_image_zoom })}
+            onPanChange={(brand_image_pan_x, brand_image_pan_y) =>
+              setDraft({ brand_image_pan_x, brand_image_pan_y })
+            }
+            onNaturalMeasured={(w, h) =>
+              setDraft({
+                brand_image_natural_width: w,
+                brand_image_natural_height: h,
+                brand_image_legacy_object_position: null,
+                brand_image_zoom: 1,
+                brand_image_pan_x: 0,
+                brand_image_pan_y: 0,
+              })
+            }
+          />
+      </div>
 
           <div className="grid gap-4 border-t border-slate-100 pt-4 sm:grid-cols-2">
             <div className="sm:col-span-2">
@@ -128,8 +205,28 @@ export function CardForm({ errors = {} }: { errors?: FieldErrors }) {
               </Select>
             </div>
           </div>
-        </CardContent>
-      </Card>
+    </>
+  );
+
+  return (
+    <div className="space-y-6">
+      {isStudio ? (
+        <StudioSection
+          title="명함을 다듬어 보세요"
+          subtitle="입력하는 순간, 위 미리보기와 똑같이 바뀝니다. 폼이 아니라 실시간 완성 화면이라고 생각해 주세요."
+        >
+          {basicBlock}
+        </StudioSection>
+      ) : (
+        <Card>
+          <CardHeader>
+            <h2 className="text-lg font-semibold text-slate-900">기본 정보</h2>
+          </CardHeader>
+          <CardContent className="space-y-4">{basicBlock}</CardContent>
+        </Card>
+      )}
+
+      {midSlot ? <div className="py-2">{midSlot}</div> : null}
 
       <Card>
         <CardHeader>

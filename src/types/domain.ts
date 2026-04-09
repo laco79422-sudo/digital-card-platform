@@ -43,7 +43,17 @@ export interface BusinessCard {
   trust_line?: string | null;
   /** 히어로 브랜드 대표 이미지 (URL 또는 data URL) */
   brand_image_url?: string | null;
-  /** `object-fit: cover` 기준 초점 (예: "50% 50%"). 미리보기·공개 명함 동일 적용 */
+  /** 히어로 프레임 비율 라벨 (저장·재현용, 예: 16:9) */
+  brand_image_frame_ratio?: string | null;
+  /** 업로드·최적화 후 이미지의 CSS 배치 기준 픽셀 크기 */
+  brand_image_natural_width?: number | null;
+  brand_image_natural_height?: number | null;
+  /** 1 = 전체가 보이는 contain 기준, 그 이상은 확대 */
+  brand_image_zoom?: number | null;
+  /** -1~1 정규화 이동 (프레임 대비 최대 허용 이동량에 대한 비율) */
+  brand_image_pan_x?: number | null;
+  brand_image_pan_y?: number | null;
+  /** 구 카드 호환용 (natural 없을 때 cover 초점) */
   brand_image_object_position?: string | null;
 }
 

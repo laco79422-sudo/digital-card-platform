@@ -23,7 +23,13 @@ export const cardEditorSubmitSchema = z.object({
   gallery_urls_raw: z.string().optional(),
   services: z.array(z.object({ title: z.string(), body: z.string() })).max(5),
   brand_image_url: z.string().nullable().optional(),
-  brand_image_object_position: z.string().max(48).optional(),
+  brand_image_frame_ratio: z.string().max(16).optional(),
+  brand_image_natural_width: z.number().int().positive().nullable().optional(),
+  brand_image_natural_height: z.number().int().positive().nullable().optional(),
+  brand_image_zoom: z.number().min(1).max(3).optional(),
+  brand_image_pan_x: z.number().min(-1).max(1).optional(),
+  brand_image_pan_y: z.number().min(-1).max(1).optional(),
+  brand_image_legacy_object_position: z.string().max(48).nullable().optional(),
 });
 
 export function parseCardEditorDraft(draft: CardEditorDraft) {

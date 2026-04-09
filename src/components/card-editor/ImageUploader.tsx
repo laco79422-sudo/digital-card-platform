@@ -1,19 +1,41 @@
+import { BrandHeroFrame } from "@/components/digital-card/BrandHeroFrame";
 import { Button } from "@/components/ui/Button";
-import { focalAfterDrag, optimizeImageFileToDataUrl, parseFocalPercent } from "@/lib/brandImageProcess";
+import {
+  BRAND_HERO_MAX_ZOOM,
+  BRAND_HERO_MIN_ZOOM,
+  clampPanNorm,
+  clampZoom,
+  computeHeroLayout,
+} from "@/lib/brandHeroLayout";
+import { optimizeImageFileToDataUrl } from "@/lib/brandImageProcess";
 import { cn } from "@/lib/utils";
-import { ImageIcon, Move, Trash2 } from "lucide-react";
-import { useCallback, useId, useRef, useState } from "react";
+import { ImageIcon, Minus, Move, Plus, Trash2 } from "lucide-react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 
 const MAX_BYTES = 4 * 1024 * 1024;
 const ACCEPT = "image/jpeg,image/jpg,image/png,image/webp,.jpg,.jpeg,.png,.webp";
 
+type UrlMeta = {
+  reset?: boolean;
+  naturalW?: number | null;
+  naturalH?: number | null;
+};
+
 type Props = {
   label?: string;
   value: string | null;
-  /** CSS object-position 값 (예: 50% 40%) */
-  objectPosition: string;
-  onUrlChange: (url: string | null, opts?: { resetPosition?: boolean }) => void;
-  onObjectPositionChange: (position: string) => void;
+  naturalWidth: number | null;
+  naturalHeight: number | null;
+  zoom: number;
+  panX: number;
+  panY: number;
+  onUrlChange: (url: string | null, meta?: UrlMeta) => void;
+  onZoomChange: (zoom: number) => void;
+  onPanChange: (panX: number, panY: number) => void;
+  /** 이미지에서 natural 픽셀을 읽었을 때(구 카드·외부 URL) */
+  onNaturalMeasured: (w: number, h: number) => void;
+  /** natural 없을 때만 적용 (구 카드) */
+  legacyObjectPosition?: string | null;
   error?: string;
 };
 
@@ -27,20 +49,40 @@ function isAllowedImage(file: File): boolean {
 export function ImageUploader({
   label = "브랜드 대표 이미지",
   value,
-  objectPosition,
+  naturalWidth,
+  naturalHeight,
+  zoom,
+  panX,
+  panY,
   onUrlChange,
-  onObjectPositionChange,
+  onZoomChange,
+  onPanChange,
+  onNaturalMeasured,
+  legacyObjectPosition,
   error,
 }: Props) {
   const inputId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
   const [processing, setProcessing] = useState(false);
-  const dragRef = useRef<{ active: boolean; lastX: number; lastY: number }>({
-    active: false,
-    lastX: 0,
-    lastY: 0,
-  });
+  const [frame, setFrame] = useState({ w: 0, h: 0 });
+  const dragRef = useRef({ active: false, lastX: 0, lastY: 0 });
+
+  useEffect(() => {
+    const el = frameRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => {
+      const r = el.getBoundingClientRect();
+      setFrame({ w: r.width, h: r.height });
+    });
+    ro.observe(el);
+    const r = el.getBoundingClientRect();
+    setFrame({ w: r.width, h: r.height });
+    return () => ro.disconnect();
+  }, [value]);
+
+  const iw = naturalWidth ?? 0;
+  const ih = naturalHeight ?? 0;
 
   const onPick = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -52,14 +94,28 @@ export function ImageUploader({
     }
     setProcessing(true);
     try {
-      const dataUrl = await optimizeImageFileToDataUrl(file);
-      onUrlChange(dataUrl, { resetPosition: true });
+      const { dataUrl, width, height } = await optimizeImageFileToDataUrl(file);
+      onUrlChange(dataUrl, { reset: true, naturalW: width, naturalH: height });
     } catch {
       window.alert("이미지를 불러오는 데 실패했습니다. 다른 파일로 시도해 주세요.");
     } finally {
       setProcessing(false);
     }
   };
+
+  const applyPanDrag = useCallback(
+    (dx: number, dy: number) => {
+      if (!iw || !ih || frame.w <= 0 || frame.h <= 0) return;
+      const { maxPanX, maxPanY } = computeHeroLayout(frame.w, frame.h, iw, ih, zoom, panX, panY);
+      const nx =
+        maxPanX > 0 ? Math.max(-1, Math.min(1, panX + dx / Math.max(maxPanX, 0.001))) : 0;
+      const ny =
+        maxPanY > 0 ? Math.max(-1, Math.min(1, panY + dy / Math.max(maxPanY, 0.001))) : 0;
+      const o = clampPanNorm(nx, ny, frame.w, frame.h, iw, ih, zoom);
+      onPanChange(o.x, o.y);
+    },
+    [frame.h, frame.w, iw, ih, onPanChange, panX, panY, zoom],
+  );
 
   const onPointerDownFrame = useCallback(
     (e: React.PointerEvent) => {
@@ -73,16 +129,14 @@ export function ImageUploader({
 
   const onPointerMoveFrame = useCallback(
     (e: React.PointerEvent) => {
-      if (!dragRef.current.active || !frameRef.current) return;
-      const el = frameRef.current;
-      const rect = el.getBoundingClientRect();
+      if (!dragRef.current.active) return;
       const dx = e.clientX - dragRef.current.lastX;
       const dy = e.clientY - dragRef.current.lastY;
       dragRef.current.lastX = e.clientX;
       dragRef.current.lastY = e.clientY;
-      onObjectPositionChange(focalAfterDrag(objectPosition, dx, dy, rect.width, rect.height));
+      applyPanDrag(dx, dy);
     },
-    [objectPosition, onObjectPositionChange],
+    [applyPanDrag],
   );
 
   const endDrag = useCallback((e: React.PointerEvent) => {
@@ -95,14 +149,38 @@ export function ImageUploader({
     }
   }, []);
 
-  const focalHint = value ? parseFocalPercent(objectPosition) : null;
+  const setZoomAndClampPan = useCallback(
+    (nextZoom: number) => {
+      const z = clampZoom(nextZoom);
+      onZoomChange(z);
+      if (frame.w > 0 && frame.h > 0 && iw > 0 && ih > 0) {
+        const o = clampPanNorm(panX, panY, frame.w, frame.h, iw, ih, z);
+        onPanChange(o.x, o.y);
+      }
+    },
+    [frame.h, frame.w, iw, ih, onPanChange, onZoomChange, panX, panY],
+  );
+
+  const nudgeZoom = (delta: number) => setZoomAndClampPan(zoom + delta);
+
+  const onWheelFrame = useCallback(
+    (e: React.WheelEvent) => {
+      if (!value || !(e.ctrlKey || e.metaKey)) return;
+      e.preventDefault();
+      const dz = e.deltaY > 0 ? -0.08 : 0.08;
+      setZoomAndClampPan(zoom + dz);
+    },
+    [setZoomAndClampPan, value, zoom],
+  );
 
   return (
     <div className="space-y-3">
       <label className="text-base font-medium text-slate-800" htmlFor={inputId}>
         {label}
       </label>
-      <p className="text-xs text-slate-500">jpg · jpeg · png · webp · 최대 4MB · 업로드 시 긴 변 기준 최대 1920px로 최적화됩니다</p>
+      <p className="text-xs text-slate-500">
+        jpg · jpeg · png · webp · 최대 4MB · 업로드 시 긴 변 기준 최대 1920px로 최적화됩니다
+      </p>
       <input
         id={inputId}
         ref={inputRef}
@@ -127,7 +205,7 @@ export function ImageUploader({
             variant="outline"
             size="sm"
             className="text-red-600 hover:bg-red-50"
-            onClick={() => onUrlChange(null, { resetPosition: true })}
+            onClick={() => onUrlChange(null, { reset: true, naturalW: null, naturalH: null })}
           >
             <Trash2 className="mr-1.5 h-4 w-4" aria-hidden />
             삭제
@@ -136,15 +214,54 @@ export function ImageUploader({
       </div>
 
       {value ? (
-        <div className="space-y-2">
-          <p className="flex items-center gap-2 text-sm font-medium text-slate-700">
+        <div className="space-y-3">
+          <p className="flex flex-wrap items-center gap-2 text-sm font-medium text-slate-700">
             <Move className="h-4 w-4 shrink-0 text-slate-500" aria-hidden />
-            미리보기 (16:9) — 이미지를 드래그해 보이는 영역을 맞추세요
+            미리보기 (16:9) — 드래그로 위치 · 슬라이더 또는 ±로 확대/축소
           </p>
+
+          <div className="flex flex-wrap items-center gap-3 max-w-xl">
+            <span className="text-xs font-medium text-slate-600 sm:text-sm">확대</span>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-9 w-9 shrink-0 p-0"
+              onClick={() => nudgeZoom(-0.1)}
+              aria-label="축소"
+            >
+              <Minus className="h-4 w-4" aria-hidden />
+            </Button>
+            <input
+              type="range"
+              min={BRAND_HERO_MIN_ZOOM}
+              max={BRAND_HERO_MAX_ZOOM}
+              step={0.02}
+              value={clampZoom(zoom)}
+              onChange={(e) => setZoomAndClampPan(Number(e.target.value))}
+              className="h-2 min-w-[8rem] flex-1 cursor-pointer accent-brand-600 sm:min-w-[12rem]"
+              aria-label="이미지 확대 배율"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-9 w-9 shrink-0 p-0"
+              onClick={() => nudgeZoom(0.1)}
+              aria-label="확대"
+            >
+              <Plus className="h-4 w-4" aria-hidden />
+            </Button>
+            <span className="text-xs tabular-nums text-slate-500 sm:text-sm">{clampZoom(zoom).toFixed(2)}×</span>
+          </div>
+          <p className="text-[11px] leading-relaxed text-slate-500 sm:text-xs">
+            트랙패드에서 Ctrl(또는 ⌘) + 스크롤로 확대/축소할 수 있어요.
+          </p>
+
           <div
             ref={frameRef}
             className={cn(
-              "relative w-full max-w-xl overflow-hidden rounded-2xl border-2 border-slate-200 bg-slate-900/5 shadow-inner",
+              "relative w-full max-w-xl overflow-hidden rounded-2xl border-2 border-slate-200 bg-slate-900/10 shadow-inner",
               "aspect-video touch-none select-none",
             )}
             style={{ touchAction: "none" }}
@@ -152,21 +269,22 @@ export function ImageUploader({
             onPointerMove={onPointerMoveFrame}
             onPointerUp={endDrag}
             onPointerCancel={endDrag}
+            onWheel={onWheelFrame}
             role="application"
-            aria-label="대표 이미지 초점 조정. 드래그하여 영역을 이동합니다."
+            aria-label="대표 이미지 구도 조정"
           >
-            <img
-              src={value}
-              alt=""
-              draggable={false}
-              className="pointer-events-none h-full w-full object-cover"
-              style={{ objectPosition }}
+            <BrandHeroFrame
+              className="absolute inset-0 h-full w-full"
+              imageUrl={value}
+              naturalWidth={iw}
+              naturalHeight={ih}
+              zoom={clampZoom(zoom)}
+              panNormX={panX}
+              panNormY={panY}
+              legacyObjectPosition={legacyObjectPosition}
+              onNaturalMeasured={onNaturalMeasured}
+              imgLoading="eager"
             />
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/45 to-transparent px-3 py-2">
-              <p className="text-center text-[11px] font-medium text-white/95 sm:text-xs">
-                초점 {focalHint ? `${focalHint.x}% · ${focalHint.y}%` : ""}
-              </p>
-            </div>
           </div>
         </div>
       ) : (
@@ -176,14 +294,19 @@ export function ImageUploader({
         </span>
       )}
 
-      <div className="mt-4 max-w-xl space-y-1.5 rounded-xl border border-slate-100 bg-slate-50/80 px-4 py-3 text-sm leading-relaxed text-slate-600 sm:px-4 sm:py-3.5">
-        <p>
-          명함 상단은 <strong className="font-medium text-slate-700">16:9</strong>로 고정됩니다. 가로·세로 어떤 사진이든 업로드되면
-          이 비율에 맞춰 보이며, 기본은 가운데를 기준으로 맞춥니다.
+      <div className="mt-4 max-w-xl space-y-2 rounded-xl border border-slate-100 bg-slate-50/80 px-4 py-3 text-sm leading-relaxed text-slate-600 sm:px-4 sm:py-3.5">
+        <p className="break-keep">
+          <strong className="font-medium text-slate-700">처음 업로드하면</strong> 사진 전체가 16:9 프레임 안에{" "}
+          <strong className="font-medium text-slate-700">한 번에 보이도록</strong> 맞춰져요. 잘리지 않은 상태에서
+          시작합니다.
         </p>
-        <p>
-          중요한 부분이 잘려 보이면 위 프레임에서 사진을 <strong className="font-medium text-slate-700">드래그</strong>해 조정하세요.
-          변경 내용은 미리보기와 저장된 명함에 동일하게 반영됩니다.
+        <p className="break-keep">
+          강조하고 싶을 때만 확대한 뒤, <strong className="font-medium text-slate-700">드래그</strong>로 위·아래·
+          좌·우 모두 움직여 구도를 맞출 수 있어요.
+        </p>
+        <p className="break-keep">
+          여기서 조정한 화면과 <strong className="font-medium text-slate-700">저장된 명함·미리보기</strong>가
+          같은 비율(16:9)로 동일하게 보입니다.
         </p>
       </div>
 
