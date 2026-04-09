@@ -127,7 +127,7 @@ export function DigitalCardPublicView({
     >
       <section
         className={cn(
-          "relative overflow-hidden bg-gradient-to-br px-4 pb-10 pt-6 text-white sm:px-6 sm:pb-12 sm:pt-10",
+          "relative overflow-hidden bg-gradient-to-br px-4 pb-12 pt-6 text-white sm:px-6 sm:pb-14 sm:pt-10",
           grad,
         )}
         aria-label="소개"
@@ -221,21 +221,21 @@ export function DigitalCardPublicView({
         </div>
       </section>
 
-      <div className={cn(layout.pageCompact, "-mt-6 space-y-8 sm:-mt-8")}>
+      <div className={cn(layout.pageCompact, "space-y-10 sm:space-y-12")}>
         <section
-          className="scroll-mt-4 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-lg shadow-slate-900/5 sm:p-7"
+          className="section-trust scroll-mt-6 mt-12 rounded-[20px] border border-slate-200/90 bg-slate-50 px-6 py-8 shadow-[0_20px_50px_-24px_rgba(15,23,42,0.18)]"
           aria-labelledby="trust-heading"
         >
-          <header className="flex flex-col gap-3">
+          <header className="section-title mb-4 flex flex-col gap-3">
             <h2 id="trust-heading" className="text-xl font-extrabold tracking-tight text-slate-900 sm:text-2xl">
               작업 &amp; 신뢰
             </h2>
-            <span className="w-fit rounded-full bg-brand-600/10 px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-brand-900">
+            <span className="w-fit rounded-full bg-brand-600/15 px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-brand-900 ring-1 ring-brand-600/20">
               실제 프로젝트
             </span>
           </header>
 
-          <p className="mt-6 text-center text-2xl font-extrabold leading-tight text-brand-800 sm:text-left sm:text-3xl">
+          <p className="text-center text-2xl font-extrabold leading-tight text-brand-800 sm:text-left sm:text-3xl">
             {trustMetric}
           </p>
           <p className="mt-2 text-center text-sm font-medium text-slate-600 sm:text-left">
@@ -284,7 +284,7 @@ export function DigitalCardPublicView({
 
         <section
           id="services"
-          className="scroll-mt-4 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-md sm:p-7"
+          className="scroll-mt-6 rounded-2xl border border-slate-200/80 bg-white p-6 shadow-md sm:p-7"
           aria-labelledby="services-heading"
         >
           <h2 id="services-heading" className="text-xl font-extrabold text-slate-900 sm:text-2xl">
