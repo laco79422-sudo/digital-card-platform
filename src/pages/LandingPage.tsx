@@ -66,39 +66,53 @@ export function LandingPage() {
               Link + Go · 연결하고 나아가요
             </p>
 
-            <h1 className={cn("mt-6 sm:mt-8", type.heroMain)}>
-              나를 소개하는 가장 쉬운 방법, 린코 디지털 명함
+            <h1 className="mt-6 max-w-3xl sm:mt-8">
+              <span className="block text-2xl font-bold leading-snug tracking-tight text-white sm:text-3xl md:text-4xl">
+                나를 소개하는 가장 쉬운 방법
+              </span>
+              <span className={cn("mt-2 block sm:mt-3", type.heroMain)}>린코 디지털 명함</span>
             </h1>
 
-            <p className={type.heroSub}>3초 만에 나만의 디지털 명함 만들기</p>
-            <p className="mt-3 max-w-xl text-balance text-base font-medium leading-relaxed text-slate-200/95 sm:text-lg">
-              링크 하나로 고객과 연결되는 명함
+            <p className="mt-5 max-w-md text-sm leading-relaxed text-slate-300/95 sm:mt-6 sm:text-[15px]">
+              클릭하면 예시가 자동으로 채워집니다.
             </p>
-            <p className="mt-2 max-w-sm text-center text-sm leading-relaxed text-slate-300/90 sm:text-[15px]">
-              클릭하면 예시가 자동으로 채워집니다
-            </p>
-            <p className="mt-1 max-w-sm text-center text-sm font-medium leading-relaxed text-slate-200/95 sm:text-[15px]">
-              바로 보고 수정해보세요
+            <p className="mt-1.5 max-w-md text-sm font-medium leading-relaxed text-slate-100/95 sm:text-[15px]">
+              바로 보고, 바로 수정해보세요.
             </p>
 
-            <div className="mt-8 w-full max-w-md sm:mt-10">
+            <div className="mt-7 w-full max-w-md sm:mt-8">
               <Link
                 to="/create-card?sample=true"
                 className={cn(
-                  "flex min-h-[52px] w-full items-center justify-center gap-2 rounded-xl px-5 text-base font-bold text-white shadow-lg",
-                  "bg-gradient-to-r from-brand-500 to-brand-700 hover:from-brand-400 hover:to-brand-600",
-                  "focus:outline-none focus:ring-2 focus:ring-white/50 focus:ring-offset-2 focus:ring-offset-brand-950",
+                  "flex min-h-[56px] w-full items-center justify-center gap-2 rounded-xl px-6 text-base font-bold text-white shadow-2xl",
+                  "bg-gradient-to-r from-brand-500 to-brand-700 ring-2 ring-brand-400/35",
+                  "hover:from-brand-400 hover:to-brand-600 hover:ring-brand-300/50",
+                  "focus:outline-none focus:ring-2 focus:ring-white/55 focus:ring-offset-2 focus:ring-offset-brand-950",
                 )}
               >
                 샘플로 바로 시작하기
                 <ArrowRight className="h-5 w-5 shrink-0" aria-hidden />
               </Link>
-              <p className="mt-3 text-center text-xs leading-relaxed text-slate-300/95 sm:text-sm">
-                가입 없이 편집하고, 저장할 때 계정을 만들면 됩니다.
+              <div className="mt-3 space-y-1 text-center text-xs leading-relaxed text-slate-300/95 sm:text-sm">
+                <p>가입 없이 먼저 만들어보세요.</p>
+                <p className="text-[11px] text-slate-400/95 sm:text-xs">또는</p>
+                <p>먼저 써보고, 저장할 때 가입하세요.</p>
+              </div>
+            </div>
+
+            {/* 결과 먼저: CTA 바로 아래 샘플 카드 → 그다음 홍보 흐름 */}
+            <div className="mt-6 w-full max-w-lg sm:mt-7">
+              <p className="text-sm font-semibold tracking-tight text-brand-100 sm:text-base">
+                디지털 명함 샘플 미리보기
+              </p>
+              <div className="mx-auto mt-2.5 w-full max-w-lg sm:mt-3">
+                <LandingSampleCard variant="hero" />
+              </div>
+              <p className="mt-3 text-center text-xs leading-relaxed text-slate-300/90 sm:text-sm">
+                버튼을 누르면 이 예시가 자동으로 채워집니다.
               </p>
             </div>
 
-            {/* 홍보 흐름 안내: 한눈에 읽히는 4카드 */}
             <div
               className="mt-10 w-full max-w-3xl rounded-2xl border border-white/15 bg-white/5 p-5 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.35)] backdrop-blur-sm sm:mt-12 sm:p-7"
               aria-label="서비스 안내"
@@ -128,29 +142,6 @@ export function LandingPage() {
             >
               이름을 남기는 명함에서, 고객과 연결되는 명함으로
             </p>
-
-            <div className="mt-8 w-full sm:mt-10">
-              <p className="text-sm font-medium text-brand-100/95">디지털 명함 · 샘플 미리보기</p>
-              <div className="mx-auto mt-4 max-w-[22rem]">
-                <LandingSampleCard />
-              </div>
-            </div>
-
-            <div className="mt-10 flex w-full max-w-lg justify-center sm:mt-12">
-              <Link
-                to="/creators"
-                className={cn(
-                  "w-full max-w-xs sm:w-auto",
-                  linkButtonClassName({
-                    variant: "outlineOnDark",
-                    size: "lg",
-                    className: "w-full sm:w-auto",
-                  }),
-                )}
-              >
-                제작자 둘러보기
-              </Link>
-            </div>
           </div>
         </div>
       </section>
@@ -293,9 +284,9 @@ export function LandingPage() {
             </div>
             <Link
               to="/creators"
-              className="inline-flex min-h-11 shrink-0 items-center text-base font-medium text-brand-700 underline-offset-4 hover:underline sm:justify-center"
+              className="inline-flex min-h-11 shrink-0 items-center text-base font-medium text-slate-600 underline-offset-4 hover:text-brand-700 hover:underline sm:justify-center"
             >
-              제작자 전체 보기 →
+              제작자 둘러보기 →
             </Link>
           </div>
           <div className="mt-8 grid gap-5 sm:mt-10 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">
