@@ -20,6 +20,7 @@ const ROLE_LABEL: Record<string, string> = {
 const PAYMENT_TYPE_LABEL: Record<string, string> = {
   subscription: "사업자 구독",
   creator_membership: "제작자 멤버십",
+  linko_card_pro: "디지털 명함 프로(데모)",
 };
 
 const PAYMENT_STATUS_LABEL: Record<string, string> = {

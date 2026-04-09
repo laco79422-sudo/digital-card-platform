@@ -1,4 +1,5 @@
 import { CardForm } from "@/components/card-editor/CardForm";
+import { CardEditorGrowthLadder } from "@/components/card-editor/CardEditorGrowthLadder";
 import { CardPreview } from "@/components/card-editor/CardPreview";
 import { Button } from "@/components/ui/Button";
 import { linkButtonClassName } from "@/components/ui/buttonStyles";
@@ -155,6 +156,8 @@ export function CardEditorPage() {
   const cardLinks = useAppDataStore((s) => s.cardLinks);
   const upsertBusinessCard = useAppDataStore((s) => s.upsertBusinessCard);
   const setCardLinks = useAppDataStore((s) => s.setCardLinks);
+  const addPayment = useAppDataStore((s) => s.addPayment);
+  const addToPromotionPool = useAppDataStore((s) => s.addToPromotionPool);
 
   const isNew = !id || id === "new";
   const wantsSample = useMemo(() => parseWantsSample(location.search), [location.search]);
@@ -177,6 +180,7 @@ export function CardEditorPage() {
 
   const replaceDraft = useCardEditorDraftStore((s) => s.replaceDraft);
   const setHydratedKey = useCardEditorDraftStore((s) => s.setHydratedKey);
+  const setDraft = useCardEditorDraftStore((s) => s.setDraft);
 
   const [linkRows, setLinkRows] = useState<LinkRow[]>(() => mapLinksToRows(existingLinks));
   const [submitting, setSubmitting] = useState(false);
@@ -185,6 +189,9 @@ export function CardEditorPage() {
   const [shareOrigin, setShareOrigin] = useState("");
   const [heroCopyDone, setHeroCopyDone] = useState(false);
   const [heroKakaoHint, setHeroKakaoHint] = useState(false);
+  const [sampleLadderActive, setSampleLadderActive] = useState(() => wantsSample);
+  const [growthFlash, setGrowthFlash] = useState<string | null>(null);
+  const [paidBusy, setPaidBusy] = useState(false);
 
   const newCardIdRef = useRef<string | null>(null);
   const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -195,6 +202,16 @@ export function CardEditorPage() {
   useEffect(() => {
     setShareOrigin(typeof window !== "undefined" ? window.location.origin : "");
   }, []);
+
+  useEffect(() => {
+    if (wantsSample) setSampleLadderActive(true);
+  }, [wantsSample]);
+
+  useEffect(() => {
+    if (!growthFlash) return;
+    const t = window.setTimeout(() => setGrowthFlash(null), 6500);
+    return () => window.clearTimeout(t);
+  }, [growthFlash]);
 
   useEffect(() => {
     if (isGuestRoute) return;
@@ -455,6 +472,7 @@ export function CardEditorPage() {
     clearEditorLiveCardId();
     clearInstantCardId();
     newCardIdRef.current = null;
+    setSampleLadderActive(true);
   }, [replaceDraft, user?.email]);
 
   const applyEmptyDraft = useCallback(() => {
@@ -469,12 +487,127 @@ export function CardEditorPage() {
     clearEditorLiveCardId();
     clearInstantCardId();
     newCardIdRef.current = null;
+    setSampleLadderActive(false);
   }, [replaceDraft, user?.email, user?.name]);
 
   const handleTrySample = useCallback(() => {
     applySampleDraft();
     scrollToId("card-preview-hero");
   }, [applySampleDraft]);
+
+  const runPaidActivation = useCallback(() => {
+    const d = useCardEditorDraftStore.getState().draft;
+    const parsed = parseCardEditorDraft(d);
+    if (!parsed.success) {
+      setFieldErrors(zodIssuesToFieldErrors(parsed.error.issues));
+      setGrowthFlash("필수 정보를 채운 뒤 활성화할 수 있어요.");
+      scrollToId("studio-fields");
+      return;
+    }
+    const price = 9900;
+    if (
+      !window.confirm(
+        `데모 결제 시뮬레이션: ${price.toLocaleString()}원이 청구되는 것으로 처리하고, 명함을 저장하고 공개로 켤까요?`,
+      )
+    )
+      return;
+
+    setPaidBusy(true);
+    try {
+      let cardId: string | undefined = existing?.id;
+      if (!cardId && user && !isGuestRoute && isNew) {
+        if (!newCardIdRef.current) newCardIdRef.current = crypto.randomUUID();
+        cardId = newCardIdRef.current;
+      }
+      if (!cardId && isGuestRoute && !user) {
+        let lid = getEditorLiveCardId();
+        if (!lid) {
+          lid = crypto.randomUUID();
+          setEditorLiveCardId(lid);
+          setInstantCardId(lid);
+        }
+        cardId = lid;
+      }
+      if (!cardId) cardId = crypto.randomUUID();
+
+      const uid = user?.id ?? INSTANT_GUEST_USER_ID;
+      const nextDraft = { ...d, is_public: true };
+      setDraft({ is_public: true });
+      const card = draftToBusinessCard(nextDraft, {
+        id: cardId,
+        user_id: uid,
+        created_at: existing?.created_at ?? new Date().toISOString(),
+      });
+      upsertBusinessCard(card);
+      setCardLinks(cardId, draftLinkRowsToCardLinks(nextDraft, linkRows, cardId));
+      addPayment({
+        id: crypto.randomUUID(),
+        user_id: uid,
+        amount: price,
+        payment_type: "linko_card_pro",
+        status: "completed",
+        created_at: new Date().toISOString(),
+      });
+      if (isGuestRoute && !user) {
+        savePendingCardDraft({
+          draft: nextDraft,
+          linkRows: linkRows.map((r) => ({
+            id: r.id,
+            label: r.label,
+            type: r.type,
+            url: r.url,
+          })),
+          liveCardId: cardId,
+        });
+      }
+      setGrowthFlash("결제(데모) 완료 · 명함 저장 · 공개가 켜졌습니다.");
+    } finally {
+      setPaidBusy(false);
+    }
+  }, [
+    addPayment,
+    existing?.created_at,
+    existing?.id,
+    isGuestRoute,
+    isNew,
+    linkRows,
+    setCardLinks,
+    setDraft,
+    upsertBusinessCard,
+    user,
+  ]);
+
+  const runPromotionRequest = useCallback(() => {
+    const d = useCardEditorDraftStore.getState().draft;
+    const parsed = parseCardEditorDraft(d);
+    if (!parsed.success) {
+      setFieldErrors(zodIssuesToFieldErrors(parsed.error.issues));
+      setGrowthFlash("필수 정보를 먼저 맞춰 주세요.");
+      scrollToId("studio-fields");
+      return;
+    }
+    if (!d.is_public) {
+      setGrowthFlash("공개 명함만 홍보 풀에 올릴 수 있어요. 먼저 「실제 사용하기」로 공개를 켜거나 공개 설정을 저장해 주세요.");
+      scrollToId("studio-fields");
+      return;
+    }
+
+    let cardId = existing?.id ?? newCardIdRef.current ?? getEditorLiveCardId();
+    if (!cardId) {
+      setGrowthFlash("명함이 저장되는 중이에요. 잠시 후 다시 눌러 주세요.");
+      return;
+    }
+
+    const added = addToPromotionPool({
+      card_id: cardId,
+      slug: d.slug.trim(),
+      brand_name: d.brand_name.trim() || d.person_name.trim() || "명함",
+      person_name: d.person_name.trim() || d.brand_name.trim() || "",
+    });
+    setGrowthFlash(
+      added ? "홍보 풀에 등록되었습니다. 홍보자 화면에 노출돼요." : "이미 홍보 풀에 등록된 명함이에요.",
+    );
+  }, [addToPromotionPool, existing?.id]);
 
   const isLiveGenerator = isGuestRoute || isNew;
 
@@ -628,7 +761,9 @@ export function CardEditorPage() {
         </h1>
         <p className="mx-auto mt-3 max-w-md text-pretty text-center text-base leading-relaxed text-slate-600 sm:text-lg">
           {isLiveGenerator
-            ? "입력할 때마다 자동 저장되고, 같은 링크로 고객에게 바로 보낼 수 있어요. 공유로 이어지는 구조예요."
+            ? sampleLadderActive
+              ? "입력할 때마다 자동 저장되고, 같은 링크로 고객에게 바로 보낼 수 있어요. 아래에서 실사용·홍보 풀·교육까지 명함 중심으로 이어집니다."
+              : "입력할 때마다 자동 저장되고, 같은 링크로 고객에게 바로 보낼 수 있어요. 공유로 이어지는 구조예요. 샘플 체험 후 단계별로 확장해 보세요."
             : "아래에서 내용을 바꾸면 이 미리보기에 바로 반영돼요."}
         </p>
 
@@ -692,6 +827,16 @@ export function CardEditorPage() {
 
         {isLiveGenerator ? (
           <EditorCtaBand phase="hero" onTrySample={handleTrySample} showTrySample />
+        ) : null}
+
+        {isLiveGenerator && sampleLadderActive ? (
+          <CardEditorGrowthLadder
+            className="mt-8 sm:mt-10"
+            feedback={growthFlash}
+            paidBusy={paidBusy}
+            onPaidActivate={runPaidActivation}
+            onPromotionRequest={runPromotionRequest}
+          />
         ) : null}
       </section>
 

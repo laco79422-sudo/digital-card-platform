@@ -22,6 +22,8 @@ import type {
   InstructorApplication,
   MainBanner,
   Payment,
+  PromoterParticipation,
+  PromotionPoolEntry,
   ServiceApplication,
   ServiceRequest,
   Subscription,
@@ -53,6 +55,8 @@ interface AppDataState {
   platformUsers: typeof SAMPLE_USERS;
   educationApplications: EducationApplication[];
   instructorApplications: InstructorApplication[];
+  promotionPool: PromotionPoolEntry[];
+  promoterParticipations: PromoterParticipation[];
 
   setBusinessCards: (cards: BusinessCard[]) => void;
   upsertBusinessCard: (card: BusinessCard) => void;
@@ -69,6 +73,10 @@ interface AppDataState {
   addInstructorApplication: (a: InstructorApplication) => void;
   /** 게스트 즉시 명함 → 로그인 후 내 계정으로 이전 */
   claimInstantGuestCard: (userId: string, cardId: string) => void;
+
+  addPayment: (p: Payment) => void;
+  addToPromotionPool: (entry: Omit<PromotionPoolEntry, "id" | "registered_at" | "status">) => boolean;
+  enrollPromoter: (p: Omit<PromoterParticipation, "id" | "enrolled_at">) => boolean;
 }
 
 export const useAppDataStore = create<AppDataState>()(
@@ -88,6 +96,8 @@ export const useAppDataStore = create<AppDataState>()(
       platformUsers: [...SAMPLE_USERS],
       educationApplications: [],
       instructorApplications: [],
+      promotionPool: [],
+      promoterParticipations: [],
 
       setBusinessCards: (businessCards) => set({ businessCards }),
       upsertBusinessCard: (card) =>
@@ -132,11 +142,41 @@ export const useAppDataStore = create<AppDataState>()(
             c.id === cardId && c.user_id === INSTANT_GUEST_USER_ID ? { ...c, user_id: userId } : c,
           ),
         })),
+      addPayment: (payment) => set((s) => ({ payments: [...s.payments, payment] })),
+      addToPromotionPool: (raw) => {
+        let added = false;
+        set((s) => {
+          if (s.promotionPool.some((e) => e.card_id === raw.card_id)) return s;
+          added = true;
+          const entry: PromotionPoolEntry = {
+            ...raw,
+            id: crypto.randomUUID(),
+            registered_at: new Date().toISOString(),
+            status: "active",
+          };
+          return { promotionPool: [...s.promotionPool, entry] };
+        });
+        return added;
+      },
+      enrollPromoter: (raw) => {
+        let ok = false;
+        set((s) => {
+          if (s.promoterParticipations.some((x) => x.user_id === raw.user_id)) return s;
+          ok = true;
+          const row: PromoterParticipation = {
+            ...raw,
+            id: crypto.randomUUID(),
+            enrolled_at: new Date().toISOString(),
+          };
+          return { promoterParticipations: [...s.promoterParticipations, row] };
+        });
+        return ok;
+      },
     }),
     {
       name: "linko-app-data",
       storage: createJSONStorage(() => localStorage),
-      version: 2,
+      version: 3,
       partialize: (state) => ({
         businessCards: state.businessCards,
         cardLinks: state.cardLinks,
@@ -152,6 +192,8 @@ export const useAppDataStore = create<AppDataState>()(
         platformUsers: state.platformUsers,
         educationApplications: state.educationApplications,
         instructorApplications: state.instructorApplications,
+        promotionPool: state.promotionPool,
+        promoterParticipations: state.promoterParticipations,
       }),
       merge: (persisted, current) => {
         const p = persisted as Partial<AppDataState> | undefined;
@@ -180,6 +222,11 @@ export const useAppDataStore = create<AppDataState>()(
           instructorApplications: mergeById(
             current.instructorApplications,
             p.instructorApplications,
+          ),
+          promotionPool: mergeById(current.promotionPool ?? [], p.promotionPool),
+          promoterParticipations: mergeById(
+            current.promoterParticipations ?? [],
+            p.promoterParticipations,
           ),
         };
       },

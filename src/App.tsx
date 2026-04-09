@@ -16,6 +16,8 @@ import { LoginPage } from "@/pages/LoginPage";
 import { MyCardsPage } from "@/pages/MyCardsPage";
 import { NotFoundPage } from "@/pages/NotFoundPage";
 import { PricingPage } from "@/pages/PricingPage";
+import { PromotionGuidePage } from "@/pages/PromotionGuidePage";
+import { PromotionPartnerPage } from "@/pages/PromotionPartnerPage";
 import { PublicCardPage } from "@/pages/PublicCardPage";
 import { RequestCreatePage } from "@/pages/RequestCreatePage";
 import { RequestListPage } from "@/pages/RequestListPage";
@@ -35,6 +37,8 @@ function AppRoutes() {
           <Route index element={<LandingPage />} />
           <Route path="pricing" element={<PricingPage />} />
           <Route path="education" element={<EducationPage />} />
+          <Route path="promotion/guide" element={<PromotionGuidePage />} />
+          <Route path="promotion/partner" element={<PromotionPartnerPage />} />
           <Route path="login" element={<LoginPage />} />
           <Route path="mypage" element={<Navigate to="/dashboard" replace />} />
           <Route path="signup" element={<SignupPage />} />
