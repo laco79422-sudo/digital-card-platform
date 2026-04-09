@@ -1,5 +1,6 @@
 import { DigitalCardPublicView } from "@/components/digital-card/DigitalCardPublicView";
 import { DigitalCardSeo } from "@/components/digital-card/DigitalCardSeo";
+import { buildCardShareUrl } from "@/lib/cardShareUrl";
 import { getLinksForCard, useAppDataStore } from "@/stores/appDataStore";
 import type { CardLink } from "@/types/domain";
 import QRCode from "qrcode";
@@ -26,7 +27,8 @@ export function PublicCardPage() {
 
   useEffect(() => {
     if (!card) return;
-    const url = `${window.location.origin}/c/${card.slug}`;
+    const url = buildCardShareUrl(window.location.origin, card.slug) ?? "";
+    if (!url) return;
     QRCode.toDataURL(url, { margin: 1, width: 200, color: { dark: "#0f172a", light: "#ffffff" } })
       .then(setQr)
       .catch(() => setQr(null));

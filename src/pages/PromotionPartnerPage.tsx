@@ -1,7 +1,8 @@
 import { Button } from "@/components/ui/Button";
 import { linkButtonClassName } from "@/components/ui/buttonStyles";
 import { Card, CardContent, CardHeader } from "@/components/ui/Card";
-import { buildViralShareText } from "@/lib/viralShareText";
+import { buildCardShareUrl } from "@/lib/cardShareUrl";
+import { shareCardLinkNativeOrder } from "@/lib/kakaoWebShare";
 import { layout } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/authStore";
@@ -43,22 +44,16 @@ export function PromotionPartnerPage() {
   };
 
   const shareOne = async (slug: string) => {
-    const url = `${origin}/c/${encodeURIComponent(slug)}`;
-    const text = buildViralShareText(url);
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: "디지털 명함", text, url });
-        return;
-      } catch {
-        /* 취소 */
-      }
-    }
-    try {
-      await navigator.clipboard.writeText(text);
-      setEnrollFlash("공유 문구를 복사했어요. 카카오톡에 붙여넣어 보세요.");
+    const shareUrl = buildCardShareUrl(origin, slug);
+    if (!shareUrl) return;
+    const r = await shareCardLinkNativeOrder({
+      shareUrl,
+      title: "디지털 명함",
+      shortMessage: "명함 페이지 링크예요.",
+    });
+    if (r === "clipboard") {
+      setEnrollFlash("명함 링크를 복사했어요. 카카오톡에 붙여넣어 보세요.");
       window.setTimeout(() => setEnrollFlash(null), 3000);
-    } catch {
-      window.prompt("복사해 공유해 주세요", text);
     }
   };
 

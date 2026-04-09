@@ -1,12 +1,15 @@
 import { CardForm } from "@/components/card-editor/CardForm";
 import { CardEditorGrowthLadder } from "@/components/card-editor/CardEditorGrowthLadder";
+import { CardEditorSaveCompletionPanel } from "@/components/card-editor/CardEditorSaveCompletionPanel";
 import { CardPreview } from "@/components/card-editor/CardPreview";
 import { Button } from "@/components/ui/Button";
 import { linkButtonClassName } from "@/components/ui/buttonStyles";
 import { Card, CardContent, CardHeader } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
+import { buildCardShareUrl, editorOriginFallback } from "@/lib/cardShareUrl";
 import { parseCardEditorDraft, zodIssuesToFieldErrors } from "@/lib/cardEditorSchema";
+import { shareCardLinkNativeOrder } from "@/lib/kakaoWebShare";
 import { layout } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/authStore";
@@ -38,7 +41,14 @@ import {
 import { buildViralShareText } from "@/lib/viralShareText";
 import { ArrowRight, Check, Copy, Loader2, Share2, Sparkles } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Link, Navigate, useLocation, useNavigate, useParams } from "react-router-dom";
+import {
+  Link,
+  Navigate,
+  useLocation,
+  useNavigate,
+  useParams,
+  useSearchParams,
+} from "react-router-dom";
 
 function scrollToId(id: string) {
   document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -198,6 +208,13 @@ export function CardEditorPage() {
   const autosaveStatusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const draft = useCardEditorDraftStore((s) => s.draft);
+  const [searchParams] = useSearchParams();
+  const savedHighlight = searchParams.get("saved") === "1";
+
+  const completionShareUrl = useMemo(() => {
+    const o = editorOriginFallback(shareOrigin);
+    return buildCardShareUrl(o, draft.slug.trim());
+  }, [draft.slug, shareOrigin]);
 
   useEffect(() => {
     setShareOrigin(typeof window !== "undefined" ? window.location.origin : "");
@@ -212,6 +229,13 @@ export function CardEditorPage() {
     const t = window.setTimeout(() => setGrowthFlash(null), 6500);
     return () => window.clearTimeout(t);
   }, [growthFlash]);
+
+  useEffect(() => {
+    if (!savedHighlight || !draft.is_public || !completionShareUrl) return;
+    const el = document.getElementById("card-save-complete");
+    if (!el) return;
+    requestAnimationFrame(() => el.scrollIntoView({ behavior: "smooth", block: "start" }));
+  }, [savedHighlight, draft.is_public, completionShareUrl]);
 
   useEffect(() => {
     if (isGuestRoute) return;
@@ -421,8 +445,10 @@ export function CardEditorPage() {
   }, [draft]);
 
   const heroShareUrl = useMemo(() => {
-    if (!heroShareEligible || !shareOrigin) return "";
-    return `${shareOrigin}/c/${encodeURIComponent(draft.slug.trim())}`;
+    if (!heroShareEligible) return "";
+    const origin = editorOriginFallback(shareOrigin);
+    if (!origin) return "";
+    return buildCardShareUrl(origin, draft.slug.trim()) ?? "";
   }, [heroShareEligible, shareOrigin, draft.slug]);
 
   const heroShareText = useMemo(
@@ -442,27 +468,18 @@ export function CardEditorPage() {
   }, [heroShareUrl]);
 
   const kakaoHeroShare = useCallback(async () => {
-    if (!heroShareUrl || !heroShareText) return;
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: `${draft.person_name || draft.brand_name || "내"} 디지털 명함`,
-          text: heroShareText,
-          url: heroShareUrl,
-        });
-        return;
-      } catch {
-        /* 사용자 취소 */
-      }
-    }
-    try {
-      await navigator.clipboard.writeText(heroShareText);
+    if (!heroShareUrl) return;
+    const title = `${draft.person_name || draft.brand_name || "내"} 디지털 명함`;
+    const r = await shareCardLinkNativeOrder({
+      shareUrl: heroShareUrl,
+      title,
+      shortMessage: "내 디지털 명함 페이지 링크예요.",
+    });
+    if (r === "clipboard") {
       setHeroKakaoHint(true);
-      window.setTimeout(() => setHeroKakaoHint(false), 2600);
-    } catch {
-      window.prompt("붙여넣어 보낼 내용입니다", heroShareText);
+      window.setTimeout(() => setHeroKakaoHint(false), 2800);
     }
-  }, [draft.brand_name, draft.person_name, heroShareText, heroShareUrl]);
+  }, [draft.brand_name, draft.person_name, heroShareUrl]);
 
   const applySampleDraft = useCallback(() => {
     const emailFallback = getLandingEmail()?.trim() || user?.email?.trim() || "hello@linko.app";
@@ -611,6 +628,11 @@ export function CardEditorPage() {
 
   const isLiveGenerator = isGuestRoute || isNew;
 
+  const dismissSaveBanner = useCallback(() => {
+    if (!id) return;
+    navigate(`/cards/${id}/edit`, { replace: true });
+  }, [id, navigate]);
+
   const onSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setFieldErrors({});
@@ -655,7 +677,15 @@ export function CardEditorPage() {
     try {
       let cardId = existing?.id ?? newCardIdRef.current;
       if (!cardId) cardId = crypto.randomUUID();
+
+      const slugTrim = draft.slug.trim();
+      if (businessCards.some((c) => c.slug === slugTrim && c.id !== cardId)) {
+        setFieldErrors({ slug: "이미 사용 중인 공개 주소예요. 다른 이름을 입력해 주세요." });
+        return;
+      }
+
       if (!existing) newCardIdRef.current = cardId;
+
       const card = draftToBusinessCard(draft, {
         id: cardId,
         user_id: user.id,
@@ -687,7 +717,7 @@ export function CardEditorPage() {
               },
             ];
       setCardLinks(cardId, finalLinks);
-      navigate("/cards");
+      navigate(`/cards/${cardId}/edit?saved=1`, { replace: true });
     } finally {
       setSubmitting(false);
     }
@@ -739,6 +769,33 @@ export function CardEditorPage() {
         </Link>
       </div>
 
+      {savedHighlight && user && !isGuestRoute && id ? (
+        draft.is_public && completionShareUrl ? (
+          <CardEditorSaveCompletionPanel
+            shareUrl={completionShareUrl}
+            cardTitle={`${draft.person_name || draft.brand_name || "내"} 디지털 명함`}
+            onDismiss={dismissSaveBanner}
+          />
+        ) : (
+          <div
+            id="card-save-complete"
+            className="mb-8 scroll-mt-28 rounded-2xl border-2 border-amber-200/90 bg-amber-50/80 px-5 py-5 sm:px-6 sm:py-6"
+            role="status"
+          >
+            <p className="font-bold text-slate-900">명함이 저장되었습니다</p>
+            <p className="mt-2 text-sm leading-relaxed text-slate-700">
+              지금은 비공개이거나 주소 이름이 덜 올라와 있어요.{" "}
+              <span className="font-semibold">공개</span>로 바꾸고{" "}
+              <span className="font-semibold">공개 주소(/c/이름)</span>를 완성하면, 홈이 아닌 개인 명함 링크로만
+              고객에게 보낼 수 있어요.
+            </p>
+            <Button type="button" variant="secondary" className="mt-4" onClick={dismissSaveBanner}>
+              닫기
+            </Button>
+          </div>
+        )
+      ) : null}
+
       <section
         id="card-preview-hero"
         className="mx-auto w-full max-w-[min(100%,28rem)] scroll-mt-6 sm:max-w-[32rem]"
@@ -769,17 +826,22 @@ export function CardEditorPage() {
 
         {heroShareUrl ? (
           <div className="mx-auto mt-8 w-full max-w-lg rounded-2xl border border-brand-200/90 bg-gradient-to-b from-brand-50/55 to-white p-4 shadow-sm sm:p-5">
-            <p className="text-center text-base font-bold text-slate-900">지금 이 링크를 고객에게 보내보세요</p>
+            <p className="text-center text-base font-bold text-slate-900">👉 당신의 명함 링크</p>
             <p className="mx-auto mt-2 max-w-sm text-center text-xs leading-relaxed text-slate-600 sm:text-sm">
-              카카오톡 공유 시 기본 메시지가 함께 전달돼요.
+              아래는 서비스 홈이 아니라 <span className="font-semibold text-slate-800">당신만의 /c/주소</span>예요.
             </p>
-            <button
-              type="button"
-              className="mt-3 w-full break-all rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-left text-sm font-semibold text-brand-900 hover:bg-slate-50"
+            <div
+              role="link"
+              tabIndex={0}
+              className="mt-3 w-full cursor-pointer break-all rounded-2xl border-2 border-slate-200 bg-white px-4 py-4 text-left text-sm font-bold text-brand-900 shadow-inner hover:bg-slate-50 sm:text-base"
               onClick={() => window.open(heroShareUrl, "_blank", "noopener,noreferrer")}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ")
+                  window.open(heroShareUrl, "_blank", "noopener,noreferrer");
+              }}
             >
               {heroShareUrl}
-            </button>
+            </div>
             <div className="mt-4 flex flex-col gap-2 sm:flex-row">
               <Button
                 type="button"
@@ -797,7 +859,7 @@ export function CardEditorPage() {
                 onClick={() => void kakaoHeroShare()}
               >
                 <Share2 className="h-4 w-4 shrink-0" aria-hidden />
-                카카오톡 공유
+                카카오톡으로 보내기
               </Button>
             </div>
             <Button
@@ -813,9 +875,12 @@ export function CardEditorPage() {
             </pre>
             {heroKakaoHint ? (
               <p className="mt-2 text-center text-xs font-medium text-brand-800 sm:text-sm">
-                메시지를 복사했어요. 카카오톡에 붙여넣어 내 채팅으로 보내 보세요.
+                명함 링크를 복사했어요. 카카오톡에 붙여넣어 내 채팅으로 보내 보세요.
               </p>
             ) : null}
+            <p className="mt-3 text-center text-xs leading-relaxed text-slate-500">
+              이 링크를 고객에게 보내면 명함 페이지가 바로 열립니다.
+            </p>
           </div>
         ) : (
           <div className="mx-auto mt-8 max-w-md rounded-xl border border-dashed border-slate-200 bg-slate-50/60 px-4 py-3 text-center text-sm leading-relaxed text-slate-600">

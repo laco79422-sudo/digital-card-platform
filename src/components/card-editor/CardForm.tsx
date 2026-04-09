@@ -4,9 +4,10 @@ import { Card, CardContent, CardHeader } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Textarea } from "@/components/ui/Textarea";
+import { buildCardShareUrl, editorOriginFallback } from "@/lib/cardShareUrl";
 import { parseCardEditorDraft } from "@/lib/cardEditorSchema";
+import { shareCardLinkNativeOrder } from "@/lib/kakaoWebShare";
 import { cn } from "@/lib/utils";
-import { buildViralShareText } from "@/lib/viralShareText";
 import { slugify } from "@/stores/appDataStore";
 import { useCardEditorDraftStore } from "@/stores/cardEditorDraftStore";
 import { Copy, Share2 } from "lucide-react";
@@ -60,15 +61,9 @@ export function CardForm({
   }, []);
 
   const previewCardUrl = useMemo(() => {
-    const s = draft.slug.trim();
-    if (s.length < 2 || !linkOrigin) return "";
-    return `${linkOrigin}/c/${encodeURIComponent(s)}`;
+    const origin = editorOriginFallback(linkOrigin);
+    return buildCardShareUrl(origin, draft.slug.trim()) ?? "";
   }, [draft.slug, linkOrigin]);
-
-  const slugShareText = useMemo(
-    () => (previewCardUrl ? buildViralShareText(previewCardUrl) : ""),
-    [previewCardUrl],
-  );
 
   const slugShareReady = useMemo(() => {
     const parsed = parseCardEditorDraft(draft);
@@ -88,27 +83,18 @@ export function CardForm({
   }, [previewCardUrl]);
 
   const kakaoSlugShare = useCallback(async () => {
-    if (!previewCardUrl || !slugShareText) return;
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: `${draft.brand_name || draft.person_name || "내"} 디지털 명함`,
-          text: slugShareText,
-          url: previewCardUrl,
-        });
-        return;
-      } catch {
-        /* 취소 등 */
-      }
-    }
-    try {
-      await navigator.clipboard.writeText(slugShareText);
+    if (!previewCardUrl) return;
+    const title = `${draft.brand_name || draft.person_name || "내"} 디지털 명함`;
+    const r = await shareCardLinkNativeOrder({
+      shareUrl: previewCardUrl,
+      title,
+      shortMessage: "내 디지털 명함 페이지 링크예요.",
+    });
+    if (r === "clipboard") {
       setSlugKakaoHint(true);
-      window.setTimeout(() => setSlugKakaoHint(false), 2600);
-    } catch {
-      window.prompt("카카오톡에 붙여넣을 내용입니다", slugShareText);
+      window.setTimeout(() => setSlugKakaoHint(false), 2800);
     }
-  }, [draft.brand_name, draft.person_name, previewCardUrl, slugShareText]);
+  }, [draft.brand_name, draft.person_name, previewCardUrl]);
 
   const onSlugFromBrand = () => {
     const s = slugify(draft.brand_name || "my-card");
@@ -277,12 +263,14 @@ export function CardForm({
               {previewCardUrl ? (
                 <div className="mt-4 space-y-2">
                   <p className="text-center text-sm font-bold text-slate-900">
-                    지금 이 링크를 고객에게 보내보세요
+                    👉 당신의 명함 링크 <span className="text-xs font-normal text-slate-500">(/c/주소)</span>
                   </p>
-                  <p className="text-xs font-medium text-slate-500">미리보기 (저장 후에도 같은 주소)</p>
-                  <p className="break-all rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-brand-900">
+                  <p className="text-xs font-medium text-slate-500">
+                    홈 주소가 아니라, 지금 입력한 공개 주소로 열리는 개인 명함입니다.
+                  </p>
+                  <div className="break-all rounded-2xl border-2 border-brand-200/80 bg-white px-4 py-3 text-sm font-bold text-brand-900 shadow-inner sm:text-base">
                     {previewCardUrl}
-                  </p>
+                  </div>
                   {slugShareReady ? (
                     <>
                       <div className="flex flex-col gap-2 sm:flex-row">
@@ -302,7 +290,7 @@ export function CardForm({
                           onClick={() => void kakaoSlugShare()}
                         >
                           <Share2 className="h-4 w-4 shrink-0" aria-hidden />
-                          카카오톡 공유
+                          카카오톡으로 보내기
                         </Button>
                       </div>
                       <Button
@@ -315,7 +303,7 @@ export function CardForm({
                       </Button>
                       {slugKakaoHint ? (
                         <p className="text-center text-xs font-medium text-brand-800 sm:text-sm">
-                          메시지를 복사했어요. 카카오톡에 붙여넣어 보내 보세요.
+                          명함 링크를 복사했어요. 카카오톡에 붙여넣어 보내 보세요.
                         </p>
                       ) : null}
                     </>

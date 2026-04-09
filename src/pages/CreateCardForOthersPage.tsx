@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/Input";
 import { linkButtonClassName } from "@/components/ui/buttonStyles";
 import { layout } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
+import { buildCardShareUrl } from "@/lib/cardShareUrl";
 import {
   buildQuickShareCard,
   buildInstantCardLinks,
@@ -11,6 +12,7 @@ import {
   parseContactInput,
   uniqueSlugForCards,
 } from "@/lib/instantCardCreate";
+import { shareCardLinkNativeOrder } from "@/lib/kakaoWebShare";
 import { setInstantCardId } from "@/lib/instantCardStorage";
 import { useAppDataStore } from "@/stores/appDataStore";
 import { useAuthStore } from "@/stores/authStore";
@@ -56,7 +58,7 @@ export function CreateCardForOthersPage() {
   const cardUrl = useMemo(() => {
     const c = shareCard;
     if (!c?.slug || !ready) return null;
-    return `${window.location.origin}/c/${encodeURI(c.slug)}`;
+    return buildCardShareUrl(window.location.origin, c.slug);
   }, [shareCard, ready]);
 
   const ownerUserId = user?.id ?? INSTANT_GUEST_USER_ID;
@@ -123,21 +125,14 @@ export function CreateCardForOthersPage() {
 
   const kakaoShare = useCallback(async () => {
     if (!cardUrl) return;
-    const text = `${shareLine}\n${cardUrl}`;
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: shareLine, text, url: cardUrl });
-        return;
-      } catch {
-        /* 사용자 취소 등 */
-      }
-    }
-    try {
-      await navigator.clipboard.writeText(text);
+    const r = await shareCardLinkNativeOrder({
+      shareUrl: cardUrl,
+      title: shareLine,
+      shortMessage: "디지털 명함 링크예요.",
+    });
+    if (r === "clipboard") {
       setKakaoHint(true);
-      window.setTimeout(() => setKakaoHint(false), 2600);
-    } catch {
-      window.prompt("내용을 복사해 카카오톡에 붙여넣기 하세요", text);
+      window.setTimeout(() => setKakaoHint(false), 2800);
     }
   }, [cardUrl, shareLine]);
 
