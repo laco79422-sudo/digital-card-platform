@@ -1,9 +1,11 @@
+import { LandingSampleCard } from "@/components/landing/LandingSampleCard";
 import { SiteLinkPreviewSeo } from "@/components/seo/SiteLinkPreviewSeo";
-import { linkButtonClassName } from "@/components/ui/buttonStyles";
-import { useDevMountLog } from "@/dev/renderDiagnostics";
 import { CreatorCard } from "@/components/ui/CreatorCard";
 import { PricingCard } from "@/components/ui/PricingCard";
+import { linkButtonClassName } from "@/components/ui/buttonStyles";
+import { useDevMountLog } from "@/dev/renderDiagnostics";
 import { LANDING_FAQ, LANDING_TESTIMONIALS } from "@/data/sampleData";
+import { clearLandingEmail, setLandingEmail } from "@/lib/pendingCardStorage";
 import { form, layout, section, type } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
 import { useAppDataStore } from "@/stores/appDataStore";
@@ -15,12 +17,14 @@ import {
   Users,
   Video,
 } from "lucide-react";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 export function LandingPage() {
   useDevMountLog("LandingPage");
   const navigate = useNavigate();
+  const [emailInput, setEmailInput] = useState("");
+  const [emailError, setEmailError] = useState<string | null>(null);
   const featuredCreatorIds = useAppDataStore((s) => s.featuredCreatorIds);
   const creators = useAppDataStore((s) => s.creators);
   const featured = useMemo(
@@ -30,8 +34,6 @@ export function LandingPage() {
         .filter((c): c is NonNullable<typeof c> => Boolean(c)),
     [featuredCreatorIds, creators],
   );
-
-  const sampleCreator = featured[0] ?? null;
 
   const flowItems = [
     {
@@ -51,10 +53,26 @@ export function LandingPage() {
     },
     {
       icon: Users,
-      title: "맞는 사람과 연결",
-      body: "제작자·협업자를 찾고, 제안을 주고받으며 관계를 키워 가세요.",
+      title: "맞는 사람과 이어지기",
+      body: "링크 하나로 소개를 남기고, 상대가 연락할 수 있는 길을 열어 두세요.",
     },
   ] as const;
+
+  const onStartCard = (e: React.FormEvent) => {
+    e.preventDefault();
+    const t = emailInput.trim();
+    if (!t) {
+      setEmailError("이메일을 입력해 주세요.");
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(t)) {
+      setEmailError("올바른 이메일 형식이 아닙니다.");
+      return;
+    }
+    setEmailError(null);
+    setLandingEmail(t);
+    navigate("/create-card");
+  };
 
   return (
     <>
@@ -72,8 +90,12 @@ export function LandingPage() {
               나를 소개하는 가장 쉬운 방법, 린코 디지털 명함
             </h1>
 
-            <p className={type.heroSub}>
-              한 번 만들면 링크로 퍼지는 나만의 디지털 명함
+            <p className={type.heroSub}>3초 만에 나만의 디지털 명함 만들기</p>
+            <p className="mt-3 max-w-xl text-balance text-base font-medium leading-relaxed text-slate-200/95 sm:text-lg">
+              링크 하나로 고객과 연결되는 명함
+            </p>
+            <p className="mt-2 max-w-sm text-center text-sm leading-relaxed text-slate-300/90 sm:text-[15px]">
+              지금 바로 만들어보고, 필요할 때 저장하세요
             </p>
 
             {/* 홍보 흐름 안내: 한눈에 읽히는 4카드 */}
@@ -108,36 +130,17 @@ export function LandingPage() {
             </p>
 
             <div className="mt-8 w-full sm:mt-10">
-              <p className="text-sm font-medium text-brand-100/95">명함 샘플 미리보기</p>
+              <p className="text-sm font-medium text-brand-100/95">디지털 명함 · 샘플 미리보기</p>
               <div className="mx-auto mt-4 max-w-[22rem]">
-                {sampleCreator ? (
-                  <CreatorCard creator={sampleCreator} />
-                ) : (
-                  <div className="rounded-2xl border border-white/20 bg-white/10 p-6 text-left shadow-lg backdrop-blur-md">
-                    <p className="text-xs font-medium uppercase tracking-wide text-brand-200/90">Sample</p>
-                    <p className="mt-3 text-xl font-bold text-white">김링코</p>
-                    <p className="mt-1 text-sm text-white/80">디지털 명함 · 제작자</p>
-                    <p className="mt-4 text-[15px] leading-relaxed text-white/88">
-                      링크 하나로 프로필·포트폴리오·문의를 연결합니다. 실제 명함은 가입 후 바로 편집할 수 있어요.
-                    </p>
-                    <div className="mt-4 flex flex-wrap gap-1.5">
-                      <span className="rounded-full bg-white/15 px-2.5 py-1 text-xs text-white/95">프로필</span>
-                      <span className="rounded-full bg-white/15 px-2.5 py-1 text-xs text-white/95">QR</span>
-                      <span className="rounded-full bg-white/15 px-2.5 py-1 text-xs text-white/95">문의</span>
-                    </div>
-                  </div>
-                )}
+                <LandingSampleCard />
               </div>
             </div>
 
             <div className="mt-10 w-full max-w-md sm:mt-12">
-              <p className="text-sm font-medium text-white/90">디지털 명함 만들기</p>
+              <p className="text-sm font-medium text-white/90">이메일만 넣고 명함 만들기 시작</p>
               <form
                 className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-stretch"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  navigate("/signup");
-                }}
+                onSubmit={onStartCard}
               >
                 <label htmlFor="landing-email" className="sr-only">
                   이메일
@@ -147,7 +150,13 @@ export function LandingPage() {
                   name="email"
                   type="email"
                   autoComplete="email"
+                  inputMode="email"
                   placeholder="이메일 주소를 입력하세요"
+                  value={emailInput}
+                  onChange={(e) => {
+                    setEmailInput(e.target.value);
+                    setEmailError(null);
+                  }}
                   className={cn(form.input, "border-white/25 bg-white/95 text-slate-900 placeholder:text-slate-500")}
                 />
                 <button
@@ -161,14 +170,20 @@ export function LandingPage() {
                   <ArrowRight className="h-4 w-4 shrink-0" aria-hidden />
                 </button>
               </form>
+              {emailError ? (
+                <p className="mt-2 text-sm font-medium text-amber-200" role="alert">
+                  {emailError}
+                </p>
+              ) : null}
               <p className={cn("mt-4", type.heroFootnote)}>
-                첫 명함은 무료로, 이름 하나로 오늘부터 연결을 열어 보세요.
+                가입 없이 미리 만들고, 저장할 때만 계정을 만들면 됩니다.
               </p>
             </div>
 
             <div className="mt-8 flex w-full max-w-lg flex-col gap-3 sm:mt-10 sm:flex-row sm:justify-center">
               <Link
-                to="/signup"
+                to="/create-card"
+                onClick={() => clearLandingEmail()}
                 className={cn(
                   "w-full sm:w-auto",
                   linkButtonClassName({
@@ -178,7 +193,7 @@ export function LandingPage() {
                   }),
                 )}
               >
-                회원가입으로 이동
+                이메일 없이 바로 만들기
               </Link>
               <Link
                 to="/creators"
@@ -191,7 +206,7 @@ export function LandingPage() {
                   }),
                 )}
               >
-                함께할 사람 둘러보기
+                제작자 둘러보기
               </Link>
             </div>
           </div>
@@ -257,18 +272,18 @@ export function LandingPage() {
             {[
               {
                 step: "01",
-                title: "프로필 명함 만들기",
-                desc: "가입 후 나를 소개하는 명함을 만들고, 필요하면 의뢰나 문의 유형을 적어 둡니다.",
+                title: "명함 만들고 채우기",
+                desc: "이름·직함·소개와 연결 버튼을 넣어 나만의 디지털 명함을 완성합니다. 가입 전에도 미리 편집할 수 있어요.",
               },
               {
                 step: "02",
-                title: "서로의 이야기",
-                desc: "상대가 명함을 열고, 제작자·협업자는 제안을 남깁니다. 알림으로 놓치지 마세요.",
+                title: "저장할 때 가입",
+                desc: "마음에 들면 저장하기를 눌러요. 그때 계정을 만들고, 같은 내용으로 명함이 저장됩니다.",
               },
               {
                 step: "03",
-                title: "선택과 다음 걸음",
-                desc: "마음에 맞는 인연을 고르고, 정책에 따라 결제·정산을 이어 갑니다.",
+                title: "링크로 연결",
+                desc: "완성된 링크와 QR로 공유하세요. 방문과 클릭은 내 공간에서 확인할 수 있습니다.",
               },
             ].map((s) => (
               <li key={s.step} className="relative rounded-2xl border border-slate-200 bg-white p-5 sm:p-6">
@@ -329,9 +344,9 @@ export function LandingPage() {
         <div className={layout.page}>
           <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
             <div>
-              <h2 className={type.sectionTitle}>추천 제작자</h2>
+              <h2 className={type.sectionTitle}>함께할 제작자 (선택)</h2>
               <p className={cn("mt-2 max-w-xl", type.sectionLead)}>
-                글·영상·디자인으로 당신의 이야기를 돕는 분들을 만나 보세요.
+                명함·콘텐츠 제작이 필요할 때 참고할 수 있는 파트너 목록이에요. 디지털 명함 본연과는 별도로 둘러보실 수 있습니다.
               </p>
             </div>
             <Link

@@ -9,6 +9,7 @@ import { signInWithGoogle, signUpWithEmail } from "@/lib/auth/authActions";
 import { BRAND_DISPLAY_NAME } from "@/lib/brand";
 import { layout } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
+import { getLandingEmail, hasPendingCardDraft } from "@/lib/pendingCardStorage";
 import { isSupabaseConfigured } from "@/lib/supabase/client";
 import { mapSupabaseUser } from "@/lib/supabase/mapAuthUser";
 import { useAuthStore } from "@/stores/authStore";
@@ -93,6 +94,11 @@ export function SignupPage() {
     }
   }, [authReady, location.state, navigate]);
 
+  useEffect(() => {
+    const fromLanding = getLandingEmail();
+    if (fromLanding) setValue("email", fromLanding);
+  }, [setValue]);
+
   const onSubmit = async (values: FormValues) => {
     setErrorMessage(null);
 
@@ -127,7 +133,7 @@ export function SignupPage() {
         setSession(data.session);
         setUser(mapSupabaseUser(data.session.user));
         touchActivity();
-        navigate("/dashboard", { replace: true });
+        navigate(hasPendingCardDraft() ? "/cards/new" : "/dashboard", { replace: true });
         return;
       }
 
@@ -162,8 +168,10 @@ export function SignupPage() {
   }
 
   if (user) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to={hasPendingCardDraft() ? "/cards/new" : "/dashboard"} replace />;
   }
+
+  const signupNoticeFromNav = (location.state as { signupNotice?: string } | null)?.signupNotice;
 
   return (
     <div className={cn(layout.pageAuth, "py-12 sm:py-20 lg:py-24")}>
@@ -172,11 +180,21 @@ export function SignupPage() {
           <p className="text-sm font-semibold text-brand-800">{BRAND_DISPLAY_NAME}</p>
           <h1 className="mt-1 text-2xl font-semibold leading-snug tracking-tight text-slate-900">회원가입</h1>
           <p className="mt-2 text-base leading-relaxed text-slate-600">
-            이름과 이메일로 계정을 만든 뒤, 대시보드에서 명함과 의뢰를 이용할 수 있어요.
+            {hasPendingCardDraft()
+              ? "만들어 두신 명함을 저장하려면 계정이 필요해요. 가입 후 이어서 저장할 수 있습니다."
+              : "이름과 이메일로 계정을 만든 뒤, 대시보드에서 명함과 의뢰를 이용할 수 있어요."}
           </p>
         </CardHeader>
         <CardContent>
           <InactivityToast authReady={authReady} />
+          {signupNoticeFromNav ? (
+            <p
+              role="status"
+              className="mb-4 rounded-lg border border-brand-200 bg-brand-50 px-3 py-2.5 text-sm font-medium text-brand-950"
+            >
+              {signupNoticeFromNav}
+            </p>
+          ) : null}
           {!isSupabaseConfigured ? (
             <div
               role="alert"

@@ -7,6 +7,7 @@ import { signInWithEmail, signInWithGoogle } from "@/lib/auth/authActions";
 import { BRAND_DISPLAY_NAME } from "@/lib/brand";
 import { layout } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
+import { hasPendingCardDraft } from "@/lib/pendingCardStorage";
 import { getSupabaseConfigErrorMessage, isSupabaseConfigured } from "@/lib/supabase/client";
 import { mapSupabaseUser } from "@/lib/supabase/mapAuthUser";
 import { useDevMountLog } from "@/dev/renderDiagnostics";
@@ -58,6 +59,10 @@ export function LoginPage() {
     if (sess) setSession(sess);
     setUser(mapSupabaseUser(u));
     touchActivity();
+    if (hasPendingCardDraft()) {
+      navigate("/cards/new", { replace: true });
+      return;
+    }
     navigate(from, { replace: true });
   };
 

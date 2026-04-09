@@ -34,6 +34,7 @@ function AppRoutes() {
         <Route path="login" element={<LoginPage />} />
         <Route path="mypage" element={<Navigate to="/dashboard" replace />} />
         <Route path="signup" element={<SignupPage />} />
+        <Route path="create-card" element={<CardEditorPage />} />
         <Route path="creators" element={<CreatorDirectoryPage />} />
         <Route path="creators/:id" element={<CreatorProfilePage />} />
         <Route path="requests" element={<RequestListPage />} />

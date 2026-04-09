@@ -18,8 +18,14 @@ import {
 } from "@/stores/cardEditorDraftStore";
 import { getLinksForCard, useAppDataStore } from "@/stores/appDataStore";
 import type { CardLink, CardLinkType } from "@/types/domain";
+import {
+  clearLandingEmail,
+  consumePendingCardDraft,
+  getLandingEmail,
+  savePendingCardDraft,
+} from "@/lib/pendingCardStorage";
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, Navigate, useLocation, useNavigate, useParams } from "react-router-dom";
 
 type LinkRow = { id: string; label: string; type: CardLinkType; url: string };
 
@@ -37,15 +43,21 @@ function mapLinksToRows(links: CardLink[]): LinkRow[] {
 
 export function CardEditorPage() {
   const { id } = useParams();
+  const location = useLocation();
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
+  const isGuestRoute = location.pathname === "/create-card";
   const businessCards = useAppDataStore((s) => s.businessCards);
   const cardLinks = useAppDataStore((s) => s.cardLinks);
   const upsertBusinessCard = useAppDataStore((s) => s.upsertBusinessCard);
   const setCardLinks = useAppDataStore((s) => s.setCardLinks);
 
   const isNew = !id || id === "new";
-  const routeKey = isNew ? "new" : (id ?? "");
+  const routeKey = useMemo(() => {
+    if (isGuestRoute) return "create-card";
+    return isNew ? "new" : (id ?? "");
+  }, [isGuestRoute, isNew, id]);
+
   const existing = useMemo(
     () => (!isNew && id ? businessCards.find((c) => c.id === id) : undefined),
     [businessCards, id, isNew],
@@ -67,8 +79,37 @@ export function CardEditorPage() {
     setLinkRows(mapLinksToRows(existingLinks));
   }, [existing?.id, existingLinks]);
 
-  /** 라우트 키당 1회 주입 — react-hook-form `reset(defaultValues)` 루프 없이 스크롤·리렌더 후에도 입력 유지 */
+  /** 게스트 /create-card · 가입 후 복원 대기 draft · 일반 편집 순으로 주입 */
   useEffect(() => {
+    if (isGuestRoute && !user) {
+      const state = useCardEditorDraftStore.getState();
+      if (state.hydratedKey === "create-card") return;
+      replaceDraft(createEmptyDraft({ email: getLandingEmail() ?? "" }));
+      setLinkRows(mapLinksToRows([]));
+      setHydratedKey("create-card");
+      return;
+    }
+
+    if (!isGuestRoute && location.pathname === "/cards/new" && isNew && user) {
+      const pending = consumePendingCardDraft();
+      if (pending) {
+        replaceDraft(pending.draft);
+        setLinkRows(
+          pending.linkRows.length > 0
+            ? pending.linkRows.map((r) => ({
+                id: r.id,
+                label: r.label,
+                type: r.type,
+                url: r.url,
+              }))
+            : mapLinksToRows([]),
+        );
+        clearLandingEmail();
+        setHydratedKey("new");
+        return;
+      }
+    }
+
     if (!isNew && id && !existing) return;
     const state = useCardEditorDraftStore.getState();
     if (state.hydratedKey === routeKey) return;
@@ -84,11 +125,22 @@ export function CardEditorPage() {
       );
     }
     setHydratedKey(routeKey);
-  }, [routeKey, isNew, id, existing, user?.name, user?.email, replaceDraft, setHydratedKey]);
+  }, [
+    isGuestRoute,
+    user,
+    location.pathname,
+    routeKey,
+    isNew,
+    id,
+    existing,
+    user?.name,
+    user?.email,
+    replaceDraft,
+    setHydratedKey,
+  ]);
 
   const onSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) return;
     setFieldErrors({});
 
     const draft = useCardEditorDraftStore.getState().draft;
@@ -97,6 +149,32 @@ export function CardEditorPage() {
       setFieldErrors(zodIssuesToFieldErrors(parsed.error.issues));
       return;
     }
+
+    if (isGuestRoute && !user) {
+      const landing = getLandingEmail()?.trim();
+      const d = useCardEditorDraftStore.getState().draft;
+      if (landing && !d.email.trim()) {
+        replaceDraft({ ...d, email: landing });
+      }
+      savePendingCardDraft({
+        draft: useCardEditorDraftStore.getState().draft,
+        linkRows,
+      });
+      setSubmitting(true);
+      try {
+        navigate("/signup", {
+          state: {
+            signupNotice:
+              "명함을 저장하려면 계정이 필요합니다. 가입을 완료하면 이어서 저장할 수 있어요.",
+          },
+        });
+      } finally {
+        setSubmitting(false);
+      }
+      return;
+    }
+
+    if (!user) return;
 
     setSubmitting(true);
     try {
@@ -138,21 +216,29 @@ export function CardEditorPage() {
     }
   };
 
+  if (user && isGuestRoute) {
+    return <Navigate to="/cards/new" replace />;
+  }
+
   return (
     <div className={cn(layout.pageEditor, "py-10 sm:py-12")}>
       <div className="mb-8 flex items-center justify-between gap-4">
         <h1 className="break-keep text-2xl font-bold leading-snug tracking-tight text-slate-900 md:text-3xl">
-          {isNew ? brandCta.createDigitalCard : "명함 수정하기"}
+          {isGuestRoute
+            ? "명함 만들기"
+            : isNew
+              ? brandCta.createDigitalCard
+              : "명함 수정하기"}
         </h1>
         <Link
-          to="/cards"
+          to={isGuestRoute ? "/" : "/cards"}
           className="inline-flex min-h-11 shrink-0 items-center text-base font-medium text-brand-700"
         >
-          목록으로
+          {isGuestRoute ? "홈으로" : "목록으로"}
         </Link>
       </div>
 
-      {isNew ? (
+      {isNew || isGuestRoute ? (
         <div className="mb-10 space-y-4 text-center sm:mb-12">
           <p className="mx-auto max-w-2xl break-keep text-balance text-base font-medium leading-relaxed text-slate-800 sm:text-lg">
             나를 소개하는 가장 쉬운 방법, 린코 디지털 명함
@@ -264,7 +350,7 @@ export function CardEditorPage() {
 
         <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end sm:gap-2">
           <Link
-            to="/cards"
+            to={isGuestRoute ? "/" : "/cards"}
             className={cn(
               "w-full sm:w-auto",
               linkButtonClassName({
@@ -277,7 +363,7 @@ export function CardEditorPage() {
             취소
           </Link>
           <Button type="submit" className="w-full min-h-[52px] sm:w-auto sm:min-h-11" size="lg" loading={submitting}>
-            저장
+            {isGuestRoute ? "저장하고 계정 만들기" : "저장"}
           </Button>
         </div>
       </form>
