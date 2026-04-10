@@ -81,19 +81,42 @@ export function LandingPage() {
               <p className="mt-3 text-center text-sm text-slate-300">가입 없이 바로 체험 가능합니다</p>
             </div>
 
-            <div className="mt-6 flex w-full max-w-md flex-col gap-2 sm:flex-row sm:justify-center sm:gap-3">
-              <Link
-                to="/structure"
-                className="inline-flex min-h-10 flex-1 items-center justify-center rounded-lg border border-white/25 bg-white/5 px-3 text-xs font-semibold text-white/95 backdrop-blur-sm hover:bg-white/10 sm:text-sm"
-              >
-                구조 먼저 보기
-              </Link>
-              <Link
-                to="/create-for-others"
-                className="inline-flex min-h-10 flex-1 items-center justify-center rounded-lg border border-white/25 bg-white/5 px-3 text-xs font-semibold text-white/95 backdrop-blur-sm hover:bg-white/10 sm:text-sm"
-              >
-                대신 만들어드리기
-              </Link>
+            <div className="mx-auto mt-8 w-full max-w-2xl sm:mt-10">
+              <p className="sr-only">체험으로 직접 만들거나 전문가에게 맡길 수 있습니다</p>
+              <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 sm:gap-12">
+                <Link
+                  to={CREATE_SAMPLE_HREF}
+                  className="group flex flex-col gap-2.5 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-300 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-950"
+                >
+                  <span
+                    className={cn(
+                      "inline-flex min-h-[52px] w-full items-center justify-center rounded-xl px-4 text-center text-sm font-bold leading-snug text-slate-900 shadow-md transition-colors sm:text-base",
+                      "bg-white hover:bg-slate-100",
+                    )}
+                  >
+                    내가 직접 만들어보기
+                  </span>
+                  <span className="text-center text-[13px] leading-snug text-slate-400 sm:text-sm">
+                    샘플로 바로 체험하고 직접 수정할 수 있습니다
+                  </span>
+                </Link>
+                <Link
+                  to="/signup?intent=expert-structure"
+                  className="group flex flex-col gap-2.5 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-950"
+                >
+                  <span
+                    className={cn(
+                      "inline-flex min-h-[52px] w-full items-center justify-center rounded-xl border-2 border-white/90 px-4 text-center text-sm font-bold leading-snug text-white shadow-inner transition-colors sm:text-base",
+                      "bg-slate-950/75 hover:border-white hover:bg-slate-950/95",
+                    )}
+                  >
+                    전문가에게 맡기기
+                  </span>
+                  <span className="text-center text-[13px] leading-snug text-slate-400 sm:text-sm">
+                    명함 제작부터 홍보까지 전문가가 도와드립니다
+                  </span>
+                </Link>
+              </div>
             </div>
           </div>
         </div>
