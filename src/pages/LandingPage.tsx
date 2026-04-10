@@ -9,34 +9,37 @@ import { layout, section, type } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
 import { useAppDataStore } from "@/stores/appDataStore";
 import { ArrowRight, Check, Video } from "lucide-react";
-import { useMemo } from "react";
+import { useMemo, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 
+const CREATE_CARD_HREF = "/create-card";
 const CREATE_SAMPLE_HREF = "/create-card?sample=true";
 
-function PrimaryCtaLink({ className }: { className?: string }) {
+function FlowCtaLink({
+  to,
+  children,
+  className,
+  variant = "gradient",
+}: {
+  to: string;
+  children: ReactNode;
+  className?: string;
+  variant?: "gradient" | "outline";
+}) {
   return (
     <Link
-      to={CREATE_SAMPLE_HREF}
+      to={to}
       className={cn(
-        "inline-flex min-h-[52px] w-full max-w-md items-center justify-center gap-2 rounded-xl px-6 text-base font-bold text-white shadow-lg",
-        "bg-gradient-to-r from-brand-500 to-brand-700 ring-2 ring-brand-400/35",
-        "hover:from-brand-400 hover:to-brand-600 hover:ring-brand-300/50",
-        "focus:outline-none focus:ring-2 focus:ring-brand-400 focus:ring-offset-2",
+        "inline-flex min-h-[52px] w-full max-w-md items-center justify-center gap-2 rounded-xl px-6 text-base font-bold shadow-lg focus:outline-none focus:ring-2 focus:ring-brand-400 focus:ring-offset-2",
+        variant === "gradient"
+          ? "text-white ring-2 ring-brand-400/35 bg-gradient-to-r from-brand-500 to-brand-700 hover:from-brand-400 hover:to-brand-600 hover:ring-brand-300/50"
+          : "border-2 border-brand-600 bg-white text-brand-950 shadow-md hover:bg-brand-50",
         className,
       )}
     >
-      무료로 명함 만들어보기
+      {children}
       <ArrowRight className="h-5 w-5 shrink-0" aria-hidden />
     </Link>
-  );
-}
-
-function SectionCtaRepeat() {
-  return (
-    <div className="mt-8 flex justify-center sm:mt-10">
-      <PrimaryCtaLink className="sm:max-w-lg" />
-    </div>
   );
 }
 
@@ -77,7 +80,9 @@ export function LandingPage() {
             </p>
 
             <div className="mt-8 w-full max-w-md sm:mt-10">
-              <PrimaryCtaLink className="w-full shadow-2xl ring-brand-400/40" />
+              <FlowCtaLink to={CREATE_CARD_HREF} className="w-full shadow-2xl ring-brand-400/40">
+                지금 바로 명함 만들기
+              </FlowCtaLink>
               <p className="mt-3 text-center text-sm text-slate-300">가입 없이 바로 체험 가능합니다</p>
             </div>
 
@@ -85,7 +90,7 @@ export function LandingPage() {
               <p className="sr-only">체험으로 직접 만들거나 전문가에게 맡길 수 있습니다</p>
               <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 sm:gap-12">
                 <Link
-                  to={CREATE_SAMPLE_HREF}
+                  to={CREATE_CARD_HREF}
                   className="group flex flex-col gap-2.5 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-300 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-950"
                 >
                   <span
@@ -139,7 +144,11 @@ export function LandingPage() {
               이제는 링크 하나로 연결됩니다
             </p>
           </div>
-          <SectionCtaRepeat />
+          <div className="mt-10 flex justify-center sm:mt-12">
+            <FlowCtaLink to={CREATE_CARD_HREF} variant="outline" className="sm:max-w-lg">
+              이제 링크 하나로 시작하기
+            </FlowCtaLink>
+          </div>
         </div>
       </section>
 
@@ -152,25 +161,22 @@ export function LandingPage() {
               클릭하면 샘플이 자동으로 채워집니다
             </p>
             <div className="mt-8 flex justify-center">
-              <Link
-                to={CREATE_SAMPLE_HREF}
-                className={cn(
-                  "inline-flex min-h-[52px] w-full max-w-md items-center justify-center gap-2 rounded-xl px-6 text-base font-bold text-brand-950 shadow-md",
-                  "border-2 border-brand-600 bg-white hover:bg-brand-50",
-                )}
-              >
-                무료로 명함 만들기
-                <ArrowRight className="h-5 w-5 shrink-0" aria-hidden />
-              </Link>
+              <FlowCtaLink to={CREATE_SAMPLE_HREF} variant="outline" className="max-w-md">
+                샘플로 바로 만들어보기
+              </FlowCtaLink>
             </div>
             <div className="mx-auto mt-10 w-full max-w-lg">
               <p className="text-sm font-semibold text-slate-700">디지털 명함 샘플 미리보기</p>
               <div className="mt-3">
                 <LandingSampleCard variant="hero" />
               </div>
+              <div className="mt-8 flex justify-center">
+                <FlowCtaLink to={CREATE_SAMPLE_HREF} className="max-w-md">
+                  이대로 내 명함 확인하기
+                </FlowCtaLink>
+              </div>
             </div>
           </div>
-          <SectionCtaRepeat />
         </div>
       </section>
 
@@ -214,7 +220,11 @@ export function LandingPage() {
             </p>
           </div>
 
-          <SectionCtaRepeat />
+          <div className="mt-10 flex justify-center sm:mt-12">
+            <FlowCtaLink to={CREATE_SAMPLE_HREF} variant="outline" className="sm:max-w-lg">
+              샘플로 바로 만들어보기
+            </FlowCtaLink>
+          </div>
         </div>
       </section>
 
@@ -261,7 +271,14 @@ export function LandingPage() {
               cta="플러스 시작"
             />
           </div>
-          <SectionCtaRepeat />
+          <div className="mt-10 flex justify-center sm:mt-12">
+            <Link
+              to="/pricing"
+              className="inline-flex min-h-11 items-center justify-center text-base font-semibold text-brand-800 underline-offset-4 hover:underline"
+            >
+              프로 플랜 자세히 보기 →
+            </Link>
+          </div>
         </div>
       </section>
 
@@ -287,7 +304,11 @@ export function LandingPage() {
               <CreatorCard key={c.id} creator={c} />
             ))}
           </div>
-          <SectionCtaRepeat />
+          <div className="mt-10 flex justify-center">
+            <FlowCtaLink to={CREATE_CARD_HREF} className="max-w-md">
+              지금 바로 명함 만들기
+            </FlowCtaLink>
+          </div>
         </div>
       </section>
 
@@ -338,7 +359,11 @@ export function LandingPage() {
               </blockquote>
             ))}
           </div>
-          <SectionCtaRepeat />
+          <div className="mt-10 flex justify-center sm:mt-12">
+            <FlowCtaLink to={CREATE_SAMPLE_HREF} variant="outline" className="border-white/40 bg-white/10 text-white ring-white/20 hover:bg-white/15 sm:max-w-lg">
+              샘플로 체험하기
+            </FlowCtaLink>
+          </div>
         </div>
       </section>
 
@@ -354,7 +379,9 @@ export function LandingPage() {
             ))}
           </dl>
           <div className="mt-10 flex justify-center">
-            <PrimaryCtaLink />
+            <FlowCtaLink to={CREATE_CARD_HREF} className="max-w-md">
+              지금 바로 명함 만들기
+            </FlowCtaLink>
           </div>
         </div>
       </section>

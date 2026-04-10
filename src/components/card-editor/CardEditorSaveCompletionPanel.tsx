@@ -48,7 +48,7 @@ export function CardEditorSaveCompletionPanel({ shareUrl, cardTitle, onDismiss }
             <Check className="h-6 w-6" aria-hidden />
           </span>
           <div className="min-w-0">
-            <p className="text-lg font-extrabold tracking-tight text-slate-900 sm:text-xl">명함 생성 완료</p>
+            <p className="text-lg font-extrabold tracking-tight text-slate-900 sm:text-xl">저장 완료</p>
             <p className="mt-1 text-sm font-medium text-emerald-900/90">
               지금 바로 고객에게 보내는 단계예요. 아래가 곧 당신의 공개 명함 주소입니다.
             </p>

@@ -27,9 +27,11 @@ type Props = {
   linkRows: CardPreviewLinkRow[];
   existingCardId?: string;
   createdAt?: string;
+  /** 게스트 체험 — 임시 미리보기 안내 띠 */
+  guestTempHint?: boolean;
 };
 
-export function CardPreview({ linkRows, existingCardId, createdAt }: Props) {
+export function CardPreview({ linkRows, existingCardId, createdAt, guestTempHint }: Props) {
   const draft = useCardEditorDraftStore((s) => s.draft);
   const user = useAuthStore((s) => s.user);
 
@@ -51,13 +53,20 @@ export function CardPreview({ linkRows, existingCardId, createdAt }: Props) {
     }));
 
   return (
-    <DigitalCardPublicView
-      card={card}
-      links={previewLinks}
-      onLinkClick={(link) => navigatePreviewLink(link.url)}
-      compact
-      hideSticky
-      qrDataUrl={null}
-    />
+    <>
+      {guestTempHint ? (
+        <div className="mb-2 rounded-xl border border-amber-200/90 bg-amber-50 px-3 py-2 text-center text-[11px] font-medium leading-snug text-amber-950 sm:text-xs">
+          이 화면은 실제 명함과 같이 보입니다. 아래에서 임시 링크로 열어 확인·공유할 수 있어요.
+        </div>
+      ) : null}
+      <DigitalCardPublicView
+        card={card}
+        links={previewLinks}
+        onLinkClick={(link) => navigatePreviewLink(link.url)}
+        compact
+        hideSticky
+        qrDataUrl={null}
+      />
+    </>
   );
 }

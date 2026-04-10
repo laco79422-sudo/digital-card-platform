@@ -86,6 +86,10 @@ type Props = {
   compact?: boolean;
   /** 편집기 미리보기에서 하단 sticky·여백 제거 */
   hideSticky?: boolean;
+  /** 임시 미리보기(/preview) 등 — 공유·복사에 쓸 절대 URL (slug 기본값 대신) */
+  shareUrlOverride?: string | null;
+  /** 임시 링크 화면 — 공유 블록 문구·CTA 조정 */
+  tempPreview?: boolean;
 };
 
 export function DigitalCardPublicView({
@@ -95,6 +99,8 @@ export function DigitalCardPublicView({
   qrDataUrl,
   compact,
   hideSticky,
+  shareUrlOverride,
+  tempPreview,
 }: Props) {
   const grad = themeClass[card.theme] ?? themeClass.navy;
   const tagline = effectiveTagline(card);
@@ -125,9 +131,10 @@ export function DigitalCardPublicView({
   }, [compact]);
 
   const cardPublicUrl = useMemo(() => {
+    if (shareUrlOverride) return shareUrlOverride;
     const origin = shareOrigin || (typeof window !== "undefined" ? window.location.origin : "");
     return resolveCardShareUrl(origin, card.slug) ?? "";
-  }, [shareOrigin, card.slug]);
+  }, [shareUrlOverride, shareOrigin, card.slug]);
 
   const shareBundle = useMemo(
     () => (cardPublicUrl ? buildViralShareText(cardPublicUrl) : ""),
@@ -430,11 +437,20 @@ export function DigitalCardPublicView({
             aria-label="이 명함 공유하기"
           >
             <p className="text-center text-[15px] font-semibold leading-snug text-slate-800 sm:text-lg">
-              👇 이런 명함 만들어보세요
+              {tempPreview ? "👇 임시 미리보기 링크" : "👇 이런 명함 만들어보세요"}
             </p>
             <p className="mx-auto mt-3 max-w-sm text-pretty text-center text-sm leading-relaxed text-slate-600">
-              아래 링크는 이 명함 페이지 주소입니다. 홈이 아닌 <span className="font-semibold">/c/주소</span>만
-              전달해 주세요.
+              {tempPreview ? (
+                <>
+                  이 주소는 <span className="font-semibold">임시 미리보기</span>입니다. 가입 후{" "}
+                  <span className="font-semibold">/c/주소</span>로 저장할 수 있어요.
+                </>
+              ) : (
+                <>
+                  아래 링크는 이 명함 페이지 주소입니다. 홈이 아닌 <span className="font-semibold">/c/주소</span>만
+                  전달해 주세요.
+                </>
+              )}
             </p>
 
             <div className="mt-5 rounded-2xl border-2 border-slate-200/90 bg-white px-4 py-4 text-center shadow-inner">
@@ -446,13 +462,13 @@ export function DigitalCardPublicView({
 
             <div className="mt-6 flex flex-col gap-3">
               <Link
-                to="/create-card"
+                to={tempPreview ? "/signup" : "/create-card"}
                 className={cn(
                   linkButtonClassName({ variant: "primary", size: "lg" }),
                   "w-full min-h-[52px] justify-center shadow-md",
                 )}
               >
-                내 명함 만들기
+                {tempPreview ? "이 명함 저장하기" : "내 명함 만들기"}
               </Link>
               <div className="flex flex-col gap-2 sm:flex-row">
                 <Button
@@ -489,12 +505,14 @@ export function DigitalCardPublicView({
               </p>
             ) : null}
 
-            <p className="mt-5 text-center text-sm text-slate-600">
-              친구·동료 대신 만들어 주기 →{" "}
-              <Link to="/create-for-others" className="font-semibold text-brand-800 underline-offset-2 hover:underline">
-                명함 대신 만들어주기
-              </Link>
-            </p>
+            {!tempPreview ? (
+              <p className="mt-5 text-center text-sm text-slate-600">
+                친구·동료 대신 만들어 주기 →{" "}
+                <Link to="/create-for-others" className="font-semibold text-brand-800 underline-offset-2 hover:underline">
+                  명함 대신 만들어주기
+                </Link>
+              </p>
+            ) : null}
             <p className="mt-2 text-center text-xs leading-relaxed text-slate-500">
               {BRAND_DISPLAY_NAME}은 명함 제작 도구가 아니라,{" "}
               <span className="font-medium text-slate-700">공유로 퍼지는 연결 구조</span>예요.

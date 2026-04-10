@@ -19,6 +19,7 @@ import { PricingPage } from "@/pages/PricingPage";
 import { PromotionGuidePage } from "@/pages/PromotionGuidePage";
 import { PromotionPartnerPage } from "@/pages/PromotionPartnerPage";
 import { PublicCardPage } from "@/pages/PublicCardPage";
+import { TempCardPreviewPage } from "@/pages/TempCardPreviewPage";
 import { RequestCreatePage } from "@/pages/RequestCreatePage";
 import { RequestListPage } from "@/pages/RequestListPage";
 import { SignupPage } from "@/pages/SignupPage";
@@ -34,6 +35,7 @@ function AppRoutes() {
       <InstantCardClaimEffect />
       <Routes>
         <Route path="/c/:slug" element={<PublicCardPage />} />
+        <Route path="/preview/:tempId" element={<TempCardPreviewPage />} />
         <Route element={<AppLayout />}>
           <Route index element={<LandingPage />} />
           <Route path="pricing" element={<PricingPage />} />

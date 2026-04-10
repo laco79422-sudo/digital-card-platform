@@ -97,7 +97,7 @@ export function LoginPage() {
   }
 
   if (user) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to={hasPendingCardDraft() ? "/cards/new" : "/dashboard"} replace />;
   }
 
   return (

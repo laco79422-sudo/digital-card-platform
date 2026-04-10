@@ -1,3 +1,5 @@
+import { PostSaveGrowthPanel } from "@/components/card/PostSaveGrowthPanel";
+import { GuestSavePrompt } from "@/components/card/SavePrompt";
 import { CardForm } from "@/components/card-editor/CardForm";
 import { CardEditorGrowthLadder } from "@/components/card-editor/CardEditorGrowthLadder";
 import { CardEditorSaveCompletionPanel } from "@/components/card-editor/CardEditorSaveCompletionPanel";
@@ -7,7 +9,7 @@ import { linkButtonClassName } from "@/components/ui/buttonStyles";
 import { Card, CardContent, CardHeader } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
-import { buildCardShareUrl, editorOriginFallback } from "@/lib/cardShareUrl";
+import { buildCardShareUrl, buildTempPreviewUrl, editorOriginFallback } from "@/lib/cardShareUrl";
 import { parseCardEditorDraft, zodIssuesToFieldErrors } from "@/lib/cardEditorSchema";
 import { shareCardLinkNativeOrder } from "@/lib/kakaoWebShare";
 import { layout } from "@/lib/ui-classes";
@@ -28,9 +30,15 @@ import {
   getSampleLinkRows,
   parseWantsSample,
 } from "@/lib/cardEditorSampleData";
-import { clearEditorLiveCardId, getEditorLiveCardId, setEditorLiveCardId } from "@/lib/editorLiveCardStorage";
+import { clearEditorLiveCardId } from "@/lib/editorLiveCardStorage";
+import {
+  clearGuestTempId,
+  getOrCreateGuestTempId,
+  resetGuestTempId,
+  setGuestTempSessionId,
+} from "@/lib/guestTempSession";
 import { INSTANT_GUEST_USER_ID } from "@/lib/instantCardCreate";
-import { clearInstantCardId, setInstantCardId } from "@/lib/instantCardStorage";
+import { clearInstantCardId } from "@/lib/instantCardStorage";
 import {
   clearLandingEmail,
   consumePendingCardDraft,
@@ -38,6 +46,7 @@ import {
   peekPendingCardDraft,
   savePendingCardDraft,
 } from "@/lib/pendingCardStorage";
+import { removeTempCard, saveTempCard } from "@/lib/tempCardStorage";
 import { buildViralShareText } from "@/lib/viralShareText";
 import { ArrowRight, Check, Copy, Loader2, Share2, Sparkles } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -54,7 +63,7 @@ function scrollToId(id: string) {
   document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-function EditorCtaBand({
+function EditorFlowHint({
   phase,
   onTrySample,
   showTrySample,
@@ -64,56 +73,43 @@ function EditorCtaBand({
   showTrySample: boolean;
 }) {
   const goStudio = () => scrollToId("studio-fields");
-  const goSave = () => scrollToId("final-save");
 
-  const gradientBtn =
-    "inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-xl px-5 text-base font-bold text-white shadow-lg sm:w-auto sm:min-w-[10rem] bg-gradient-to-r from-brand-500 to-brand-700 hover:from-brand-400 hover:to-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-400/50";
+  const softBtn =
+    "inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-800 shadow-sm hover:bg-slate-50 sm:w-auto";
 
   if (phase === "hero") {
     return (
       <div className="mt-8 flex w-full max-w-lg flex-col gap-3 sm:mx-auto sm:max-w-xl sm:flex-row sm:justify-center">
-        <button type="button" className={gradientBtn} onClick={goStudio}>
-          지금 내 명함 만들기
-          <ArrowRight className="h-5 w-5 shrink-0" aria-hidden />
+        <button type="button" className={softBtn} onClick={goStudio}>
+          입력란으로 이동
+          <ArrowRight className="h-4 w-4 shrink-0" aria-hidden />
         </button>
-        <Button
-          type="button"
-          variant="secondary"
-          className="min-h-[52px] w-full gap-2 sm:w-auto sm:min-w-[10rem]"
-          onClick={() => {
-            onTrySample();
-            scrollToId("card-preview-hero");
-          }}
-        >
-          <Sparkles className="h-4 w-4 shrink-0" aria-hidden />
-          3초 체험하기
-        </Button>
+        {showTrySample ? (
+          <Button
+            type="button"
+            variant="secondary"
+            className="min-h-11 w-full gap-2 sm:w-auto sm:min-w-[10rem]"
+            onClick={() => {
+              onTrySample();
+              scrollToId("card-preview-hero");
+            }}
+          >
+            <Sparkles className="h-4 w-4 shrink-0" aria-hidden />
+            샘플로 채우기
+          </Button>
+        ) : null}
       </div>
     );
   }
 
   return (
-    <div className="rounded-2xl border border-brand-200/90 bg-gradient-to-br from-brand-50/95 to-white px-4 py-6 shadow-sm sm:px-8 sm:py-8">
-      <p className="text-center text-base font-bold text-brand-950">
-        {phase === "mid" ? "마음에 드나요? 다음 단계로" : "지금 저장하고 링크를 받아보세요"}
+    <div className="rounded-2xl border border-slate-200 bg-slate-50/90 px-4 py-5 sm:px-6 sm:py-6">
+      <p className="text-center text-sm font-semibold text-slate-800">
+        {phase === "mid" ? "아래에서 내용을 마저 입력해 주세요" : "입력을 마친 뒤 맨 아래에서 저장할 수 있어요"}
       </p>
       <p className="mt-2 text-center text-sm leading-relaxed text-slate-600">
-        입력은 그대로 두고, 가입만 하면 같은 명함이 저장됩니다.
+        가입은 저장 단계에서 이어집니다. 먼저 미리보기 링크로 결과를 확인해 보세요.
       </p>
-      <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-center">
-        <button type="button" className={gradientBtn} onClick={goSave}>
-          무료로 시작하기
-          <ArrowRight className="h-5 w-5 shrink-0" aria-hidden />
-        </button>
-        <Button type="button" variant="outline" className="min-h-[52px] w-full sm:w-auto" onClick={goStudio}>
-          지금 명함 만들기
-        </Button>
-        {showTrySample ? (
-          <Button type="button" variant="secondary" className="min-h-[52px] w-full sm:w-auto" onClick={onTrySample}>
-            3초 체험하기
-          </Button>
-        ) : null}
-      </div>
     </div>
   );
 }
@@ -204,12 +200,16 @@ export function CardEditorPage() {
   const [paidBusy, setPaidBusy] = useState(false);
 
   const newCardIdRef = useRef<string | null>(null);
+  /** 가입 후 첫 저장 시 로컬 임시 미리보기 삭제 */
+  const pendingTempIdRef = useRef<string | null>(null);
   const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const autosaveStatusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const draft = useCardEditorDraftStore((s) => s.draft);
   const [searchParams] = useSearchParams();
   const savedHighlight = searchParams.get("saved") === "1";
+
+  const [guestTempId, setGuestTempId] = useState<string | null>(null);
 
   const completionShareUrl = useMemo(() => {
     const o = editorOriginFallback(shareOrigin);
@@ -256,8 +256,7 @@ export function CardEditorPage() {
           }),
         );
         setLinkRows(getSampleLinkRows());
-        clearEditorLiveCardId();
-        clearInstantCardId();
+        setGuestTempId(resetGuestTempId());
       } else {
         const pending = peekPendingCardDraft();
         if (pending?.draft) {
@@ -272,15 +271,16 @@ export function CardEditorPage() {
                 }))
               : mapLinksToRows([]),
           );
-          if (pending.liveCardId) {
-            setEditorLiveCardId(pending.liveCardId);
-            setInstantCardId(pending.liveCardId);
+          if (pending.tempId) {
+            setGuestTempSessionId(pending.tempId);
+            setGuestTempId(pending.tempId);
+          } else {
+            setGuestTempId(getOrCreateGuestTempId());
           }
         } else {
           replaceDraft(createEmptyDraft({ email: emailHint ?? "" }));
           setLinkRows(mapLinksToRows([]));
-          clearEditorLiveCardId();
-          clearInstantCardId();
+          setGuestTempId(getOrCreateGuestTempId());
         }
       }
       setHydratedKey(routeKey);
@@ -290,6 +290,7 @@ export function CardEditorPage() {
     if (!isGuestRoute && location.pathname === "/cards/new" && isNew && user) {
       const pending = consumePendingCardDraft();
       if (pending) {
+        pendingTempIdRef.current = pending.tempId ?? null;
         replaceDraft(mergeDraftDefaults(pending.draft));
         setLinkRows(
           pending.linkRows.length > 0
@@ -375,11 +376,19 @@ export function CardEditorPage() {
       setAutosaveStatus("saving");
 
       if (isGuestRoute && !user) {
+        const tid = guestTempId;
+        if (tid && parsed.success) {
+          saveTempCard(tid, { draft: dly, linkRows: rowPayload });
+        }
         savePendingCardDraft({
           draft: dly,
           linkRows: rowPayload,
-          liveCardId: getEditorLiveCardId() ?? undefined,
+          tempId: tid ?? undefined,
         });
+        if (autosaveStatusTimerRef.current) clearTimeout(autosaveStatusTimerRef.current);
+        setAutosaveStatus("saved");
+        autosaveStatusTimerRef.current = setTimeout(() => setAutosaveStatus("idle"), 2200);
+        return;
       }
 
       if (parsed.success) {
@@ -387,15 +396,6 @@ export function CardEditorPage() {
         if (!cardId && user && !isGuestRoute && isNew) {
           if (!newCardIdRef.current) newCardIdRef.current = crypto.randomUUID();
           cardId = newCardIdRef.current;
-        }
-        if (!cardId && isGuestRoute && !user) {
-          let lid = getEditorLiveCardId();
-          if (!lid) {
-            lid = crypto.randomUUID();
-            setEditorLiveCardId(lid);
-            setInstantCardId(lid);
-          }
-          cardId = lid;
         }
         if (cardId) {
           const uid = user?.id ?? INSTANT_GUEST_USER_ID;
@@ -406,13 +406,6 @@ export function CardEditorPage() {
           });
           upsertBusinessCard(card);
           setCardLinks(cardId, draftLinkRowsToCardLinks(dly, linkRows, cardId));
-          if (isGuestRoute && !user) {
-            savePendingCardDraft({
-              draft: dly,
-              linkRows: rowPayload,
-              liveCardId: cardId,
-            });
-          }
         }
       }
 
@@ -436,20 +429,23 @@ export function CardEditorPage() {
     isNew,
     upsertBusinessCard,
     setCardLinks,
+    guestTempId,
   ]);
 
   const heroShareEligible = useMemo(() => {
     const parsed = parseCardEditorDraft(draft);
-    if (!parsed.success || !draft.is_public) return false;
-    return draft.slug.trim().length >= 2;
+    return parsed.success && draft.is_public;
   }, [draft]);
 
   const heroShareUrl = useMemo(() => {
     if (!heroShareEligible) return "";
     const origin = editorOriginFallback(shareOrigin);
     if (!origin) return "";
+    if (isGuestRoute && !user && guestTempId) {
+      return buildTempPreviewUrl(origin, guestTempId) ?? "";
+    }
     return buildCardShareUrl(origin, draft.slug.trim()) ?? "";
-  }, [heroShareEligible, shareOrigin, draft.slug]);
+  }, [heroShareEligible, shareOrigin, draft.slug, isGuestRoute, user, guestTempId]);
 
   const heroShareText = useMemo(
     () => (heroShareUrl ? buildViralShareText(heroShareUrl) : ""),
@@ -486,11 +482,15 @@ export function CardEditorPage() {
     replaceDraft(getSampleCardDraft({ email: emailFallback }));
     setLinkRows(getSampleLinkRows());
     setFieldErrors({});
-    clearEditorLiveCardId();
+    if (isGuestRoute && !user) {
+      setGuestTempId(resetGuestTempId());
+    } else {
+      clearEditorLiveCardId();
+    }
     clearInstantCardId();
     newCardIdRef.current = null;
     setSampleLadderActive(true);
-  }, [replaceDraft, user?.email]);
+  }, [replaceDraft, user?.email, isGuestRoute, user]);
 
   const applyEmptyDraft = useCallback(() => {
     replaceDraft(
@@ -501,11 +501,15 @@ export function CardEditorPage() {
     );
     setLinkRows(mapLinksToRows([]));
     setFieldErrors({});
-    clearEditorLiveCardId();
+    if (isGuestRoute && !user) {
+      setGuestTempId(resetGuestTempId());
+    } else {
+      clearEditorLiveCardId();
+    }
     clearInstantCardId();
     newCardIdRef.current = null;
     setSampleLadderActive(false);
-  }, [replaceDraft, user?.email, user?.name]);
+  }, [replaceDraft, user?.email, user?.name, isGuestRoute, user]);
 
   const handleTrySample = useCallback(() => {
     applySampleDraft();
@@ -513,6 +517,11 @@ export function CardEditorPage() {
   }, [applySampleDraft]);
 
   const runPaidActivation = useCallback(() => {
+    if (isGuestRoute && !user) {
+      setGrowthFlash("가입 후 명함을 저장하면 프로 기능을 이용할 수 있어요.");
+      scrollToId("final-save");
+      return;
+    }
     const d = useCardEditorDraftStore.getState().draft;
     const parsed = parseCardEditorDraft(d);
     if (!parsed.success) {
@@ -536,15 +545,6 @@ export function CardEditorPage() {
         if (!newCardIdRef.current) newCardIdRef.current = crypto.randomUUID();
         cardId = newCardIdRef.current;
       }
-      if (!cardId && isGuestRoute && !user) {
-        let lid = getEditorLiveCardId();
-        if (!lid) {
-          lid = crypto.randomUUID();
-          setEditorLiveCardId(lid);
-          setInstantCardId(lid);
-        }
-        cardId = lid;
-      }
       if (!cardId) cardId = crypto.randomUUID();
 
       const uid = user?.id ?? INSTANT_GUEST_USER_ID;
@@ -565,18 +565,6 @@ export function CardEditorPage() {
         status: "completed",
         created_at: new Date().toISOString(),
       });
-      if (isGuestRoute && !user) {
-        savePendingCardDraft({
-          draft: nextDraft,
-          linkRows: linkRows.map((r) => ({
-            id: r.id,
-            label: r.label,
-            type: r.type,
-            url: r.url,
-          })),
-          liveCardId: cardId,
-        });
-      }
       setGrowthFlash("결제(데모) 완료 · 명함 저장 · 공개가 켜졌습니다.");
     } finally {
       setPaidBusy(false);
@@ -595,6 +583,10 @@ export function CardEditorPage() {
   ]);
 
   const runPromotionRequest = useCallback(() => {
+    if (isGuestRoute && !user) {
+      setGrowthFlash("가입 후 명함을 저장하면 홍보 풀에 올릴 수 있어요.");
+      return;
+    }
     const d = useCardEditorDraftStore.getState().draft;
     const parsed = parseCardEditorDraft(d);
     if (!parsed.success) {
@@ -609,7 +601,7 @@ export function CardEditorPage() {
       return;
     }
 
-    let cardId = existing?.id ?? newCardIdRef.current ?? getEditorLiveCardId();
+    let cardId = existing?.id ?? newCardIdRef.current;
     if (!cardId) {
       setGrowthFlash("명함이 저장되는 중이에요. 잠시 후 다시 눌러 주세요.");
       return;
@@ -624,7 +616,7 @@ export function CardEditorPage() {
     setGrowthFlash(
       added ? "홍보 풀에 등록되었습니다. 홍보자 화면에 노출돼요." : "이미 홍보 풀에 등록된 명함이에요.",
     );
-  }, [addToPromotionPool, existing?.id]);
+  }, [addToPromotionPool, existing?.id, isGuestRoute, user]);
 
   const isLiveGenerator = isGuestRoute || isNew;
 
@@ -650,19 +642,19 @@ export function CardEditorPage() {
       if (landing && !d.email.trim()) {
         replaceDraft({ ...d, email: landing });
       }
-      const gid = getEditorLiveCardId();
+      const tid = guestTempId ?? getOrCreateGuestTempId();
+      setGuestTempId(tid);
       savePendingCardDraft({
         draft: useCardEditorDraftStore.getState().draft,
         linkRows,
-        liveCardId: gid ?? undefined,
+        tempId: tid,
       });
-      if (gid) setInstantCardId(gid);
       setSubmitting(true);
       try {
         navigate("/signup", {
           state: {
             signupNotice:
-              "명함을 저장하려면 계정이 필요합니다. 가입을 완료하면 이어서 저장할 수 있어요.",
+              "지금 만든 명함은 가입 후 내 계정에 저장할 수 있어요. 가입을 완료하면 이어서 저장됩니다.",
           },
         });
       } finally {
@@ -717,6 +709,12 @@ export function CardEditorPage() {
               },
             ];
       setCardLinks(cardId, finalLinks);
+      const clearTemp = pendingTempIdRef.current;
+      if (clearTemp) {
+        removeTempCard(clearTemp);
+        clearGuestTempId();
+        pendingTempIdRef.current = null;
+      }
       navigate(`/cards/${cardId}/edit?saved=1`, { replace: true });
     } finally {
       setSubmitting(false);
@@ -756,7 +754,9 @@ export function CardEditorPage() {
             {autosaveStatus === "saved" ? (
               <>
                 <Check className="h-3.5 w-3.5 shrink-0 text-emerald-600" aria-hidden />
-                <span className="font-medium text-emerald-800">저장 완료</span>
+                <span className="font-medium text-emerald-800">
+                  {isGuestRoute && !user ? "미리보기 동기화됨" : "저장 완료"}
+                </span>
               </>
             ) : null}
           </p>
@@ -771,11 +771,14 @@ export function CardEditorPage() {
 
       {savedHighlight && user && !isGuestRoute && id ? (
         draft.is_public && completionShareUrl ? (
-          <CardEditorSaveCompletionPanel
-            shareUrl={completionShareUrl}
-            cardTitle={`${draft.person_name || draft.brand_name || "내"} 디지털 명함`}
-            onDismiss={dismissSaveBanner}
-          />
+          <div className="space-y-6">
+            <CardEditorSaveCompletionPanel
+              shareUrl={completionShareUrl}
+              cardTitle={`${draft.person_name || draft.brand_name || "내"} 디지털 명함`}
+              onDismiss={dismissSaveBanner}
+            />
+            <PostSaveGrowthPanel />
+          </div>
         ) : (
           <div
             id="card-save-complete"
@@ -802,13 +805,14 @@ export function CardEditorPage() {
       >
         <div className="overflow-hidden rounded-[1.65rem] border border-slate-200/90 bg-slate-100 shadow-[0_28px_64px_-14px_rgba(15,23,42,0.38)] ring-1 ring-slate-900/[0.06]">
           <p className="border-b border-slate-200/90 bg-white px-3 py-2.5 text-center text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500 sm:text-xs">
-            실시간 명함 · 자동 저장 · 바로 공유
+            {isGuestRoute && !user ? "실시간 미리보기 · 임시 링크로 확인" : "실시간 명함 · 자동 저장 · 바로 공유"}
           </p>
           <div className="max-h-[min(76vh,720px)] overflow-y-auto overscroll-contain bg-slate-100">
             <CardPreview
               linkRows={linkRows}
               existingCardId={existing?.id}
               createdAt={existing?.created_at}
+              guestTempHint={Boolean(isGuestRoute && !user)}
             />
           </div>
         </div>
@@ -826,9 +830,20 @@ export function CardEditorPage() {
 
         {heroShareUrl ? (
           <div className="mx-auto mt-8 w-full max-w-lg rounded-2xl border border-brand-200/90 bg-gradient-to-b from-brand-50/55 to-white p-4 shadow-sm sm:p-5">
-            <p className="text-center text-base font-bold text-slate-900">👉 당신의 명함 링크</p>
+            <p className="text-center text-base font-bold text-slate-900">
+              {isGuestRoute && !user ? "명함 미리보기 완료" : "👉 당신의 명함 링크"}
+            </p>
             <p className="mx-auto mt-2 max-w-sm text-center text-xs leading-relaxed text-slate-600 sm:text-sm">
-              아래는 서비스 홈이 아니라 <span className="font-semibold text-slate-800">당신만의 /c/주소</span>예요.
+              {isGuestRoute && !user ? (
+                <>
+                  이 링크는 <span className="font-semibold text-slate-800">임시 미리보기</span>입니다. 먼저 열어 보고
+                  복사·카카오톡으로 보낼 수 있어요.
+                </>
+              ) : (
+                <>
+                  아래는 서비스 홈이 아니라 <span className="font-semibold text-slate-800">당신만의 /c/주소</span>예요.
+                </>
+              )}
             </p>
             <div
               role="link"
@@ -862,14 +877,16 @@ export function CardEditorPage() {
                 카카오톡으로 보내기
               </Button>
             </div>
-            <Button
-              type="button"
-              variant="secondary"
-              className="mt-2 min-h-11 w-full gap-2 border-2 border-brand-200/80 bg-white hover:bg-brand-50/80"
-              onClick={() => void kakaoHeroShare()}
-            >
-              내 카카오톡으로 테스트 보내기
-            </Button>
+            {isGuestRoute && !user ? null : (
+              <Button
+                type="button"
+                variant="secondary"
+                className="mt-2 min-h-11 w-full gap-2 border-2 border-brand-200/80 bg-white hover:bg-brand-50/80"
+                onClick={() => void kakaoHeroShare()}
+              >
+                내 카카오톡으로 테스트 보내기
+              </Button>
+            )}
             <pre className="mt-3 whitespace-pre-wrap break-words rounded-lg border border-slate-100 bg-slate-50/80 p-3 text-left font-sans text-xs leading-relaxed text-slate-700">
               {heroShareText}
             </pre>
@@ -879,8 +896,23 @@ export function CardEditorPage() {
               </p>
             ) : null}
             <p className="mt-3 text-center text-xs leading-relaxed text-slate-500">
-              이 링크를 고객에게 보내면 명함 페이지가 바로 열립니다.
+              {isGuestRoute && !user
+                ? "마음에 들면 아래에서 가입 후 내 명함(/c/주소)으로 저장하세요."
+                : "이 링크를 고객에게 보내면 명함 페이지가 바로 열립니다."}
             </p>
+            {isGuestRoute && !user ? (
+              <div className="mt-4 space-y-2 border-t border-brand-100 pt-4">
+                <p className="text-center text-xs text-slate-500">👉 지금 만든 명함 링크</p>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="min-h-12 w-full gap-2 border-2 border-brand-300 font-bold text-brand-950"
+                  onClick={() => scrollToId("final-save")}
+                >
+                  이 명함 저장하기
+                </Button>
+              </div>
+            ) : null}
           </div>
         ) : (
           <div className="mx-auto mt-8 max-w-md rounded-xl border border-dashed border-slate-200 bg-slate-50/60 px-4 py-3 text-center text-sm leading-relaxed text-slate-600">
@@ -891,10 +923,10 @@ export function CardEditorPage() {
         )}
 
         {isLiveGenerator ? (
-          <EditorCtaBand phase="hero" onTrySample={handleTrySample} showTrySample />
+          <EditorFlowHint phase="hero" onTrySample={handleTrySample} showTrySample />
         ) : null}
 
-        {isLiveGenerator && sampleLadderActive ? (
+        {isLiveGenerator && sampleLadderActive && !(isGuestRoute && !user) ? (
           <CardEditorGrowthLadder
             className="mt-8 sm:mt-10"
             feedback={growthFlash}
@@ -912,7 +944,7 @@ export function CardEditorPage() {
             variant={isLiveGenerator ? "studio" : "default"}
             midSlot={
               isLiveGenerator ? (
-                <EditorCtaBand phase="mid" onTrySample={handleTrySample} showTrySample />
+                <EditorFlowHint phase="mid" onTrySample={handleTrySample} showTrySample />
               ) : null
             }
           />
@@ -1000,7 +1032,7 @@ export function CardEditorPage() {
 
         {isLiveGenerator ? (
           <>
-            <EditorCtaBand phase="bottom" onTrySample={handleTrySample} showTrySample />
+            <EditorFlowHint phase="bottom" onTrySample={handleTrySample} showTrySample />
             <div className="rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-5 sm:px-6 sm:py-6">
               <p className="text-center text-sm font-semibold text-slate-900">새로 시작하고 싶다면</p>
               <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
@@ -1023,6 +1055,10 @@ export function CardEditorPage() {
           </>
         ) : null}
 
+        {isGuestRoute && !user ? (
+          <GuestSavePrompt className="scroll-mt-8" />
+        ) : null}
+
         <div id="final-save" className="scroll-mt-24 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end sm:gap-2">
           <Link
             to={isGuestRoute ? "/" : "/cards"}
@@ -1038,7 +1074,7 @@ export function CardEditorPage() {
             취소
           </Link>
           <Button type="submit" className="w-full min-h-[52px] sm:w-auto sm:min-h-11" size="lg" loading={submitting}>
-            {isGuestRoute ? "저장하고 계정 만들기" : "저장"}
+            {isGuestRoute ? "이 명함 저장하기" : "저장"}
           </Button>
         </div>
       </form>
