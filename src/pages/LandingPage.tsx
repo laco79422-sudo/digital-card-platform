@@ -8,17 +8,37 @@ import { LANDING_FAQ, LANDING_TESTIMONIALS } from "@/data/sampleData";
 import { layout, section, type } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
 import { useAppDataStore } from "@/stores/appDataStore";
-import {
-  ArrowRight,
-  BarChart3,
-  Gift,
-  Link2,
-  MessageSquare,
-  Users,
-  Video,
-} from "lucide-react";
+import { ArrowRight, Check, Video } from "lucide-react";
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
+
+const CREATE_SAMPLE_HREF = "/create-card?sample=true";
+
+function PrimaryCtaLink({ className }: { className?: string }) {
+  return (
+    <Link
+      to={CREATE_SAMPLE_HREF}
+      className={cn(
+        "inline-flex min-h-[52px] w-full max-w-md items-center justify-center gap-2 rounded-xl px-6 text-base font-bold text-white shadow-lg",
+        "bg-gradient-to-r from-brand-500 to-brand-700 ring-2 ring-brand-400/35",
+        "hover:from-brand-400 hover:to-brand-600 hover:ring-brand-300/50",
+        "focus:outline-none focus:ring-2 focus:ring-brand-400 focus:ring-offset-2",
+        className,
+      )}
+    >
+      무료로 명함 만들어보기
+      <ArrowRight className="h-5 w-5 shrink-0" aria-hidden />
+    </Link>
+  );
+}
+
+function SectionCtaRepeat() {
+  return (
+    <div className="mt-8 flex justify-center sm:mt-10">
+      <PrimaryCtaLink className="sm:max-w-lg" />
+    </div>
+  );
+}
 
 export function LandingPage() {
   useDevMountLog("LandingPage");
@@ -32,242 +52,160 @@ export function LandingPage() {
     [featuredCreatorIds, creators],
   );
 
-  const flowItems = [
-    {
-      icon: Link2,
-      title: "나를 담은 명함",
-      body: "웹 주소·QR·테마로 첫인상을 완성하고, 어디서든 펼쳐 보이세요.",
-    },
-    {
-      icon: BarChart3,
-      title: "누가 찾아왔는지",
-      body: "방문과 클릭을 기록해, 어떤 인연이 닿고 있는지 감을 잡을 수 있어요.",
-    },
-    {
-      icon: MessageSquare,
-      title: "이야기 이어가기",
-      body: "의뢰와 문의를 한곳에 모아, 놓치지 않고 답할 수 있습니다.",
-    },
-    {
-      icon: Users,
-      title: "맞는 사람과 이어지기",
-      body: "링크 하나로 소개를 남기고, 상대가 연락할 수 있는 길을 열어 두세요.",
-    },
+  const painItems = [
+    "고객이 나를 기억하지 못합니다",
+    "설명을 계속 반복해야 합니다",
+    "연결이 이어지지 않습니다",
   ] as const;
+
+  const expertItems = ["명함 제작", "블로그 홍보", "영상 콘텐츠 제작", "상담 구조 설계"] as const;
 
   return (
     <>
       <SiteLinkPreviewSeo />
+
+      {/* 1. 강한 결과 + 메인 CTA */}
       <section className="relative overflow-hidden bg-gradient-to-b from-slate-900 via-brand-950 to-brand-950 text-white">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(96,165,250,0.2),_transparent_55%)]" />
         <div className={cn("relative", layout.page, section.yHero)}>
-          <div className="mx-auto flex max-w-4xl flex-col items-center text-center">
-            <p className={type.heroKicker}>
-              <Link2 className="h-3.5 w-3.5 shrink-0 opacity-90" aria-hidden />
-              Link + Go · 연결하고 나아가요
-            </p>
-
-            <h1 className="mt-6 max-w-3xl sm:mt-8">
-              <span className="block text-2xl font-bold leading-snug tracking-tight text-white sm:text-3xl md:text-4xl">
-                나를 소개하는 가장 쉬운 방법
-              </span>
-              <span className={cn("mt-2 block sm:mt-3", type.heroMain)}>린코 디지털 명함</span>
+          <div className="mx-auto flex max-w-3xl flex-col items-center text-center">
+            <h1 className="text-balance text-3xl font-extrabold leading-snug tracking-tight text-white sm:text-4xl md:text-[2.65rem]">
+              명함 하나로 고객이 먼저 찾아옵니다
             </h1>
-
-            <p className="mt-5 max-w-md text-sm leading-relaxed text-slate-300/95 sm:mt-6 sm:text-[15px]">
-              클릭하면 예시가 자동으로 채워집니다.
-            </p>
-            <p className="mt-1.5 max-w-md text-sm font-medium leading-relaxed text-slate-100/95 sm:text-[15px]">
-              바로 보고, 바로 수정해보세요.
+            <p className="mt-4 max-w-xl text-pretty text-base leading-relaxed text-slate-200 sm:mt-5 sm:text-lg">
+              링크 하나로 소개하고, 연결되고, 상담까지 이어집니다
             </p>
 
-            <div className="mt-7 w-full max-w-md sm:mt-8">
+            <div className="mt-8 w-full max-w-md sm:mt-10">
+              <PrimaryCtaLink className="w-full shadow-2xl ring-brand-400/40" />
+              <p className="mt-3 text-center text-sm text-slate-300">가입 없이 바로 체험 가능합니다</p>
+            </div>
+
+            <div className="mt-6 flex w-full max-w-md flex-col gap-2 sm:flex-row sm:justify-center sm:gap-3">
               <Link
-                to="/create-card?sample=true"
-                className={cn(
-                  "flex min-h-[56px] w-full items-center justify-center gap-2 rounded-xl px-6 text-base font-bold text-white shadow-2xl",
-                  "bg-gradient-to-r from-brand-500 to-brand-700 ring-2 ring-brand-400/35",
-                  "hover:from-brand-400 hover:to-brand-600 hover:ring-brand-300/50",
-                  "focus:outline-none focus:ring-2 focus:ring-white/55 focus:ring-offset-2 focus:ring-offset-brand-950",
-                )}
+                to="/structure"
+                className="inline-flex min-h-10 flex-1 items-center justify-center rounded-lg border border-white/25 bg-white/5 px-3 text-xs font-semibold text-white/95 backdrop-blur-sm hover:bg-white/10 sm:text-sm"
               >
-                샘플로 바로 시작하기
-                <ArrowRight className="h-5 w-5 shrink-0" aria-hidden />
+                구조 먼저 보기
               </Link>
-              <div className="mt-3 space-y-1 text-center text-xs leading-relaxed text-slate-300/95 sm:text-sm">
-                <p>가입 없이 먼저 만들어보세요.</p>
-                <p className="text-[11px] text-slate-400/95 sm:text-xs">또는</p>
-                <p>먼저 써보고, 저장할 때 가입하세요.</p>
-              </div>
-              <div className="mt-5">
-                <Link
-                  to="/structure"
-                  className="inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-white/35 bg-white/10 px-4 text-sm font-semibold text-white backdrop-blur-sm transition-colors hover:bg-white/15"
-                >
-                  무료로 구조 받아보기
-                </Link>
-                <p className="mt-2 text-center text-[11px] text-slate-400 sm:text-xs">
-                  업종·목표만 입력하면 헤드라인·공유 방향 초안을 받을 수 있어요.
-                </p>
-              </div>
-
               <Link
                 to="/create-for-others"
-                className={cn(
-                  "mt-5 flex min-h-[52px] w-full items-center justify-center gap-2 rounded-xl border-2 border-white/35 bg-white/10 px-5 text-[15px] font-bold text-white shadow-lg backdrop-blur-sm",
-                  "hover:border-white/50 hover:bg-white/18",
-                  "focus:outline-none focus:ring-2 focus:ring-white/45 focus:ring-offset-2 focus:ring-offset-brand-950",
-                )}
+                className="inline-flex min-h-10 flex-1 items-center justify-center rounded-lg border border-white/25 bg-white/5 px-3 text-xs font-semibold text-white/95 backdrop-blur-sm hover:bg-white/10 sm:text-sm"
               >
-                <Gift className="h-5 w-5 shrink-0 opacity-95" aria-hidden />
-                명함 대신 만들어주기
+                대신 만들어드리기
               </Link>
-              <p className="mt-2 text-center text-xs leading-relaxed text-slate-300/90">
-                이름·직업·연락처만으로 링크가 바로 생깁니다. 보낸 뒤 가입해 수정할 수 있어요.
-              </p>
             </div>
-
-            {/* 결과 먼저: CTA 바로 아래 샘플 카드 → 그다음 홍보 흐름 */}
-            <div className="mt-6 w-full max-w-lg sm:mt-7">
-              <p className="text-sm font-semibold tracking-tight text-brand-100 sm:text-base">
-                디지털 명함 샘플 미리보기
-              </p>
-              <div className="mx-auto mt-2.5 w-full max-w-lg sm:mt-3">
-                <LandingSampleCard variant="hero" />
-              </div>
-              <p className="mt-3 text-center text-xs leading-relaxed text-slate-300/90 sm:text-sm">
-                버튼을 누르면 이 예시가 자동으로 채워집니다.
-              </p>
-            </div>
-
-            <div
-              className="mt-10 w-full max-w-3xl rounded-2xl border border-white/15 bg-white/5 p-5 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.35)] backdrop-blur-sm sm:mt-12 sm:p-7"
-              aria-label="서비스 안내"
-            >
-              <p className="text-sm font-semibold text-brand-100 sm:text-base">홍보 흐름 안내</p>
-              <div className="mt-5 grid gap-4 text-left sm:grid-cols-2 sm:gap-5">
-                {flowItems.map((item) => (
-                  <div
-                    key={item.title}
-                    className="flex gap-3 rounded-xl border border-white/10 bg-white/5 p-4 sm:p-4"
-                  >
-                    <item.icon className="mt-0.5 h-6 w-6 shrink-0 text-brand-300" aria-hidden />
-                    <div>
-                      <h3 className="text-sm font-semibold text-white sm:text-sm">{item.title}</h3>
-                      <p className="mt-1.5 text-[13px] leading-relaxed text-white/85 sm:text-[15px]">{item.body}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <p
-              className={cn(
-                type.heroLead,
-                "mt-10 max-w-2xl rounded-2xl border border-brand-400/40 bg-brand-600/25 px-5 py-4 text-base font-semibold text-brand-50 shadow-lg sm:mt-12 sm:px-6 sm:py-5 sm:text-lg md:text-xl",
-              )}
-            >
-              이름을 남기는 명함에서, 고객과 연결되는 명함으로
-            </p>
           </div>
         </div>
       </section>
 
+      {/* 2. 문제 공감 + 해결 */}
       <section className={cn("border-b border-slate-200 bg-white", section.y)}>
         <div className={layout.page}>
           <div className="mx-auto max-w-2xl text-center">
-            <h2 className={type.sectionTitleCenter}>이름으로 열리는 만남의 문</h2>
-            <p className={cn("mt-3 sm:mt-4", type.sectionLead)}>
-              한 장의 명함이 곧 첫 인사가 됩니다. 소개하고, 응답하고, 다음 이야기로 이어지는 흐름을
-              Linko가 옆에서 돕습니다.
+            <h2 className={cn(type.sectionTitleCenter, "text-slate-900")}>왜 필요한가</h2>
+            <ul className="mx-auto mt-8 max-w-lg space-y-3 text-left">
+              {painItems.map((line) => (
+                <li key={line} className="flex gap-3 text-[15px] leading-relaxed text-slate-800 sm:text-base">
+                  <Check className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" aria-hidden />
+                  <span>{line}</span>
+                </li>
+              ))}
+            </ul>
+            <p className="mx-auto mt-8 max-w-xl rounded-2xl border border-brand-200/80 bg-brand-50/80 px-5 py-4 text-base font-bold text-brand-950 sm:text-lg">
+              이제는 링크 하나로 연결됩니다
             </p>
           </div>
-          <div className="mt-10 grid gap-6 sm:mt-12 sm:grid-cols-2 sm:gap-8 lg:grid-cols-4">
-            {[
-              {
-                icon: Link2,
-                title: "나를 담은 명함",
-                body: "웹 주소·QR·테마로 당신만의 첫인상을 완성하고, 어디서든 펼쳐 보이세요.",
-              },
-              {
-                icon: BarChart3,
-                title: "누가 찾아왔는지",
-                body: "방문과 클릭을 조용히 기록해, 어떤 인연이 닿고 있는지 감을 잡을 수 있어요.",
-              },
-              {
-                icon: MessageSquare,
-                title: "이야기 이어가기",
-                body: "의뢰와 문의를 같은 공간에 모아, 놓치지 않고 답할 수 있습니다.",
-              },
-              {
-                icon: Users,
-                title: "맞는 사람과 연결",
-                body: "제작자·협업자를 찾고, 제안을 주고받으며 관계를 키워 가세요.",
-              },
-            ].map((item) => (
-              <div
-                key={item.title}
-                className="rounded-2xl border border-slate-200 bg-slate-50/80 p-5 shadow-sm sm:p-6"
-              >
-                <item.icon className="h-8 w-8 text-brand-700" aria-hidden />
-                <h3 className={type.featureCardTitle}>{item.title}</h3>
-                <p className={type.featureCardBody}>{item.body}</p>
-              </div>
-            ))}
-          </div>
+          <SectionCtaRepeat />
         </div>
       </section>
 
+      {/* 3. 체험 유도 + 샘플 미리보기 */}
       <section className={cn("bg-slate-50", section.y)}>
         <div className={layout.page}>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <h2 className={type.sectionTitle}>이렇게 이어져요</h2>
-              <p className={cn("mt-2 max-w-xl", type.sectionLead)}>
-                가볍게 시작하고, 천천히 관계를 쌓을 수 있도록 단계를 나눴어요.
-              </p>
+          <div className="mx-auto max-w-2xl text-center">
+            <h2 className={cn(type.sectionTitleCenter)}>지금 바로 만들어보세요</h2>
+            <p className={cn("mx-auto mt-3 max-w-lg", type.sectionLead)}>
+              클릭하면 샘플이 자동으로 채워집니다
+            </p>
+            <div className="mt-8 flex justify-center">
+              <Link
+                to={CREATE_SAMPLE_HREF}
+                className={cn(
+                  "inline-flex min-h-[52px] w-full max-w-md items-center justify-center gap-2 rounded-xl px-6 text-base font-bold text-brand-950 shadow-md",
+                  "border-2 border-brand-600 bg-white hover:bg-brand-50",
+                )}
+              >
+                무료로 명함 만들기
+                <ArrowRight className="h-5 w-5 shrink-0" aria-hidden />
+              </Link>
+            </div>
+            <div className="mx-auto mt-10 w-full max-w-lg">
+              <p className="text-sm font-semibold text-slate-700">디지털 명함 샘플 미리보기</p>
+              <div className="mt-3">
+                <LandingSampleCard variant="hero" />
+              </div>
             </div>
           </div>
-          <ol className="mt-8 grid gap-4 sm:mt-10 sm:gap-6 md:grid-cols-3">
-            {[
-              {
-                step: "01",
-                title: "명함 만들고 채우기",
-                desc: "이름·직함·소개와 연결 버튼을 넣어 나만의 디지털 명함을 완성합니다. 가입 전에도 미리 편집할 수 있어요.",
-              },
-              {
-                step: "02",
-                title: "저장할 때 가입",
-                desc: "마음에 들면 저장하기를 눌러요. 그때 계정을 만들고, 같은 내용으로 명함이 저장됩니다.",
-              },
-              {
-                step: "03",
-                title: "링크로 연결",
-                desc: "완성된 링크와 QR로 공유하세요. 방문과 클릭은 내 공간에서 확인할 수 있습니다.",
-              },
-            ].map((s) => (
-              <li key={s.step} className="relative rounded-2xl border border-slate-200 bg-white p-5 sm:p-6">
-                <span className="text-xs font-bold text-brand-600">{s.step}</span>
-                <h3 className="mt-2 text-base font-semibold text-slate-900">{s.title}</h3>
-                <p className="mt-2 text-[15px] leading-relaxed text-slate-700 sm:text-base">{s.desc}</p>
-              </li>
-            ))}
-          </ol>
+          <SectionCtaRepeat />
         </div>
       </section>
 
-      <section className={cn("bg-white", section.y)}>
+      {/* 4. 유료 전환 (전문가) — 체험 이후 */}
+      <section className={cn("border-y border-slate-200 bg-white", section.y)}>
+        <div className={layout.page}>
+          <div className="mx-auto max-w-2xl text-center">
+            <h2 className={cn(type.sectionTitleCenter)}>혼자 만들면 오래 걸립니다</h2>
+            <p className={cn("mt-3", type.sectionLead)}>전문가와 함께하면 바로 연결됩니다</p>
+            <ul className="mx-auto mt-8 max-w-md space-y-2.5 text-left text-[15px] text-slate-800 sm:text-base">
+              {expertItems.map((line) => (
+                <li key={line} className="flex gap-3">
+                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" aria-hidden />
+                  <span>{line}</span>
+                </li>
+              ))}
+            </ul>
+            <div className="mt-8 flex justify-center">
+              <Link
+                to="/signup?intent=expert-structure"
+                className={cn(
+                  "inline-flex min-h-[52px] w-full max-w-md items-center justify-center rounded-xl bg-slate-900 px-6 text-base font-bold text-white shadow-md hover:bg-slate-800",
+                )}
+              >
+                전문가와 함께 진행하기
+              </Link>
+            </div>
+            <p className="mx-auto mt-6 max-w-lg text-sm leading-relaxed text-slate-500">
+              가입 후 상담·맞춤 실행 단계로 이어집니다. (데모에서는 가입 화면으로 연결됩니다.)
+            </p>
+          </div>
+
+          <div className="mx-auto mt-12 max-w-2xl rounded-2xl border border-slate-200 bg-slate-50/90 px-5 py-6 text-center sm:px-8 sm:py-8">
+            <p className="text-base font-semibold leading-relaxed text-slate-900 sm:text-lg">
+              구조는 잡았습니다
+              <br />
+              이제 실행만 남았습니다
+            </p>
+            <p className="mt-4 text-sm font-medium text-brand-800 sm:text-base">
+              명함 하나로 고객이 먼저 찾아옵니다
+            </p>
+          </div>
+
+          <SectionCtaRepeat />
+        </div>
+      </section>
+
+      {/* 5. 요금 미리보기 */}
+      <section className={cn("bg-slate-50", section.y)}>
         <div className={layout.page}>
           <div className="text-center">
-            <h2 className={type.sectionTitleCenter}>이용 안내 미리보기</h2>
-            <p className={cn("mt-2 sm:mt-3", type.sectionLead)}>
-              자세한 비교는 이용 안내 페이지에서 확인하세요.
-            </p>
+            <h2 className={type.sectionTitleCenter}>이용 안내</h2>
+            <p className={cn("mt-2 sm:mt-3", type.sectionLead)}>자세한 비교는 이용 안내 페이지에서 확인하세요.</p>
             <Link
               to="/pricing"
               className="mt-4 inline-flex min-h-11 items-center justify-center text-base font-medium text-brand-700 underline-offset-4 hover:underline"
             >
-              이용 안내 자세히 보기 →
+              전체 요금 보기 →
             </Link>
           </div>
           <div className="mt-8 grid gap-6 sm:mt-10 lg:grid-cols-3">
@@ -300,30 +238,33 @@ export function LandingPage() {
               cta="플러스 시작"
             />
           </div>
+          <SectionCtaRepeat />
         </div>
       </section>
 
-      <section className={cn("border-y border-slate-200 bg-slate-50", section.y)}>
+      {/* 제작자 목록 */}
+      <section className={cn("border-b border-slate-200 bg-white", section.y)}>
         <div className={layout.page}>
           <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
             <div>
               <h2 className={type.sectionTitle}>함께할 제작자 (선택)</h2>
               <p className={cn("mt-2 max-w-xl", type.sectionLead)}>
-                명함·콘텐츠 제작이 필요할 때 참고할 수 있는 파트너 목록이에요. 디지털 명함 본연과는 별도로 둘러보실 수 있습니다.
+                필요할 때 참고할 파트너 목록입니다.
               </p>
             </div>
             <Link
               to="/creators"
-              className="inline-flex min-h-11 shrink-0 items-center text-base font-medium text-slate-600 underline-offset-4 hover:text-brand-700 hover:underline sm:justify-center"
+              className="inline-flex min-h-11 shrink-0 items-center text-base font-medium text-slate-600 underline-offset-4 hover:text-brand-700 hover:underline"
             >
               제작자 둘러보기 →
             </Link>
           </div>
-          <div className="mt-8 grid gap-5 sm:mt-10 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">
+          <div className="mt-8 grid gap-5 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">
             {featured.map((c) => (
               <CreatorCard key={c.id} creator={c} />
             ))}
           </div>
+          <SectionCtaRepeat />
         </div>
       </section>
 
@@ -334,7 +275,7 @@ export function LandingPage() {
               <Video className="h-10 w-10 text-brand-300" aria-hidden />
               <h2 className="mt-4 break-keep text-2xl font-bold leading-snug md:text-3xl">당신의 재능도 연결로</h2>
               <p className="mt-3 max-w-xl text-base leading-relaxed text-white/90">
-                포트폴리오를 올리고, 의뢰에 응답해 보세요. 누군가의 다음 시작을 함께 만들 수 있습니다.
+                포트폴리오를 올리고 의뢰에 응답해 보세요.
               </p>
               <Link
                 to="/signup"
@@ -353,9 +294,7 @@ export function LandingPage() {
             <div className="rounded-2xl border border-white/15 bg-white/10 p-5 backdrop-blur-md sm:p-6">
               <p className="text-sm font-medium text-brand-100">이번 주 새 의뢰</p>
               <p className="mt-2 text-3xl font-bold tracking-tight text-white md:text-4xl">128건</p>
-              <p className="mt-4 text-sm leading-relaxed text-white/85">
-                샘플 숫자입니다. 실서비스에서는 내 공간과 연결됩니다.
-              </p>
+              <p className="mt-4 text-sm leading-relaxed text-white/85">샘플 숫자입니다.</p>
             </div>
           </div>
         </div>
@@ -376,6 +315,7 @@ export function LandingPage() {
               </blockquote>
             ))}
           </div>
+          <SectionCtaRepeat />
         </div>
       </section>
 
@@ -390,6 +330,9 @@ export function LandingPage() {
               </div>
             ))}
           </dl>
+          <div className="mt-10 flex justify-center">
+            <PrimaryCtaLink />
+          </div>
         </div>
       </section>
     </>
