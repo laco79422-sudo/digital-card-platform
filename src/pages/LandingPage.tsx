@@ -99,6 +99,17 @@ export function LandingPage() {
                 <p className="text-[11px] text-slate-400/95 sm:text-xs">또는</p>
                 <p>먼저 써보고, 저장할 때 가입하세요.</p>
               </div>
+              <div className="mt-5">
+                <Link
+                  to="/structure"
+                  className="inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-white/35 bg-white/10 px-4 text-sm font-semibold text-white backdrop-blur-sm transition-colors hover:bg-white/15"
+                >
+                  무료로 구조 받아보기
+                </Link>
+                <p className="mt-2 text-center text-[11px] text-slate-400 sm:text-xs">
+                  업종·목표만 입력하면 헤드라인·공유 방향 초안을 받을 수 있어요.
+                </p>
+              </div>
 
               <Link
                 to="/create-for-others"

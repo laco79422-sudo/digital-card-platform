@@ -22,6 +22,7 @@ import { PublicCardPage } from "@/pages/PublicCardPage";
 import { RequestCreatePage } from "@/pages/RequestCreatePage";
 import { RequestListPage } from "@/pages/RequestListPage";
 import { SignupPage } from "@/pages/SignupPage";
+import { StructureBlueprintPage } from "@/pages/StructureBlueprintPage";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 
 function AppRoutes() {
@@ -36,6 +37,7 @@ function AppRoutes() {
         <Route element={<AppLayout />}>
           <Route index element={<LandingPage />} />
           <Route path="pricing" element={<PricingPage />} />
+          <Route path="structure" element={<StructureBlueprintPage />} />
           <Route path="education" element={<EducationPage />} />
           <Route path="promotion/guide" element={<PromotionGuidePage />} />
           <Route path="promotion/partner" element={<PromotionPartnerPage />} />
