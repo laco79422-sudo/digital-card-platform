@@ -284,7 +284,7 @@ export function LandingPage() {
               audience="제작자용"
               priceLabel="₩19,000"
               description="월"
-              features={["새 의뢰 알림", "프로필 강조", "제안서 양식"]}
+              features={["새 의뢰 알림", "제안서 양식"]}
               href="/signup"
               cta="플러스 시작"
             />

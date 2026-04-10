@@ -88,7 +88,8 @@ export function PricingPage() {
 
       <h2 className="mt-14 text-lg font-semibold text-slate-900 sm:mt-20 sm:text-xl">제작자</h2>
       <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-600 sm:text-[15px]">
-        의뢰를 받아 수익을 내는 제작자는 플러스로 알림·노출을 강화할 수 있어요.
+        의뢰를 받아 수익을 내는 제작자는 플러스로{" "}
+        <span className="font-medium text-slate-700">새 의뢰 알림·제안서</span> 흐름을 빠르게 잡을 수 있어요.
       </p>
       <div className="mt-8 grid gap-6 lg:grid-cols-3">
         <PricingCard
@@ -105,7 +106,7 @@ export function PricingPage() {
           audience="제작자용"
           priceLabel="₩19,000"
           description="월"
-          features={["새 의뢰 알림", "프로필 강조", "제안서 양식"]}
+          features={["새 의뢰 알림", "제안서 양식"]}
           highlighted
           href="/signup"
           cta="플러스 시작"
