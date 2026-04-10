@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 
 export function PricingCard({
   name,
+  audience,
   priceLabel,
   description,
   features,
@@ -13,6 +14,8 @@ export function PricingCard({
   href,
 }: {
   name: string;
+  /** 플랜 상단 · 누구에게 맞는지 한 줄 */
+  audience?: string;
   priceLabel: string;
   description: string;
   features: string[];
@@ -33,6 +36,9 @@ export function PricingCard({
         </span>
       ) : null}
       <CardHeader>
+        {audience ? (
+          <p className="mb-1 text-xs font-bold uppercase tracking-wide text-brand-800">{audience}</p>
+        ) : null}
         <h3 className="text-lg font-semibold text-slate-900">{name}</h3>
         <p className="mt-2 text-3xl font-bold tracking-tight text-brand-900">{priceLabel}</p>
         <p className="mt-2 text-sm leading-relaxed text-slate-600">{description}</p>

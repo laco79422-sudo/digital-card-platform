@@ -262,28 +262,31 @@ export function LandingPage() {
           <div className="mt-8 grid gap-6 sm:mt-10 lg:grid-cols-3">
             <PricingCard
               name="스타터"
-              priceLabel="₩29,000"
-              description="월 · 소규모 팀"
-              features={["공개 명함 3개", "방문·클릭 기록", "의뢰 5건까지 동시"]}
+              audience="소규모 시작용"
+              priceLabel="₩39,000"
+              description="월"
+              features={["명함 3개", "클릭 기록 90일 보관", "동시에 관리 가능한 의뢰 5건"]}
               href="/signup"
-              cta="무료로 시작"
+              cta="스타터 선택"
             />
             <PricingCard
               name="프로"
+              audience="성장하는 브랜드"
               priceLabel="₩59,000"
-              description="월 · 성장하는 브랜드"
-              features={["명함 개수 제한 없음", "버튼 클릭 흐름 보기", "목록에서 먼저 보이기"]}
+              description="월"
+              features={["명함 5개", "방문·클릭 기록", "버튼 클릭 흐름 보기"]}
               highlighted
               href="/signup"
-              cta="프로 플랜 선택"
+              cta="프로 이용하기"
             />
             <PricingCard
               name="제작자 플러스"
+              audience="제작자용"
               priceLabel="₩19,000"
-              description="월 · 제작자"
-              features={["새 의뢰 알림", "프로필 더 잘 보이게", "제안서 양식"]}
+              description="월"
+              features={["새 의뢰 알림", "프로필 강조", "제안서 양식"]}
               href="/signup"
-              cta="제작자로 가입"
+              cta="플러스 시작"
             />
           </div>
         </div>
