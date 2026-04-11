@@ -1,4 +1,4 @@
-/** 기본 OG 이미지 — 카카오 feed 썸네일용 */
+/** \uae30\ubcf8 OG \uc774\ubbf8\uc9c0 \u2014 \uce74\uce74\uc624 feed \uc378\ub124\uc77c\uc6a9 */
 export const KAKAO_FEED_DEFAULT_IMAGE = "https://mycardlab.netlify.app/og-image.png";
 
 declare global {
@@ -17,13 +17,13 @@ export function initKakaoJsSdkFromEnv(): void {
   try {
     if (!window.Kakao.isInitialized?.()) window.Kakao.init(key);
   } catch {
-    /* 키·도메인 불일치 등 */
+    /* \ud0a4\u00b7\ub3c4\uba54\uc778 \ubd88\uc77c\uce58 \ub4f1 */
   }
 }
 
 /**
- * Kakao.Link.sendDefault — mobileWebUrl / webUrl 모두 shareUrl(개인 명함)로 고정.
- * SDK 미초기화 시 false.
+ * Kakao.Link.sendDefault \u2014 mobileWebUrl / webUrl \ubaa8\ub450 shareUrl(\uac1c\uc778 \uba85\ud568)\ub85c \uace0\uc815.
+ * SDK \ubbf8\ucd08\uae30\ud654 \uc2dc false.
  */
 export function tryKakaoLinkFeedShare(params: {
   shareUrl: string;
@@ -58,9 +58,9 @@ export function tryKakaoLinkFeedShare(params: {
 export type ShareCardFallback = "shared" | "clipboard" | "cancelled";
 
 /**
- * 1) 카카오 feed(링크 = shareUrl)
- * 2) Web Share — `url`에 개인 명함 절대 URL만 넘김 (text는 짧은 안내, OG 홈 혼선 완화)
- * 3) 클립보드에 shareUrl만
+ * 1) \uce74\uce74\uc624 feed(\ub9c1\ud06c = shareUrl)
+ * 2) Web Share \u2014 `url`\uc5d0 \uac1c\uc778 \uba85\ud568 \uc808\ub300 URL\ub9cc \ub118\uae40 (text\ub294 \uc9e7\uc740 \uc548\ub0b4, OG \ud648 \ud63c\uc120 \uc644\ud654)
+ * 3) \ud074\ub9bd\ubcf4\ub4dc\uc5d0 shareUrl\ub9cc
  */
 export async function shareCardLinkNativeOrder(opts: {
   shareUrl: string;
@@ -72,10 +72,12 @@ export async function shareCardLinkNativeOrder(opts: {
   const {
     shareUrl,
     title,
-    shortMessage = "아래 링크로 디지털 명함이 열려요.",
-    kakaoDescription = "업무용 프로필을 간편하게 공유하세요.",
+    shortMessage = "\uc544\ub798 \ub9c1\ud06c\ub85c \ub514\uc9c0\ud138 \uba85\ud568\uc774 \uc5f4\ub824\uc694.",
+    kakaoDescription: kakaoDescriptionOpt,
     kakaoImageUrl,
   } = opts;
+
+  const kakaoDescription = kakaoDescriptionOpt ?? shortMessage;
 
   if (tryKakaoLinkFeedShare({ shareUrl, title, description: kakaoDescription, imageUrl: kakaoImageUrl })) {
     return "shared";
@@ -98,7 +100,7 @@ export async function shareCardLinkNativeOrder(opts: {
     await navigator.clipboard.writeText(shareUrl);
     return "clipboard";
   } catch {
-    window.prompt("명함 링크를 복사해 주세요", shareUrl);
+    window.prompt("\uba85\ud568 \ub9c1\ud06c\ub97c \ubcf5\uc0ac\ud574 \uc8fc\uc138\uc694", shareUrl);
     return "clipboard";
   }
 }

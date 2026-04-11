@@ -5,6 +5,11 @@
 [build.environment]
   NODE_VERSION = "20"
 
+# /preview/* HTML에 Supabase 기반 OG 주입 (카카오 스크래���)
+[[edge_functions]]
+  path = "/preview/*"
+  function = "inject-preview-og"
+
 # OG 이미지가 CDN에서 image/png로 안정적으로 제공되도록 (스크래퍼 호환)
 [[headers]]
   for = "/og-image.png"

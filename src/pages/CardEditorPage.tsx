@@ -12,6 +12,8 @@ import { Select } from "@/components/ui/Select";
 import { buildCardShareUrl, buildTempPreviewUrl, editorOriginFallback } from "@/lib/cardShareUrl";
 import { parseCardEditorDraft, zodIssuesToFieldErrors } from "@/lib/cardEditorSchema";
 import { shareCardLinkNativeOrder } from "@/lib/kakaoWebShare";
+import { previewKakaoFeedFromDraft } from "@/lib/previewShareMeta";
+import { syncTempPreviewRemote } from "@/lib/syncTempPreviewRemote";
 import { layout } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/authStore";
@@ -379,6 +381,7 @@ export function CardEditorPage() {
         const tid = guestTempId;
         if (tid && parsed.success) {
           saveTempCard(tid, { draft: dly, linkRows: rowPayload });
+          void syncTempPreviewRemote({ tempId: tid, draft: dly, linkRows: rowPayload });
         }
         savePendingCardDraft({
           draft: dly,
@@ -465,17 +468,30 @@ export function CardEditorPage() {
 
   const kakaoHeroShare = useCallback(async () => {
     if (!heroShareUrl) return;
-    const title = `${draft.person_name || draft.brand_name || "내"} 디지털 명함`;
+    const tempFeed =
+      isGuestRoute && !user && guestTempId ? previewKakaoFeedFromDraft(draft) : null;
+    const title =
+      tempFeed?.title ?? `${draft.person_name || draft.brand_name || "내"} 디지털 명함`;
     const r = await shareCardLinkNativeOrder({
       shareUrl: heroShareUrl,
       title,
-      shortMessage: "내 디지털 명함 페이지 링크예요.",
+      shortMessage: tempFeed?.description ?? "내 디지털 명함 페이지 링크예요.",
+      kakaoDescription: tempFeed?.description,
+      kakaoImageUrl: tempFeed?.imageUrl,
     });
     if (r === "clipboard") {
       setHeroKakaoHint(true);
       window.setTimeout(() => setHeroKakaoHint(false), 2800);
     }
-  }, [draft.brand_name, draft.person_name, heroShareUrl]);
+  }, [
+    draft,
+    draft.brand_name,
+    draft.person_name,
+    guestTempId,
+    heroShareUrl,
+    isGuestRoute,
+    user,
+  ]);
 
   const applySampleDraft = useCallback(() => {
     const emailFallback = getLandingEmail()?.trim() || user?.email?.trim() || "hello@linko.app";
