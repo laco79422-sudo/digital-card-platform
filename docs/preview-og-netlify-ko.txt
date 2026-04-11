@@ -1,0 +1,30 @@
+반영 내용 요약 (한글 정본)
+========================
+
+1) inject-preview-og.ts (Netlify Edge)
+- Netlify 대시보드에 설정한 환경 변수는 Deno.env만으로는 비어 있는 경우가 많습니다.
+  Netlify.env를 우선하는 readEnv()를 사용하도록 수정했습니다.
+  (비어 있으면 Supabase를 불러오지 못해 기본 사이트 OG만 보일 수 있었습니다.)
+- Supabase REST 요청에 Accept: application/json 헤더를 넣었습니다.
+- 원인 파악용 헤더 X-Linko-Preview-Og를 넣었습니다.
+  e.g.: injected, skipped-no-env, skipped-supabase-<status>, skipped-no-draft, skipped-replace-failed
+- 미리보기용 기본 이미지는 요청한 사이트의 origin 기준 …/og-image.png로 통일했습니다.
+
+2) kakaoWebShare.ts
+- 개발 모드(import.meta.env.DEV)일 때 콘솔에 shareUrl, title, description, imageUrl을 출력해 카카오 SDK에 들어가는 값을 확인할 수 있게 했습니다.
+
+3) netlify.toml
+- 런타임에는 SUPABASE_URL, SUPABASE_ANON_KEY를 Netlify UI에서 Functions 또는 All scopes 포함해 두어야 한다는 설명을 주석으로 적어 두었습니다.
+- [build.environment] 에만 두면 빌드용이며, Edge 런타임에는 자동으로 들어가지 않습니다.
+
+배포 후 확인 방법
+----------------
+- Netlify -> Site settings -> Environment variables 에서 위 두 변수가 Edge/Functions 스코프에 포함되는지 확인하세요.
+- 브라우저가 아니라 curl -I "https://(사이트)/preview/(실제-tempId)" 으로 확인할 수 있습니다.
+- 응답 헤더에 X-Linko-Preview-Og: injected가 나오면 Edge에서 HTML의 OG가 주입된 것입니다.
+- 페이지 소스 보기로 og:title, og:description, og:image가 샘플 명함 기준인지 확인하세요.
+
+채팅 창에서 글씨가 깨져 보이면
+----------------------
+- 이 파일은 UTF-8로 저장되어 있습니다. Cursor 에디터에서 열면 한글이 정상적으로 보여야 합니다.
+- Cursor 채팅 UI에서만 인코딩이 깨져 보일 수 있습니다. 중요한 안내는 이 파일을 기준으로 보세요.

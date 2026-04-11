@@ -5,12 +5,14 @@
 [build.environment]
   NODE_VERSION = "20"
 
-# /preview/* HTML에 Supabase 기반 OG 주입 (카카오 스크래���)
+# /preview/*: Edge inject-preview-og rewrites <!--LINKO_SEO_*--> in index.html from Supabase.
+# Set SUPABASE_URL + SUPABASE_ANON_KEY in Netlify UI with scope that includes Edge/Functions
+# ([build.environment] is build-only; Edge runtime needs dashboard env with Functions scope).
 [[edge_functions]]
   path = "/preview/*"
   function = "inject-preview-og"
 
-# OG 이미지가 CDN에서 image/png로 안정적으로 제공되도록 (스크래퍼 호환)
+# OG image: stable Content-Type for scrapers
 [[headers]]
   for = "/og-image.png"
   [headers.values]

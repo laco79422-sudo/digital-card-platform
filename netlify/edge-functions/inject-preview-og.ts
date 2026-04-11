@@ -1,5 +1,19 @@
 import type { Context } from "https://edge.netlify.com";
 
+type NetlifyEnvApi = { env: { get(key: string): string | undefined } };
+
+/** Netlify-hosted Edge exposes dashboard env via Netlify.env; Deno.env alone is often empty in production. */
+function readEnv(key: string): string | undefined {
+  try {
+    const N = (globalThis as unknown as { Netlify?: NetlifyEnvApi }).Netlify;
+    const v = N?.env?.get(key);
+    if (v != null && String(v).length > 0) return v;
+  } catch {
+    /* ignore */
+  }
+  return Deno.env.get(key);
+}
+
 type DraftLike = {
   person_name?: string;
   brand_name?: string;
@@ -8,8 +22,6 @@ type DraftLike = {
   brand_image_url?: string | null;
   gallery_urls_raw?: string;
 };
-
-const DEFAULT_OG_IMAGE = "https://mycardlab.netlify.app/og-image.png";
 
 function esc(s: string): string {
   return s
@@ -41,8 +53,10 @@ function ogFromDraft(d: DraftLike, fallbackImage: string): { title: string; desc
 }
 
 function buildSeoBlock(origin: string, tempId: string, d: DraftLike): string {
-  const canonical = `${origin.replace(/\/$/, "")}/preview/${encodeURIComponent(tempId)}`;
-  const { title, desc, image, siteName } = ogFromDraft(d, DEFAULT_OG_IMAGE);
+  const base = origin.replace(/\/$/, "");
+  const canonical = `${base}/preview/${encodeURIComponent(tempId)}`;
+  const fallbackImage = `${base}/og-image.png`;
+  const { title, desc, image, siteName } = ogFromDraft(d, fallbackImage);
   const e = esc;
   return `<!--LINKO_SEO_START-->
     <title>${e(title)}</title>
@@ -76,28 +90,42 @@ export default async (request: Request, context: Context) => {
   }
 
   const tempId = decodeURIComponent(m[1]);
-  const supabaseUrl = Deno.env.get("SUPABASE_URL");
-  const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY");
+  const supabaseUrl = readEnv("SUPABASE_URL");
+  const supabaseKey = readEnv("SUPABASE_ANON_KEY");
   if (!supabaseUrl || !supabaseKey) {
-    return context.next();
+    const res = await context.next();
+    const headers = new Headers(res.headers);
+    headers.set("X-Linko-Preview-Og", "skipped-no-env");
+    headers.set(
+      "X-Linko-Preview-Og-Hint",
+      "Set SUPABASE_URL and SUPABASE_ANON_KEY in Netlify with scope including Edge Functions",
+    );
+    return new Response(await res.text(), { status: res.status, headers });
   }
 
   const rest = `${supabaseUrl.replace(/\/$/, "")}/rest/v1/linko_temp_previews?id=eq.${encodeURIComponent(tempId)}&select=payload`;
   const r = await fetch(rest, {
     headers: {
+      Accept: "application/json",
       apikey: supabaseKey,
       Authorization: `Bearer ${supabaseKey}`,
     },
   });
 
   if (!r.ok) {
-    return context.next();
+    const res = await context.next();
+    const headers = new Headers(res.headers);
+    headers.set("X-Linko-Preview-Og", `skipped-supabase-${r.status}`);
+    return new Response(await res.text(), { status: res.status, headers });
   }
 
   const rows = (await r.json()) as { payload?: { draft?: DraftLike } }[];
   const draft = rows?.[0]?.payload?.draft;
   if (!draft || typeof draft !== "object") {
-    return context.next();
+    const res = await context.next();
+    const headers = new Headers(res.headers);
+    headers.set("X-Linko-Preview-Og", "skipped-no-draft");
+    return new Response(await res.text(), { status: res.status, headers });
   }
 
   const res = await context.next();
@@ -107,6 +135,17 @@ export default async (request: Request, context: Context) => {
 
   const headers = new Headers(res.headers);
   headers.set("content-type", "text/html; charset=utf-8");
+  if (replaced === html) {
+    headers.set("X-Linko-Preview-Og", "skipped-replace-failed");
+    headers.set(
+      "X-Linko-Preview-Og-Hint",
+      "dist/index.html must contain <!--LINKO_SEO_START--> ... <!--LINKO_SEO_END-->",
+    );
+    return new Response(html, { status: res.status, headers });
+  }
+
+  headers.set("X-Linko-Preview-Og", "injected");
+  headers.set("Cache-Control", "public, max-age=0, s-maxage=300");
   return new Response(replaced, { status: res.status, headers });
 };
 

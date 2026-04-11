@@ -78,8 +78,18 @@ export async function shareCardLinkNativeOrder(opts: {
   } = opts;
 
   const kakaoDescription = kakaoDescriptionOpt ?? shortMessage;
+  const imageUrlResolved = kakaoImageUrl ?? KAKAO_FEED_DEFAULT_IMAGE;
 
-  if (tryKakaoLinkFeedShare({ shareUrl, title, description: kakaoDescription, imageUrl: kakaoImageUrl })) {
+  if (import.meta.env.DEV) {
+    console.info("[Linko Kakao share payload]", {
+      shareUrl,
+      title,
+      description: kakaoDescription,
+      imageUrl: imageUrlResolved,
+    });
+  }
+
+  if (tryKakaoLinkFeedShare({ shareUrl, title, description: kakaoDescription, imageUrl: imageUrlResolved })) {
     return "shared";
   }
 
