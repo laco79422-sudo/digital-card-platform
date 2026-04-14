@@ -1,6 +1,8 @@
 import { DigitalCardPublicView } from "@/components/digital-card/DigitalCardPublicView";
 import { DigitalCardSeo } from "@/components/digital-card/DigitalCardSeo";
+import { linkButtonClassName } from "@/components/ui/buttonStyles";
 import { buildCardShareUrl } from "@/lib/cardShareUrl";
+import { useAuthStore } from "@/stores/authStore";
 import { getLinksForCard, useAppDataStore } from "@/stores/appDataStore";
 import type { CardLink } from "@/types/domain";
 import QRCode from "qrcode";
@@ -9,6 +11,7 @@ import { Link, useParams } from "react-router-dom";
 
 export function PublicCardPage() {
   const { slug } = useParams();
+  const user = useAuthStore((s) => s.user);
   const businessCards = useAppDataStore((s) => s.businessCards);
   const cardLinks = useAppDataStore((s) => s.cardLinks);
   const addCardView = useAppDataStore((s) => s.addCardView);
@@ -22,6 +25,7 @@ export function PublicCardPage() {
     () => (card ? getLinksForCard(card.id, cardLinks) : []),
     [card, cardLinks],
   );
+  const canEdit = Boolean(user && card && user.id === card.user_id);
 
   const [qr, setQr] = useState<string | null>(null);
 
@@ -80,6 +84,18 @@ export function PublicCardPage() {
   return (
     <>
       <DigitalCardSeo card={card} />
+      {canEdit ? (
+        <div className="sticky top-2 z-40 mx-auto mt-2 w-full max-w-3xl px-3 sm:px-4">
+          <div className="ml-auto w-full rounded-xl border border-brand-200/90 bg-white/95 p-2 shadow-sm backdrop-blur sm:w-auto">
+            <Link
+              to={`/edit/${card.id}`}
+              className={linkButtonClassName({ size: "sm", className: "w-full justify-center sm:w-auto" })}
+            >
+              명함 수정하기
+            </Link>
+          </div>
+        </div>
+      ) : null}
       <DigitalCardPublicView card={card} links={links} onLinkClick={handleLink} qrDataUrl={qr} />
     </>
   );

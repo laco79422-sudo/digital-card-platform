@@ -25,6 +25,12 @@ import { RequestListPage } from "@/pages/RequestListPage";
 import { SignupPage } from "@/pages/SignupPage";
 import { StructureBlueprintPage } from "@/pages/StructureBlueprintPage";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { useParams } from "react-router-dom";
+
+function EditAliasRedirect() {
+  const { id = "" } = useParams();
+  return <Navigate to={`/cards/${encodeURIComponent(id)}/edit`} replace />;
+}
 
 function AppRoutes() {
   useSupabaseAuthSync();
@@ -81,6 +87,14 @@ function AppRoutes() {
           element={
             <ProtectedRoute roles={["client", "company_admin", "admin"]}>
               <CardEditorPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="edit/:id"
+          element={
+            <ProtectedRoute roles={["client", "company_admin", "admin"]}>
+              <EditAliasRedirect />
             </ProtectedRoute>
           }
         />
