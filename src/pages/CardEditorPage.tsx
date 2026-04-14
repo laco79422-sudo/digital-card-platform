@@ -503,6 +503,14 @@ export function CardEditorPage() {
     setHeroKakaoPreparing(true);
     setHeroKakaoError(null);
     const origin = editorOriginFallback(shareOrigin);
+    const state: "guest" | "member" = isGuestRoute && !user ? "guest" : "member";
+    const shareUrl =
+      state === "guest" && guestTempId
+        ? buildTempPreviewUrl(origin, guestTempId) ?? heroShareUrl
+        : heroShareUrl;
+    console.log("공유 링크:", shareUrl);
+    console.log("state:", state);
+    console.log("tempId:", guestTempId ?? "");
     try {
       if (isGuestRoute && !user && guestTempId) {
         const ok = await prepareGuestPreviewForKakao();
@@ -520,7 +528,7 @@ export function CardEditorPage() {
       const title =
         tempFeed?.title ?? `${draft.person_name || draft.brand_name || "내"} 디지털 명함`;
       const r = await shareCardLinkNativeOrder({
-        shareUrl: heroShareUrl,
+        shareUrl,
         title,
         shortMessage: tempFeed?.description ?? "내 디지털 명함 페이지 링크예요.",
         kakaoDescription: tempFeed?.description,

@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Textarea } from "@/components/ui/Textarea";
-import { buildCardShareUrl, editorOriginFallback } from "@/lib/cardShareUrl";
+import { buildCardShareUrl, buildTempPreviewUrl, editorOriginFallback } from "@/lib/cardShareUrl";
 import { parseCardEditorDraft } from "@/lib/cardEditorSchema";
 import { shareCardLinkNativeOrder } from "@/lib/kakaoWebShare";
 import { previewKakaoFeedFromDraft } from "@/lib/previewShareMeta";
@@ -100,6 +100,15 @@ export function CardForm({
     if (slugKakaoPreparing) return;
     setSlugKakaoPreparing(true);
     setSlugKakaoError(null);
+    const origin = editorOriginFallback(linkOrigin);
+    const state: "guest" | "member" = guestTempPreviewUrl?.trim() && guestTempId ? "guest" : "member";
+    const shareUrl =
+      state === "guest" && guestTempId
+        ? buildTempPreviewUrl(origin, guestTempId) ?? previewCardUrl
+        : previewCardUrl;
+    console.log("공유 링크:", shareUrl);
+    console.log("state:", state);
+    console.log("tempId:", guestTempId ?? "");
     let r: Awaited<ReturnType<typeof shareCardLinkNativeOrder>>;
     try {
       if (guestTempPreviewUrl?.trim() && guestTempId) {
@@ -110,10 +119,9 @@ export function CardForm({
           );
           return;
         }
-        const origin = editorOriginFallback(linkOrigin);
         const feed = previewKakaoFeedFromDraft(draft, { tempId: guestTempId, origin });
         r = await shareCardLinkNativeOrder({
-          shareUrl: previewCardUrl,
+          shareUrl,
           title: feed.title,
           shortMessage: feed.description,
           kakaoDescription: feed.description,
@@ -122,7 +130,7 @@ export function CardForm({
       } else {
         const title = `${draft.brand_name || draft.person_name || "내"} 디지털 명함`;
         r = await shareCardLinkNativeOrder({
-          shareUrl: previewCardUrl,
+          shareUrl,
           title,
           shortMessage: "내 디지털 명함 페이지 링크예요.",
         });
