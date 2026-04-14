@@ -66,6 +66,7 @@ export function CardPreview({ linkRows, existingCardId, createdAt, guestTempHint
         compact
         hideSticky
         qrDataUrl={null}
+        previewVariant={draft.card_type}
       />
     </>
   );

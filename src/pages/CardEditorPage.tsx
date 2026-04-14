@@ -387,7 +387,7 @@ export function CardEditorPage() {
             tempId: tid,
             draft: dly,
             linkRows: rowPayload,
-            shareUrl: buildTempPreviewUrl(window.location.origin, tid) ?? undefined,
+            shareUrl: buildTempPreviewUrl(window.location.origin, tid, dly.card_type) ?? undefined,
             state: "guest",
           });
         }
@@ -453,7 +453,7 @@ export function CardEditorPage() {
     const origin = editorOriginFallback(shareOrigin);
     if (!origin) return "";
     if (isGuestRoute && !user && guestTempId) {
-      return buildTempPreviewUrl(origin, guestTempId) ?? "";
+      return buildTempPreviewUrl(origin, guestTempId, draft.card_type) ?? "";
     }
     return buildCardShareUrl(origin, draft.slug.trim()) ?? "";
   }, [heroShareEligible, shareOrigin, draft.slug, isGuestRoute, user, guestTempId]);
@@ -492,7 +492,7 @@ export function CardEditorPage() {
       tempId: guestTempId,
       draft,
       linkRows: rowPayload,
-      shareUrl: buildTempPreviewUrl(window.location.origin, guestTempId) ?? undefined,
+      shareUrl: buildTempPreviewUrl(window.location.origin, guestTempId, draft.card_type) ?? undefined,
       state: "guest",
     });
   }, [draft, guestTempId, isGuestRoute, linkRows, user]);
@@ -506,7 +506,7 @@ export function CardEditorPage() {
     const state: "guest" | "member" = isGuestRoute && !user ? "guest" : "member";
     const shareUrl =
       state === "guest" && guestTempId
-        ? buildTempPreviewUrl(origin, guestTempId) ?? heroShareUrl
+        ? buildTempPreviewUrl(origin, guestTempId, draft.card_type) ?? heroShareUrl
         : heroShareUrl;
     console.log("공유 링크:", shareUrl);
     console.log("state:", state);

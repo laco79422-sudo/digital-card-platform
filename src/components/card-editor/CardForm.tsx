@@ -6,6 +6,7 @@ import { Select } from "@/components/ui/Select";
 import { Textarea } from "@/components/ui/Textarea";
 import { buildCardShareUrl, buildTempPreviewUrl, editorOriginFallback } from "@/lib/cardShareUrl";
 import { parseCardEditorDraft } from "@/lib/cardEditorSchema";
+import { PREVIEW_CARD_TYPES, PREVIEW_CARD_TYPE_LABEL } from "@/lib/previewCardType";
 import { shareCardLinkNativeOrder } from "@/lib/kakaoWebShare";
 import { previewKakaoFeedFromDraft } from "@/lib/previewShareMeta";
 import { cn } from "@/lib/utils";
@@ -104,7 +105,7 @@ export function CardForm({
     const state: "guest" | "member" = guestTempPreviewUrl?.trim() && guestTempId ? "guest" : "member";
     const shareUrl =
       state === "guest" && guestTempId
-        ? buildTempPreviewUrl(origin, guestTempId) ?? previewCardUrl
+        ? buildTempPreviewUrl(origin, guestTempId, draft.card_type) ?? previewCardUrl
         : previewCardUrl;
     console.log("공유 링크:", shareUrl);
     console.log("state:", state);
@@ -204,6 +205,23 @@ export function CardForm({
         </div>
         <div className="sm:col-span-2">
           <label className={labelCls}>
+            유형 선택
+            {isStudio ? <span className={hintCls}> · 공유 카드/미리보기 구조가 바뀝니다</span> : null}
+          </label>
+          <Select
+            className="mt-1"
+            value={draft.card_type}
+            onChange={(e) => setDraft({ card_type: e.target.value as typeof draft.card_type })}
+          >
+            {PREVIEW_CARD_TYPES.map((t) => (
+              <option key={t} value={t}>
+                {PREVIEW_CARD_TYPE_LABEL[t]}
+              </option>
+            ))}
+          </Select>
+        </div>
+        <div className="sm:col-span-2">
+          <label className={labelCls}>
             소개
             {isStudio ? <span className={hintCls}> · 입력할 때마다 완성되는 문장</span> : null}
           </label>
@@ -214,6 +232,18 @@ export function CardForm({
             onChange={(e) => setDraft({ intro: e.target.value })}
           />
           {errors.intro ? <p className="mt-1 text-xs text-red-600">{errors.intro}</p> : null}
+        </div>
+        <div className="sm:col-span-2">
+          <label className={labelCls}>
+            주소 / 위치 문구
+            {isStudio ? <span className={hintCls}> · location 유형 공유에 사용</span> : null}
+          </label>
+          <Input
+            className="mt-1"
+            value={draft.address}
+            onChange={(e) => setDraft({ address: e.target.value })}
+            placeholder="예: 서울 강남구 테헤란로 123"
+          />
         </div>
       </div>
 

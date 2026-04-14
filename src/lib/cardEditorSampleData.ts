@@ -21,6 +21,8 @@ export function getSampleCardDraft(overrides: Partial<CardEditorDraft> = {}): Ca
     person_name: "송민호",
     job_title: "린코 디지털 명함 대표 · 연결을 만드는 사람",
     intro: "홍보가 되는 명함,\n연결이 이어지는 구조까지 함께 설계합니다",
+    address: "서울 강남구 테헤란로 123",
+    card_type: "person",
     slug: "linko-digital-card",
     website_url: "https://linko.app",
     email: "hello@linko.app",

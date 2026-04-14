@@ -3,13 +3,14 @@ import { DigitalCardSeo } from "@/components/digital-card/DigitalCardSeo";
 import { INSTANT_GUEST_USER_ID } from "@/lib/instantCardCreate";
 import { loadTempCard } from "@/lib/tempCardStorage";
 import { syncTempPreviewRemote } from "@/lib/syncTempPreviewRemote";
+import { normalizePreviewCardType } from "@/lib/previewCardType";
 import type { CardEditorDraft } from "@/stores/cardEditorDraftStore";
 import { draftToBusinessCard, mergeDraftDefaults } from "@/stores/cardEditorDraftStore";
 import { useAppDataStore } from "@/stores/appDataStore";
 import type { CardLink } from "@/types/domain";
 import QRCode from "qrcode";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 
 function rowsToCardLinks(
   cardId: string,
@@ -41,6 +42,7 @@ function rowsToCardLinks(
 
 export function TempCardPreviewPage() {
   const { tempId = "" } = useParams();
+  const [searchParams] = useSearchParams();
   const addCardView = useAppDataStore((s) => s.addCardView);
   const addCardClick = useAppDataStore((s) => s.addCardClick);
 
@@ -50,7 +52,9 @@ export function TempCardPreviewPage() {
     if (!payload?.draft || !tempId) {
       return { card: null as ReturnType<typeof draftToBusinessCard> | null, links: [] as CardLink[] };
     }
-    const d = mergeDraftDefaults(payload.draft);
+    const requestedTypeRaw = searchParams.get("type");
+    const requestedType = requestedTypeRaw ? normalizePreviewCardType(requestedTypeRaw) : undefined;
+    const d = mergeDraftDefaults({ ...payload.draft, card_type: requestedType ?? payload.draft.card_type });
     const c = draftToBusinessCard(d, {
       id: tempId,
       user_id: INSTANT_GUEST_USER_ID,
@@ -58,13 +62,19 @@ export function TempCardPreviewPage() {
     });
     const ls = rowsToCardLinks(tempId, d, payload.linkRows ?? []);
     return { card: c, links: ls };
-  }, [payload, tempId]);
+  }, [payload, searchParams, tempId]);
 
   const [qr, setQr] = useState<string | null>(null);
   const absoluteUrl = useMemo(() => {
     if (typeof window === "undefined" || !tempId) return "";
-    return `${window.location.origin}/preview/${encodeURIComponent(tempId)}`;
-  }, [tempId]);
+    const requestedTypeRaw = searchParams.get("type");
+    const type = requestedTypeRaw
+      ? normalizePreviewCardType(requestedTypeRaw)
+      : payload?.draft?.card_type
+        ? normalizePreviewCardType(payload.draft.card_type)
+        : "person";
+    return `${window.location.origin}/preview/${encodeURIComponent(tempId)}?type=${encodeURIComponent(type)}`;
+  }, [payload?.draft?.card_type, searchParams, tempId]);
 
   useEffect(() => {
     if (!absoluteUrl) return;
@@ -146,6 +156,11 @@ export function TempCardPreviewPage() {
         qrDataUrl={qr}
         shareUrlOverride={absoluteUrl}
         tempPreview
+        previewVariant={
+          searchParams.get("type")
+            ? normalizePreviewCardType(searchParams.get("type"))
+            : normalizePreviewCardType(payload?.draft?.card_type)
+        }
         onBeforeKakaoShare={onBeforeKakaoShare}
       />
     </>

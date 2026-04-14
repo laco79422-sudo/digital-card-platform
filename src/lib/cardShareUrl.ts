@@ -1,9 +1,11 @@
 /** 게스트 체험용 임시 미리보기 절대 URL (/preview/{tempId}). */
-export function buildTempPreviewUrl(origin: string, tempId: string): string | null {
+export function buildTempPreviewUrl(origin: string, tempId: string, type?: string | null): string | null {
   const id = tempId.trim();
   if (id.length < 8) return null;
   const base = origin.replace(/\/$/, "");
-  return `${base}/preview/${encodeURIComponent(id)}`;
+  const u = new URL(`${base}/preview/${encodeURIComponent(id)}`);
+  if (type?.trim()) u.searchParams.set("type", type.trim());
+  return u.toString();
 }
 
 /** 공유·복사에 쓰는 개인 명함 절대 URL (/c/{slug}). slug 없으면 null (홈만 보내지 않도록). */

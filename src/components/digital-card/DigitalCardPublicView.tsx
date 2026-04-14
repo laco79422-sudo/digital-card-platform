@@ -15,6 +15,7 @@ import {
 } from "@/lib/digitalCardViewModel";
 import { resolveCardShareUrl } from "@/lib/cardShareUrl";
 import { shareCardLinkNativeOrder } from "@/lib/kakaoWebShare";
+import { buildPreviewMeta, type PreviewCardType } from "@/lib/previewCardType";
 import { tempPreviewKakaoFeedFromCard } from "@/lib/previewShareMeta";
 import { layout } from "@/lib/ui-classes";
 import { buildViralShareText } from "@/lib/viralShareText";
@@ -91,6 +92,8 @@ type Props = {
   shareUrlOverride?: string | null;
   /** 임시 링크 화면 — 공유 블록 문구·CTA 조정 */
   tempPreview?: boolean;
+  /** /preview 유형별 카드 레이아웃 분기 */
+  previewVariant?: PreviewCardType;
   /** 카카오 공유 직전 — Supabase에 임시 명함 동기화(크롤러 OG와 일치) */
   onBeforeKakaoShare?: () => void | Promise<void>;
 };
@@ -104,6 +107,7 @@ export function DigitalCardPublicView({
   hideSticky,
   shareUrlOverride,
   tempPreview,
+  previewVariant,
   onBeforeKakaoShare,
 }: Props) {
   const grad = themeClass[card.theme] ?? themeClass.navy;
@@ -115,6 +119,14 @@ export function DigitalCardPublicView({
   const services = serviceBlocks(card);
   const hero = resolveHeroCtas(card, links);
   const sticky = resolveStickyCtas(card, links);
+  const previewMeta = buildPreviewMeta({
+    type: previewVariant ?? "person",
+    person_name: card.person_name,
+    brand_name: card.brand_name,
+    tagline: card.tagline ?? "",
+    intro: card.intro,
+    trust_metric: card.trust_metric ?? "",
+  });
 
   const extraLinks = links.filter((l) => {
     const u = l.url.trim();
@@ -233,13 +245,27 @@ export function DigitalCardPublicView({
             </div>
             {hasPitchHeadline ? (
               <>
-                <p className="mt-5 max-w-md text-xs font-semibold uppercase tracking-[0.2em] text-white/75 sm:text-sm">
-                  {card.brand_name}
-                </p>
-                <h1 className="mt-3 max-w-xl break-keep text-2xl font-extrabold leading-[1.2] tracking-tight text-white sm:mt-4 sm:text-3xl md:text-4xl">
-                  {card.tagline?.trim()}
-                </h1>
-                <p className="mt-3 text-base font-semibold text-white/95 sm:text-lg">{card.person_name}</p>
+                {tempPreview ? (
+                  <>
+                    <h1 className="mt-5 max-w-xl break-keep text-3xl font-extrabold leading-[1.15] tracking-tight text-white sm:text-4xl">
+                      {previewMeta.name}
+                    </h1>
+                    <p className="mt-2 text-base font-semibold text-white/95 sm:text-lg">{previewMeta.brandName}</p>
+                    <p className="mt-3 max-w-md text-sm leading-relaxed text-white/88 sm:text-[15px]">
+                      {previewMeta.headline}
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="mt-5 max-w-md text-xs font-semibold uppercase tracking-[0.2em] text-white/75 sm:text-sm">
+                      {card.brand_name}
+                    </p>
+                    <h1 className="mt-3 max-w-xl break-keep text-2xl font-extrabold leading-[1.2] tracking-tight text-white sm:mt-4 sm:text-3xl md:text-4xl">
+                      {card.tagline?.trim()}
+                    </h1>
+                    <p className="mt-3 text-base font-semibold text-white/95 sm:text-lg">{card.person_name}</p>
+                  </>
+                )}
                 <Badge
                   tone="default"
                   className="mt-2 max-w-md border border-white/30 bg-white/10 px-3 py-1 text-[11px] leading-snug text-white/95 sm:text-xs"
@@ -254,10 +280,24 @@ export function DigitalCardPublicView({
               </>
             ) : (
               <>
-                <h1 className="mt-5 break-keep text-2xl font-bold leading-tight tracking-tight text-white sm:text-3xl md:text-4xl">
-                  {card.brand_name}
-                </h1>
-                <p className="mt-2 text-base font-medium text-white/90 sm:text-lg">{card.person_name}</p>
+                {tempPreview ? (
+                  <>
+                    <h1 className="mt-5 break-keep text-3xl font-extrabold leading-tight tracking-tight text-white sm:text-4xl">
+                      {previewMeta.name}
+                    </h1>
+                    <p className="mt-2 text-base font-semibold text-white/95 sm:text-lg">{previewMeta.brandName}</p>
+                    <p className="mt-3 max-w-md text-sm leading-relaxed text-white/90 sm:text-base">
+                      {previewMeta.headline}
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <h1 className="mt-5 break-keep text-2xl font-bold leading-tight tracking-tight text-white sm:text-3xl md:text-4xl">
+                      {card.brand_name}
+                    </h1>
+                    <p className="mt-2 text-base font-medium text-white/90 sm:text-lg">{card.person_name}</p>
+                  </>
+                )}
                 <Badge
                   tone="default"
                   className="mt-2 border border-white/30 bg-white/10 text-[11px] text-white/95 sm:text-xs"

@@ -1,5 +1,6 @@
 import type { BusinessCard, DigitalCardServiceLine, TrustTestimonial } from "@/types/domain";
 import { clampZoom } from "@/lib/brandHeroLayout";
+import type { PreviewCardType } from "@/lib/previewCardType";
 import { create } from "zustand";
 
 function clampPan(n: number): number {
@@ -12,6 +13,8 @@ export type CardEditorDraft = {
   person_name: string;
   job_title: string;
   intro: string;
+  address: string;
+  card_type: PreviewCardType;
   slug: string;
   phone: string;
   email: string;
@@ -110,6 +113,8 @@ export function createEmptyDraft(overrides: Partial<CardEditorDraft> = {}): Card
     person_name: "",
     job_title: "",
     intro: "",
+    address: "",
+    card_type: "person",
     slug: "",
     phone: "",
     email: "",
@@ -144,6 +149,8 @@ export function draftFromBusinessCard(card: BusinessCard): CardEditorDraft {
     person_name: card.person_name,
     job_title: card.job_title,
     intro: card.intro,
+    address: "",
+    card_type: "person",
     slug: card.slug,
     phone: card.phone ?? "",
     email: card.email ?? "",

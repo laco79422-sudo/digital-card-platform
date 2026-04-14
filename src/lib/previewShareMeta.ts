@@ -1,4 +1,4 @@
-import { BRAND_DISPLAY_NAME } from "@/lib/brand";
+import { buildPreviewMeta } from "@/lib/previewCardType";
 import { SITE_OG_IMAGE_URL } from "@/lib/siteLinkPreview";
 import type { BusinessCard } from "@/types/domain";
 import type { CardEditorDraft } from "@/stores/cardEditorDraftStore";
@@ -32,25 +32,26 @@ export function previewOgImageUrlFromDraft(
   return fallbackHttps;
 }
 
-function clamp(s: string, max: number): string {
-  return s.trim().slice(0, max);
-}
-
 export function previewOgTitleFromDraft(draft: Pick<CardEditorDraft, "person_name" | "brand_name">): string {
-  const person = clamp(draft.person_name || "", 80);
-  if (person) return person;
-  const brand = clamp(draft.brand_name || BRAND_DISPLAY_NAME, 80);
-  return brand || "이름";
+  return buildPreviewMeta({
+    type: (draft as Partial<CardEditorDraft>).card_type ?? "person",
+    person_name: draft.person_name,
+    brand_name: draft.brand_name,
+  }).title;
 }
 
 export function previewOgDescriptionFromDraft(
-  draft: Pick<CardEditorDraft, "tagline" | "intro" | "brand_name">,
+  draft: Pick<CardEditorDraft, "tagline" | "intro" | "brand_name" | "address" | "person_name" | "trust_metric">,
 ): string {
-  const brand = clamp(draft.brand_name || BRAND_DISPLAY_NAME, 80);
-  const headline = clamp(draft.tagline || draft.intro || "", 300);
-  if (brand && headline) return `${brand} · ${headline}`.slice(0, 300);
-  if (brand) return brand.slice(0, 300);
-  return headline.slice(0, 300);
+  return buildPreviewMeta({
+    type: (draft as Partial<CardEditorDraft>).card_type ?? "person",
+    person_name: draft.person_name,
+    brand_name: draft.brand_name,
+    tagline: draft.tagline,
+    intro: draft.intro,
+    address: (draft as Partial<CardEditorDraft>).address,
+    trust_metric: (draft as Partial<CardEditorDraft>).trust_metric,
+  }).description;
 }
 
 export function previewKakaoFeedFromDraft(
@@ -78,6 +79,8 @@ export function tempPreviewKakaoFeedFromCard(
     brand_name: card.brand_name,
     tagline: card.tagline ?? "",
     intro: card.intro,
+    address: "",
+    trust_metric: card.trust_metric ?? "",
     brand_image_url: card.brand_image_url ?? null,
     gallery_urls_raw: card.gallery_urls?.join("\n") ?? "",
   };
@@ -97,6 +100,8 @@ export function previewKakaoFeedFromBusinessCard(
     brand_name: card.brand_name,
     tagline: card.tagline ?? "",
     intro: card.intro,
+    address: "",
+    trust_metric: card.trust_metric ?? "",
     brand_image_url: card.brand_image_url ?? null,
     gallery_urls_raw: card.gallery_urls?.join("\n") ?? "",
   };

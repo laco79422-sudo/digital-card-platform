@@ -9,6 +9,8 @@ export const cardEditorSubmitSchema = z.object({
   person_name: z.string().min(1, "이름을 입력하세요"),
   job_title: z.string().min(1, "직함을 입력하세요"),
   intro: z.string().min(1, "소개를 입력하세요"),
+  address: z.string().optional(),
+  card_type: z.enum(["person", "store", "location", "result", "event", "trust"]).default("person"),
   slug: z.string().min(2, "공개 주소는 2자 이상이어야 합니다"),
   phone: z.string().optional(),
   email: z.string().email("올바른 이메일 형식이 아닙니다").or(z.literal("")),

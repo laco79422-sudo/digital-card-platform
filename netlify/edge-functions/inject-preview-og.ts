@@ -15,10 +15,13 @@ function readEnv(key: string): string | undefined {
 }
 
 type DraftLike = {
+  card_type?: "person" | "store" | "location" | "result" | "event" | "trust";
   person_name?: string;
   brand_name?: string;
   tagline?: string;
   intro?: string;
+  address?: string;
+  trust_metric?: string;
   brand_image_url?: string | null;
   gallery_urls_raw?: string;
 };
@@ -40,23 +43,46 @@ function firstGalleryHttps(raw: string | undefined): string {
   return "";
 }
 
-function ogFromDraft(d: DraftLike, fallbackImage: string): { title: string; desc: string; image: string; siteName: string } {
-  const person = (d.person_name || "").trim().slice(0, 80);
+function ogFromDraft(
+  d: DraftLike,
+  fallbackImage: string,
+  queryType?: string | null,
+): { title: string; desc: string; image: string; siteName: string } {
+  const type = queryType || d.card_type || "person";
+  const person = (d.person_name || "").trim().slice(0, 80) || "이름";
   const brand = (d.brand_name || "Linko").trim().slice(0, 80);
-  const title = (person || brand || "이름").slice(0, 80);
-  const headline = (d.tagline || d.intro || "").trim().slice(0, 300);
-  const desc = (brand && headline ? `${brand} · ${headline}` : brand || headline).slice(0, 300) || "명함 미리보기";
+  const headline = ((d.tagline || d.intro || "").trim() || "명함 미리보기").slice(0, 300);
+  const address = (d.address || "").trim().slice(0, 300);
+  const trust = (d.trust_metric || "").trim().slice(0, 300);
+  const title =
+    type === "store"
+      ? brand || person
+      : type === "location"
+        ? brand || person
+        : type === "result"
+          ? headline.slice(0, 80)
+          : type === "event"
+            ? `${brand || person} 이벤트`.slice(0, 80)
+            : person;
+  const desc =
+    type === "location"
+      ? (address || headline || brand).slice(0, 300)
+      : type === "trust"
+        ? `${brand} · ${trust || headline}`.slice(0, 300)
+        : `${brand} · ${headline}`.slice(0, 300);
   let image = d.brand_image_url?.trim() || "";
   if (!image.startsWith("https://")) image = firstGalleryHttps(d.gallery_urls_raw);
   if (!image.startsWith("https://")) image = fallbackImage;
   return { title, desc, image, siteName: brand };
 }
 
-function buildSeoBlock(origin: string, tempId: string, d: DraftLike): string {
+function buildSeoBlock(origin: string, tempId: string, d: DraftLike, queryType?: string | null): string {
   const base = origin.replace(/\/$/, "");
-  const canonical = `${base}/preview/${encodeURIComponent(tempId)}`;
+  const t = (queryType || d.card_type || "").trim();
+  const canonicalBase = `${base}/preview/${encodeURIComponent(tempId)}`;
+  const canonical = t ? `${canonicalBase}?type=${encodeURIComponent(t)}` : canonicalBase;
   const fallbackImage = `${base}/og-image.png`;
-  const { title, desc, siteName } = ogFromDraft(d, fallbackImage);
+  const { title, desc, siteName } = ogFromDraft(d, fallbackImage, t);
   /** 카카오·크롤러가 동일 URL로 썸네일을 조회하도록 preview 전용 엔드포인트(302 → 실제 이미지) */
   const image = `${base}/.netlify/functions/preview-og-image?tempId=${encodeURIComponent(tempId)}`;
   const e = esc;
@@ -132,7 +158,7 @@ export default async (request: Request, context: Context) => {
 
   const res = await context.next();
   const html = await res.text();
-  const block = buildSeoBlock(url.origin, tempId, draft);
+  const block = buildSeoBlock(url.origin, tempId, draft, url.searchParams.get("type"));
   const replaced = html.replace(/<!--LINKO_SEO_START-->[\s\S]*?<!--LINKO_SEO_END-->/, block);
 
   const headers = new Headers(res.headers);
