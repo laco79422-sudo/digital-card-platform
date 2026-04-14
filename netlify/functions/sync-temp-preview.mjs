@@ -21,6 +21,7 @@ function json(statusCode, payload) {
 }
 
 export const handler = async (event) => {
+  const isDev = process.env.NODE_ENV !== "production";
   const requestId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   console.log("[sync-temp-preview] start", {
     requestId,
@@ -52,6 +53,10 @@ export const handler = async (event) => {
       requestId,
       keys: Object.keys(body || {}),
     });
+    console.log("[sync-temp-preview] parsed payload:", {
+      requestId,
+      payload: body,
+    });
   } catch (error) {
     console.error("[sync-temp-preview] invalid json", {
       requestId,
@@ -68,6 +73,7 @@ export const handler = async (event) => {
     hasSupabaseUrl: !!supabaseUrl,
     hasAnonKey: !!supabaseAnonKey,
     hasServiceRoleKey: !!supabaseServiceRoleKey,
+    isDev,
   });
   if (!supabaseUrl || !supabaseServiceRoleKey) {
     console.error("[sync-temp-preview] env missing", { requestId });
@@ -75,18 +81,22 @@ export const handler = async (event) => {
       ok: false,
       stage: "env-check",
       error: "Server misconfigured",
-      details: {
-        hasSupabaseUrl: !!supabaseUrl,
-        hasAnonKey: !!supabaseAnonKey,
-        hasServiceRoleKey: !!supabaseServiceRoleKey,
-      },
+      details: isDev
+        ? {
+            hasSupabaseUrl: !!supabaseUrl,
+            hasAnonKey: !!supabaseAnonKey,
+            hasServiceRoleKey: !!supabaseServiceRoleKey,
+          }
+        : undefined,
       requestId,
     });
   }
   console.log("[sync-temp-preview] env ok", { requestId });
 
   const tempId = typeof body.tempId === "string" ? body.tempId.trim() : "";
+  const previewId = typeof body.previewId === "string" ? body.previewId.trim() : tempId;
   console.log("[sync-temp-preview] tempId:", { requestId, tempId });
+  console.log("[sync-temp-preview] previewId:", { requestId, previewId });
   if (!tempId || !UUID_RE.test(tempId)) {
     console.error("[sync-temp-preview] invalid tempId", { requestId, tempId });
     return json(400, { ok: false, stage: "validate-tempId", error: "Invalid tempId", tempId, requestId });
@@ -115,6 +125,8 @@ export const handler = async (event) => {
     console.log("[sync-temp-preview] before supabase insert", {
       requestId,
       table: "linko_temp_previews",
+      tempId,
+      previewId,
       linkRowsCount: payload.linkRows.length,
     });
     const result = await supabase.from("linko_temp_previews").upsert(
@@ -148,9 +160,13 @@ export const handler = async (event) => {
 
     console.log("[sync-temp-preview] insert ok", { requestId, tempId });
     console.log("[sync-temp-preview] return 200", { requestId });
-    return json(200, { ok: true, stage: "done", tempId, requestId });
+    return json(200, { ok: true, stage: "done", tempId, previewId, requestId });
   } catch (error) {
-    console.error("[sync-temp-preview] fatal error:", { requestId, error: String(error) });
+    console.error("[sync-temp-preview] fatal error:", {
+      requestId,
+      error: String(error),
+      stack: error instanceof Error ? error.stack : null,
+    });
     return json(500, {
       ok: false,
       stage: "catch",

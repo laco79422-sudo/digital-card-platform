@@ -383,7 +383,13 @@ export function CardEditorPage() {
         const tid = guestTempId;
         if (tid && parsed.success) {
           saveTempCard(tid, { draft: dly, linkRows: rowPayload });
-          void syncTempPreviewRemote({ tempId: tid, draft: dly, linkRows: rowPayload });
+          void syncTempPreviewRemote({
+            tempId: tid,
+            draft: dly,
+            linkRows: rowPayload,
+            shareUrl: buildTempPreviewUrl(window.location.origin, tid) ?? undefined,
+            state: "guest",
+          });
         }
         savePendingCardDraft({
           draft: dly,
@@ -482,7 +488,13 @@ export function CardEditorPage() {
       linkRows: rowPayload,
       tempId: guestTempId,
     });
-    return syncTempPreviewRemote({ tempId: guestTempId, draft, linkRows: rowPayload });
+    return syncTempPreviewRemote({
+      tempId: guestTempId,
+      draft,
+      linkRows: rowPayload,
+      shareUrl: buildTempPreviewUrl(window.location.origin, guestTempId) ?? undefined,
+      state: "guest",
+    });
   }, [draft, guestTempId, isGuestRoute, linkRows, user]);
 
   const kakaoHeroShare = useCallback(async () => {

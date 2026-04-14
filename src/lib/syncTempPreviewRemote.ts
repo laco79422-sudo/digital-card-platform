@@ -11,13 +11,28 @@ export async function syncTempPreviewRemote(payload: {
   tempId: string;
   draft: CardEditorDraft;
   linkRows: PendingCardLinkRow[];
+  shareUrl?: string;
+  state?: "guest" | "preview" | "editor";
 }): Promise<boolean> {
   if (typeof window === "undefined") return false;
-  const { tempId, draft, linkRows } = payload;
+  const { tempId, draft, linkRows, shareUrl, state } = payload;
   if (!tempId) return false;
 
-  const body = JSON.stringify({ tempId, draft, linkRows });
+  const requestPayload = {
+    tempId,
+    previewId: tempId,
+    draft,
+    linkRows,
+  };
+  const body = JSON.stringify(requestPayload);
   if (body.length > MAX_BODY) return false;
+
+  console.info("[syncTempPreviewRemote] request", {
+    tempId,
+    shareUrl: shareUrl ?? `${window.location.origin}/preview/${encodeURIComponent(tempId)}`,
+    state: state ?? "editor",
+    payload: requestPayload,
+  });
 
   try {
     const res = await fetch(`${window.location.origin}/.netlify/functions/sync-temp-preview`, {
@@ -25,8 +40,14 @@ export async function syncTempPreviewRemote(payload: {
       headers: { "Content-Type": "application/json" },
       body,
     });
-    if (!res.ok && import.meta.env.DEV) {
-      console.warn("[syncTempPreviewRemote]", res.status, await res.text().catch(() => ""));
+    const responseText = await res.text().catch(() => "");
+    if (!res.ok) {
+      console.warn("[syncTempPreviewRemote] failed", {
+        status: res.status,
+        body: responseText,
+      });
+    } else if (import.meta.env.DEV) {
+      console.info("[syncTempPreviewRemote] ok", { status: res.status, body: responseText });
     }
     return res.ok;
   } catch {

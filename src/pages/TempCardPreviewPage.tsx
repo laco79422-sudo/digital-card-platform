@@ -81,9 +81,11 @@ export function TempCardPreviewPage() {
         tempId,
         draft: p.draft,
         linkRows: p.linkRows ?? [],
+        shareUrl: absoluteUrl || undefined,
+        state: "preview",
       });
     }
-  }, [tempId]);
+  }, [absoluteUrl, tempId]);
 
   useEffect(() => {
     if (!card) return;
