@@ -32,18 +32,25 @@ export function previewOgImageUrlFromDraft(
   return fallbackHttps;
 }
 
+function clamp(s: string, max: number): string {
+  return s.trim().slice(0, max);
+}
+
 export function previewOgTitleFromDraft(draft: Pick<CardEditorDraft, "person_name" | "brand_name">): string {
-  const person = (draft.person_name || "이름").trim();
-  const brand = (draft.brand_name || BRAND_DISPLAY_NAME).trim();
-  return `${person} | ${brand}`.slice(0, 80);
+  const person = clamp(draft.person_name || "", 80);
+  if (person) return person;
+  const brand = clamp(draft.brand_name || BRAND_DISPLAY_NAME, 80);
+  return brand || "이름";
 }
 
 export function previewOgDescriptionFromDraft(
-  draft: Pick<CardEditorDraft, "tagline" | "intro">,
+  draft: Pick<CardEditorDraft, "tagline" | "intro" | "brand_name">,
 ): string {
-  const t = draft.tagline?.trim();
-  if (t) return t.slice(0, 300);
-  return (draft.intro || "").trim().slice(0, 300);
+  const brand = clamp(draft.brand_name || BRAND_DISPLAY_NAME, 80);
+  const headline = clamp(draft.tagline || draft.intro || "", 300);
+  if (brand && headline) return `${brand} · ${headline}`.slice(0, 300);
+  if (brand) return brand.slice(0, 300);
+  return headline.slice(0, 300);
 }
 
 export function previewKakaoFeedFromDraft(
@@ -76,8 +83,7 @@ export function tempPreviewKakaoFeedFromCard(
   };
   return {
     title: previewOgTitleFromDraft(draftLike),
-    description:
-      (card.tagline?.trim() || card.intro?.trim() || "").slice(0, 300) || FALLBACK_DESC,
+    description: previewOgDescriptionFromDraft(draftLike) || FALLBACK_DESC,
     imageUrl: previewOgImageEndpointUrl(origin, card.id),
   };
 }
@@ -96,8 +102,7 @@ export function previewKakaoFeedFromBusinessCard(
   };
   return {
     title: previewOgTitleFromDraft(draftLike),
-    description:
-      (card.tagline?.trim() || card.intro?.trim() || "").slice(0, 300) || FALLBACK_DESC,
+    description: previewOgDescriptionFromDraft(draftLike) || FALLBACK_DESC,
     imageUrl: previewOgImageUrlFromDraft(draftLike, opts?.fallbackImage ?? SITE_OG_IMAGE_URL),
   };
 }

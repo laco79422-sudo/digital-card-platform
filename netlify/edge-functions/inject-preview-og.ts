@@ -41,11 +41,11 @@ function firstGalleryHttps(raw: string | undefined): string {
 }
 
 function ogFromDraft(d: DraftLike, fallbackImage: string): { title: string; desc: string; image: string; siteName: string } {
-  const person = (d.person_name || "이름").trim();
-  const brand = (d.brand_name || "Linko").trim();
-  const title = `${person} | ${brand}`.slice(0, 80);
-  const tag = d.tagline?.trim();
-  const desc = (tag || d.intro || "").trim().slice(0, 300) || "명함 미리보기";
+  const person = (d.person_name || "").trim().slice(0, 80);
+  const brand = (d.brand_name || "Linko").trim().slice(0, 80);
+  const title = (person || brand || "이름").slice(0, 80);
+  const headline = (d.tagline || d.intro || "").trim().slice(0, 300);
+  const desc = (brand && headline ? `${brand} · ${headline}` : brand || headline).slice(0, 300) || "명함 미리보기";
   let image = d.brand_image_url?.trim() || "";
   if (!image.startsWith("https://")) image = firstGalleryHttps(d.gallery_urls_raw);
   if (!image.startsWith("https://")) image = fallbackImage;
