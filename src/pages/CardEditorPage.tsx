@@ -199,6 +199,10 @@ export function CardEditorPage() {
   const [heroKakaoHint, setHeroKakaoHint] = useState(false);
   const [heroKakaoPreparing, setHeroKakaoPreparing] = useState(false);
   const [heroKakaoError, setHeroKakaoError] = useState<string | null>(null);
+  const [journeyStep, setJourneyStep] = useState<"start" | "promotion" | "education" | "instructor">("start");
+  const [expansionTrack, setExpansionTrack] = useState<"blog" | "video" | "automation" | null>(null);
+  const [userSkillLevel, setUserSkillLevel] = useState<"low" | "high">("low");
+  const [educationMode, setEducationMode] = useState<"online" | "offline">("online");
   const [sampleLadderActive, setSampleLadderActive] = useState(() => wantsSample);
   const [growthFlash, setGrowthFlash] = useState<string | null>(null);
   const [paidBusy, setPaidBusy] = useState(false);
@@ -695,6 +699,26 @@ export function CardEditorPage() {
     );
   }, [addToPromotionPool, existing?.id, isGuestRoute, user]);
 
+  const startExpansionJourney = useCallback(
+    (track: "blog" | "video" | "automation") => {
+      setExpansionTrack(track);
+      setJourneyStep("promotion");
+      setGrowthFlash(
+        track === "blog"
+          ? "블로그 확장 흐름을 열었어요. 필요한 수준에 맞춰 교육 또는 전문가 위임을 선택해 보세요."
+          : track === "video"
+            ? "영상 확장 흐름을 열었어요. 혼자 진행이 어렵다면 교육/전문가 위임으로 이어집니다."
+            : "자동화 시스템 흐름을 열었어요. 학습 또는 위임으로 빠르게 구축할 수 있어요.",
+      );
+    },
+    [],
+  );
+
+  const moveToEducationStep = useCallback(() => {
+    setJourneyStep("education");
+    navigate(`/education?track=${encodeURIComponent(expansionTrack || "both")}&mode=${educationMode}`);
+  }, [educationMode, expansionTrack, navigate]);
+
   const isLiveGenerator = isGuestRoute || isNew;
 
   const dismissSaveBanner = useCallback(() => {
@@ -1016,6 +1040,120 @@ export function CardEditorPage() {
               : "필수 정보를 모두 올바르게 채우면 위에서 같은 링크로 공유할 수 있어요."}
           </div>
         )}
+
+        {heroShareUrl ? (
+          <div className="mx-auto mt-6 w-full max-w-2xl rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+            <p className="text-center text-lg font-bold text-slate-900">고객을 더 늘리고 싶으신가요?</p>
+            <p className="mt-2 text-center text-sm text-slate-600">
+              명함을 시작점으로 홍보를 확장하고, 필요하면 교육·강사 단계까지 한 흐름으로 이어집니다.
+            </p>
+            <div className="mt-4 grid gap-2 sm:grid-cols-3">
+              <Button type="button" variant="secondary" onClick={() => startExpansionJourney("blog")}>
+                블로그로 확장하기
+              </Button>
+              <Button type="button" variant="secondary" onClick={() => startExpansionJourney("video")}>
+                영상으로 확장하기
+              </Button>
+              <Button type="button" variant="secondary" onClick={() => startExpansionJourney("automation")}>
+                자동화 시스템 만들기
+              </Button>
+            </div>
+
+            {journeyStep !== "start" ? (
+              <div className="mt-5 rounded-xl border border-brand-100 bg-brand-50/50 p-4">
+                <p className="text-sm font-semibold text-brand-900">
+                  현재 단계:{" "}
+                  {journeyStep === "promotion"
+                    ? "홍보 확장"
+                    : journeyStep === "education"
+                      ? "교육 해결"
+                      : "강사 순환"}
+                </p>
+                <p className="mt-1 text-sm text-slate-700">
+                  선택된 흐름:{" "}
+                  {expansionTrack === "blog"
+                    ? "블로그/콘텐츠"
+                    : expansionTrack === "video"
+                      ? "영상/숏폼"
+                      : expansionTrack === "automation"
+                        ? "자동화 시스템"
+                        : "미선택"}
+                </p>
+
+                {journeyStep === "promotion" ? (
+                  <>
+                    <div className="mt-3">
+                      <label className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+                        현재 숙련도
+                      </label>
+                      <Select
+                        className="mt-1"
+                        value={userSkillLevel}
+                        onChange={(e) => setUserSkillLevel(e.target.value as "low" | "high")}
+                      >
+                        <option value="low">low (기초 단계)</option>
+                        <option value="high">high (직접 실행 가능)</option>
+                      </Select>
+                    </div>
+                    {userSkillLevel === "low" ? (
+                      <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                        <Button type="button" variant="secondary" onClick={moveToEducationStep}>
+                          교육으로 배우기
+                        </Button>
+                        <Button type="button" variant="outline" onClick={() => navigate("/promotion/partner")}>
+                          전문가에게 맡기기
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="mt-3">
+                        <Button type="button" variant="secondary" onClick={runPromotionRequest}>
+                          지금 홍보 제작 시작하기
+                        </Button>
+                      </div>
+                    )}
+                  </>
+                ) : null}
+
+                <div className="mt-4 rounded-lg border border-slate-200 bg-white p-3">
+                  <p className="text-sm font-semibold text-slate-900">교육 시스템 (해결 단계)</p>
+                  <p className="mt-1 text-sm text-slate-700">
+                    AI 블로그 작성 · AI 영상 제작 · 자동화 프로그램 제작
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <Button type="button" variant={educationMode === "online" ? "secondary" : "outline"} size="sm" onClick={() => setEducationMode("online")}>
+                      온라인 강의
+                    </Button>
+                    <Button type="button" variant={educationMode === "offline" ? "secondary" : "outline"} size="sm" onClick={() => setEducationMode("offline")}>
+                      오프라인 강의
+                    </Button>
+                    <Button type="button" variant="outline" size="sm" onClick={moveToEducationStep}>
+                      교육 페이지 열기
+                    </Button>
+                  </div>
+                  <div className="mt-3 border-t border-slate-100 pt-3">
+                    <p className="text-sm font-semibold text-slate-900">이제 다른 사람을 도와보시겠습니까?</p>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="mt-2"
+                      onClick={() => {
+                        setJourneyStep("instructor");
+                        navigate("/education#instructor");
+                      }}
+                    >
+                      강사 신청
+                    </Button>
+                    {journeyStep === "instructor" ? (
+                      <p className="mt-2 text-xs text-slate-600">
+                        강사 단계에서는 교육 진행, 명함 제작 지원, 홍보 제작 지원으로 순환합니다.
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
 
         {isLiveGenerator ? (
           <EditorFlowHint phase="hero" onTrySample={handleTrySample} showTrySample />
