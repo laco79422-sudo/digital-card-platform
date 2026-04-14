@@ -8,40 +8,95 @@ function corsHeaders() {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Headers": "Content-Type",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Content-Type": "application/json; charset=utf-8",
+  };
+}
+
+function json(statusCode, payload) {
+  return {
+    statusCode,
+    headers: corsHeaders(),
+    body: JSON.stringify(payload),
   };
 }
 
 export const handler = async (event) => {
+  const requestId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  console.log("[sync-temp-preview] start", {
+    requestId,
+    method: event.httpMethod,
+    path: event.path,
+  });
+
   if (event.httpMethod === "OPTIONS") {
+    console.log("[sync-temp-preview] return 204 (OPTIONS)", { requestId });
     return { statusCode: 204, headers: corsHeaders(), body: "" };
   }
 
   if (event.httpMethod !== "POST") {
-    return { statusCode: 405, headers: corsHeaders(), body: "Method Not Allowed" };
+    console.error("[sync-temp-preview] invalid method", { requestId, method: event.httpMethod });
+    return json(405, { ok: false, stage: "method-check", error: "Method Not Allowed", requestId });
   }
 
-  const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) {
-    return { statusCode: 503, headers: corsHeaders(), body: "Server misconfigured" };
-  }
+  const rawBody = event.body || "";
+  console.log("[sync-temp-preview] raw body:", {
+    requestId,
+    bytes: rawBody.length,
+    preview: rawBody.slice(0, 1200),
+  });
 
-  let body;
+  let body = null;
   try {
-    body = JSON.parse(event.body || "{}");
-  } catch {
-    return { statusCode: 400, headers: corsHeaders(), body: "Invalid JSON" };
+    body = JSON.parse(rawBody || "{}");
+    console.log("[sync-temp-preview] payload parsed", {
+      requestId,
+      keys: Object.keys(body || {}),
+    });
+  } catch (error) {
+    console.error("[sync-temp-preview] invalid json", {
+      requestId,
+      error: String(error),
+    });
+    return json(400, { ok: false, stage: "parse-body", error: "Invalid JSON", requestId });
   }
+
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+  const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  console.log("[sync-temp-preview] env check:", {
+    requestId,
+    hasSupabaseUrl: !!supabaseUrl,
+    hasAnonKey: !!supabaseAnonKey,
+    hasServiceRoleKey: !!supabaseServiceRoleKey,
+  });
+  if (!supabaseUrl || !supabaseServiceRoleKey) {
+    console.error("[sync-temp-preview] env missing", { requestId });
+    return json(503, {
+      ok: false,
+      stage: "env-check",
+      error: "Server misconfigured",
+      details: {
+        hasSupabaseUrl: !!supabaseUrl,
+        hasAnonKey: !!supabaseAnonKey,
+        hasServiceRoleKey: !!supabaseServiceRoleKey,
+      },
+      requestId,
+    });
+  }
+  console.log("[sync-temp-preview] env ok", { requestId });
 
   const tempId = typeof body.tempId === "string" ? body.tempId.trim() : "";
+  console.log("[sync-temp-preview] tempId:", { requestId, tempId });
   if (!tempId || !UUID_RE.test(tempId)) {
-    return { statusCode: 400, headers: corsHeaders(), body: "Invalid tempId" };
+    console.error("[sync-temp-preview] invalid tempId", { requestId, tempId });
+    return json(400, { ok: false, stage: "validate-tempId", error: "Invalid tempId", tempId, requestId });
   }
 
   const draft = body.draft;
   const linkRows = body.linkRows;
   if (!draft || typeof draft !== "object") {
-    return { statusCode: 400, headers: corsHeaders(), body: "draft required" };
+    console.error("[sync-temp-preview] draft required", { requestId, draftType: typeof draft });
+    return json(400, { ok: false, stage: "validate-draft", error: "draft required", requestId });
   }
 
   const payload = {
@@ -51,23 +106,56 @@ export const handler = async (event) => {
 
   const raw = JSON.stringify(payload);
   if (raw.length > 500_000) {
-    return { statusCode: 413, headers: corsHeaders(), body: "Payload too large" };
+    console.error("[sync-temp-preview] payload too large", { requestId, bytes: raw.length });
+    return json(413, { ok: false, stage: "validate-size", error: "Payload too large", bytes: raw.length, requestId });
   }
 
-  const supabase = createClient(url, key);
-  const { error } = await supabase.from("linko_temp_previews").upsert(
-    {
-      id: tempId,
-      payload,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: "id" },
-  );
+  try {
+    const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
+    console.log("[sync-temp-preview] before supabase insert", {
+      requestId,
+      table: "linko_temp_previews",
+      linkRowsCount: payload.linkRows.length,
+    });
+    const result = await supabase.from("linko_temp_previews").upsert(
+      {
+        id: tempId,
+        payload,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "id" },
+    );
+    console.log("[sync-temp-preview] after supabase insert:", {
+      requestId,
+      hasError: !!result.error,
+      errorMessage: result.error?.message ?? null,
+      errorCode: result.error?.code ?? null,
+      errorDetails: result.error?.details ?? null,
+    });
 
-  if (error) {
-    console.error("[sync-temp-preview]", error);
-    return { statusCode: 500, headers: corsHeaders(), body: "Upsert failed" };
+    if (result.error) {
+      console.error("[sync-temp-preview] upsert failed", { requestId, error: result.error });
+      return json(500, {
+        ok: false,
+        stage: "supabase-upsert",
+        error: result.error.message || "Upsert failed",
+        code: result.error.code ?? null,
+        details: result.error.details ?? null,
+        hint: result.error.hint ?? null,
+        requestId,
+      });
+    }
+
+    console.log("[sync-temp-preview] insert ok", { requestId, tempId });
+    console.log("[sync-temp-preview] return 200", { requestId });
+    return json(200, { ok: true, stage: "done", tempId, requestId });
+  } catch (error) {
+    console.error("[sync-temp-preview] fatal error:", { requestId, error: String(error) });
+    return json(500, {
+      ok: false,
+      stage: "catch",
+      error: String(error),
+      requestId,
+    });
   }
-
-  return { statusCode: 204, headers: corsHeaders(), body: "" };
 };
