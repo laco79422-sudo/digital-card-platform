@@ -7,10 +7,11 @@ import { Textarea } from "@/components/ui/Textarea";
 import { buildCardShareUrl, editorOriginFallback } from "@/lib/cardShareUrl";
 import { parseCardEditorDraft } from "@/lib/cardEditorSchema";
 import { shareCardLinkNativeOrder } from "@/lib/kakaoWebShare";
+import { previewKakaoFeedFromDraft } from "@/lib/previewShareMeta";
 import { cn } from "@/lib/utils";
 import { slugify } from "@/stores/appDataStore";
 import { useCardEditorDraftStore } from "@/stores/cardEditorDraftStore";
-import { Copy, Share2 } from "lucide-react";
+import { Copy, Loader2, Share2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 
 type FieldErrors = Partial<Record<string, string>>;
@@ -39,11 +40,18 @@ export function CardForm({
   errors = {},
   variant = "default",
   midSlot,
+  guestTempPreviewUrl = null,
+  guestTempId = null,
+  onPrepareGuestKakaoShare,
 }: {
   errors?: FieldErrors;
   /** studio: 양식 느낌 완화, 실시간 명함 조정 톤 */
   variant?: "default" | "studio";
   midSlot?: ReactNode;
+  /** 게스트 체험: `/preview/{tempId}` — 있으면 /c/ 대신 이 주소로 복사·카카오 */
+  guestTempPreviewUrl?: string | null;
+  guestTempId?: string | null;
+  onPrepareGuestKakaoShare?: () => Promise<boolean>;
 }) {
   const draft = useCardEditorDraftStore((s) => s.draft);
   const setDraft = useCardEditorDraftStore((s) => s.setDraft);
@@ -55,21 +63,26 @@ export function CardForm({
   const [linkOrigin, setLinkOrigin] = useState("");
   const [slugCopyDone, setSlugCopyDone] = useState(false);
   const [slugKakaoHint, setSlugKakaoHint] = useState(false);
+  const [slugKakaoPreparing, setSlugKakaoPreparing] = useState(false);
+  const [slugKakaoError, setSlugKakaoError] = useState<string | null>(null);
 
   useEffect(() => {
     setLinkOrigin(typeof window !== "undefined" ? window.location.origin : "");
   }, []);
 
   const previewCardUrl = useMemo(() => {
+    const g = guestTempPreviewUrl?.trim();
+    if (g) return g;
     const origin = editorOriginFallback(linkOrigin);
     return buildCardShareUrl(origin, draft.slug.trim()) ?? "";
-  }, [draft.slug, linkOrigin]);
+  }, [draft.slug, linkOrigin, guestTempPreviewUrl]);
 
   const slugShareReady = useMemo(() => {
     const parsed = parseCardEditorDraft(draft);
     if (!parsed.success || !draft.is_public) return false;
+    if (guestTempPreviewUrl?.trim() && guestTempId) return true;
     return draft.slug.trim().length >= 2;
-  }, [draft]);
+  }, [draft, guestTempId, guestTempPreviewUrl]);
 
   const copySlugLink = useCallback(async () => {
     if (!previewCardUrl) return;
@@ -84,17 +97,52 @@ export function CardForm({
 
   const kakaoSlugShare = useCallback(async () => {
     if (!previewCardUrl) return;
-    const title = `${draft.brand_name || draft.person_name || "내"} 디지털 명함`;
-    const r = await shareCardLinkNativeOrder({
-      shareUrl: previewCardUrl,
-      title,
-      shortMessage: "내 디지털 명함 페이지 링크예요.",
-    });
-    if (r === "clipboard") {
-      setSlugKakaoHint(true);
-      window.setTimeout(() => setSlugKakaoHint(false), 2800);
+    if (slugKakaoPreparing) return;
+    setSlugKakaoPreparing(true);
+    setSlugKakaoError(null);
+    let r: Awaited<ReturnType<typeof shareCardLinkNativeOrder>>;
+    try {
+      if (guestTempPreviewUrl?.trim() && guestTempId) {
+        const ready = onPrepareGuestKakaoShare ? await onPrepareGuestKakaoShare() : true;
+        if (!ready) {
+          setSlugKakaoError(
+            "공유 링크 준비에 실패했습니다. 다시 시도해 주세요. 인터넷 연결을 확인한 뒤 다시 시도해 주세요.",
+          );
+          return;
+        }
+        const origin = editorOriginFallback(linkOrigin);
+        const feed = previewKakaoFeedFromDraft(draft, { tempId: guestTempId, origin });
+        r = await shareCardLinkNativeOrder({
+          shareUrl: previewCardUrl,
+          title: feed.title,
+          shortMessage: feed.description,
+          kakaoDescription: feed.description,
+          kakaoImageUrl: feed.imageUrl,
+        });
+      } else {
+        const title = `${draft.brand_name || draft.person_name || "내"} 디지털 명함`;
+        r = await shareCardLinkNativeOrder({
+          shareUrl: previewCardUrl,
+          title,
+          shortMessage: "내 디지털 명함 페이지 링크예요.",
+        });
+      }
+      if (r === "clipboard") {
+        setSlugKakaoHint(true);
+        window.setTimeout(() => setSlugKakaoHint(false), 2800);
+      }
+    } finally {
+      setSlugKakaoPreparing(false);
     }
-  }, [draft.brand_name, draft.person_name, previewCardUrl]);
+  }, [
+    draft,
+    guestTempId,
+    guestTempPreviewUrl,
+    linkOrigin,
+    onPrepareGuestKakaoShare,
+    previewCardUrl,
+    slugKakaoPreparing,
+  ]);
 
   const onSlugFromBrand = () => {
     const s = slugify(draft.brand_name || "my-card");
@@ -263,10 +311,21 @@ export function CardForm({
               {previewCardUrl ? (
                 <div className="mt-4 space-y-2">
                   <p className="text-center text-sm font-bold text-slate-900">
-                    👉 당신의 명함 링크 <span className="text-xs font-normal text-slate-500">(/c/주소)</span>
+                    {guestTempPreviewUrl?.trim() ? (
+                      <>
+                        👉 임시 미리보기 링크{" "}
+                        <span className="text-xs font-normal text-slate-500">(/preview/…)</span>
+                      </>
+                    ) : (
+                      <>
+                        👉 당신의 명함 링크 <span className="text-xs font-normal text-slate-500">(/c/주소)</span>
+                      </>
+                    )}
                   </p>
                   <p className="text-xs font-medium text-slate-500">
-                    홈 주소가 아니라, 지금 입력한 공개 주소로 열리는 개인 명함입니다.
+                    {guestTempPreviewUrl?.trim()
+                      ? "저장 전 임시 주소입니다. 가입 후 저장하면 /c/주소로 바꿀 수 있어요."
+                      : "홈 주소가 아니라, 지금 입력한 공개 주소로 열리는 개인 명함입니다."}
                   </p>
                   <div className="break-all rounded-2xl border-2 border-brand-200/80 bg-white px-4 py-3 text-sm font-bold text-brand-900 shadow-inner sm:text-base">
                     {previewCardUrl}
@@ -288,9 +347,14 @@ export function CardForm({
                           variant="secondary"
                           className="min-h-11 w-full flex-1 gap-2"
                           onClick={() => void kakaoSlugShare()}
+                          disabled={slugKakaoPreparing}
                         >
-                          <Share2 className="h-4 w-4 shrink-0" aria-hidden />
-                          카카오톡으로 보내기
+                          {slugKakaoPreparing ? (
+                            <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden />
+                          ) : (
+                            <Share2 className="h-4 w-4 shrink-0" aria-hidden />
+                          )}
+                          {slugKakaoPreparing ? "준비 중..." : "카카오톡으로 보내기"}
                         </Button>
                       </div>
                       <Button
@@ -298,9 +362,22 @@ export function CardForm({
                         variant="secondary"
                         className="min-h-11 w-full gap-2 border-2 border-brand-200/80 bg-white hover:bg-brand-50/80"
                         onClick={() => void kakaoSlugShare()}
+                        disabled={slugKakaoPreparing}
                       >
-                        내 카카오톡으로 테스트 보내기
+                        {slugKakaoPreparing ? "준비 중..." : "내 카카오톡으로 테스트 보내기"}
                       </Button>
+                      {slugKakaoPreparing ? (
+                        <div className="rounded-xl border border-brand-200/80 bg-brand-50/70 px-3 py-3 text-sm text-brand-900">
+                          <p className="font-semibold">공유 링크를 준비하고 있어요</p>
+                          <p className="mt-1">잠시만 기다려 주세요</p>
+                          <p className="mt-1">명함을 정리한 뒤 카카오톡으로 열어드릴게요</p>
+                        </div>
+                      ) : null}
+                      {slugKakaoError ? (
+                        <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs leading-relaxed text-red-700">
+                          {slugKakaoError}
+                        </p>
+                      ) : null}
                       {slugKakaoHint ? (
                         <p className="text-center text-xs font-medium text-brand-800 sm:text-sm">
                           명함 링크를 복사했어요. 카카오톡에 붙여넣어 보내 보세요.

@@ -197,6 +197,8 @@ export function CardEditorPage() {
   const [shareOrigin, setShareOrigin] = useState("");
   const [heroCopyDone, setHeroCopyDone] = useState(false);
   const [heroKakaoHint, setHeroKakaoHint] = useState(false);
+  const [heroKakaoPreparing, setHeroKakaoPreparing] = useState(false);
+  const [heroKakaoError, setHeroKakaoError] = useState<string | null>(null);
   const [sampleLadderActive, setSampleLadderActive] = useState(() => wantsSample);
   const [growthFlash, setGrowthFlash] = useState<string | null>(null);
   const [paidBusy, setPaidBusy] = useState(false);
@@ -466,30 +468,69 @@ export function CardEditorPage() {
     }
   }, [heroShareUrl]);
 
+  const prepareGuestPreviewForKakao = useCallback(async (): Promise<boolean> => {
+    if (!(isGuestRoute && !user && guestTempId)) return true;
+    const rowPayload = linkRows.map((r) => ({
+      id: r.id,
+      label: r.label,
+      type: r.type,
+      url: r.url,
+    }));
+    saveTempCard(guestTempId, { draft, linkRows: rowPayload });
+    savePendingCardDraft({
+      draft,
+      linkRows: rowPayload,
+      tempId: guestTempId,
+    });
+    return syncTempPreviewRemote({ tempId: guestTempId, draft, linkRows: rowPayload });
+  }, [draft, guestTempId, isGuestRoute, linkRows, user]);
+
   const kakaoHeroShare = useCallback(async () => {
     if (!heroShareUrl) return;
-    const tempFeed =
-      isGuestRoute && !user && guestTempId ? previewKakaoFeedFromDraft(draft) : null;
-    const title =
-      tempFeed?.title ?? `${draft.person_name || draft.brand_name || "내"} 디지털 명함`;
-    const r = await shareCardLinkNativeOrder({
-      shareUrl: heroShareUrl,
-      title,
-      shortMessage: tempFeed?.description ?? "내 디지털 명함 페이지 링크예요.",
-      kakaoDescription: tempFeed?.description,
-      kakaoImageUrl: tempFeed?.imageUrl,
-    });
-    if (r === "clipboard") {
-      setHeroKakaoHint(true);
-      window.setTimeout(() => setHeroKakaoHint(false), 2800);
+    if (heroKakaoPreparing) return;
+    setHeroKakaoPreparing(true);
+    setHeroKakaoError(null);
+    const origin = editorOriginFallback(shareOrigin);
+    try {
+      if (isGuestRoute && !user && guestTempId) {
+        const ok = await prepareGuestPreviewForKakao();
+        if (!ok) {
+          setHeroKakaoError(
+            "공유 링크 준비에 실패했습니다. 다시 시도해 주세요. 인터넷 연결을 확인한 뒤 다시 시도해 주세요.",
+          );
+          return;
+        }
+      }
+      const tempFeed =
+        isGuestRoute && !user && guestTempId
+          ? previewKakaoFeedFromDraft(draft, { tempId: guestTempId, origin })
+          : null;
+      const title =
+        tempFeed?.title ?? `${draft.person_name || draft.brand_name || "내"} 디지털 명함`;
+      const r = await shareCardLinkNativeOrder({
+        shareUrl: heroShareUrl,
+        title,
+        shortMessage: tempFeed?.description ?? "내 디지털 명함 페이지 링크예요.",
+        kakaoDescription: tempFeed?.description,
+        kakaoImageUrl: tempFeed?.imageUrl,
+      });
+      if (r === "clipboard") {
+        setHeroKakaoHint(true);
+        window.setTimeout(() => setHeroKakaoHint(false), 2800);
+      }
+    } finally {
+      setHeroKakaoPreparing(false);
     }
   }, [
     draft,
     draft.brand_name,
     draft.person_name,
     guestTempId,
+    heroKakaoPreparing,
     heroShareUrl,
     isGuestRoute,
+    prepareGuestPreviewForKakao,
+    shareOrigin,
     user,
   ]);
 
@@ -888,9 +929,14 @@ export function CardEditorPage() {
                 variant="secondary"
                 className="min-h-11 w-full flex-1 gap-2"
                 onClick={() => void kakaoHeroShare()}
+                disabled={heroKakaoPreparing}
               >
-                <Share2 className="h-4 w-4 shrink-0" aria-hidden />
-                카카오톡으로 보내기
+                {heroKakaoPreparing ? (
+                  <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden />
+                ) : (
+                  <Share2 className="h-4 w-4 shrink-0" aria-hidden />
+                )}
+                {heroKakaoPreparing ? "준비 중..." : "카카오톡으로 보내기"}
               </Button>
             </div>
             {isGuestRoute && !user ? null : (
@@ -899,10 +945,23 @@ export function CardEditorPage() {
                 variant="secondary"
                 className="mt-2 min-h-11 w-full gap-2 border-2 border-brand-200/80 bg-white hover:bg-brand-50/80"
                 onClick={() => void kakaoHeroShare()}
+                disabled={heroKakaoPreparing}
               >
-                내 카카오톡으로 테스트 보내기
+                {heroKakaoPreparing ? "준비 중..." : "내 카카오톡으로 테스트 보내기"}
               </Button>
             )}
+            {heroKakaoPreparing ? (
+              <div className="mt-3 rounded-xl border border-brand-200/80 bg-brand-50/70 px-3 py-3 text-sm text-brand-900">
+                <p className="font-semibold">공유 링크를 준비하고 있어요</p>
+                <p className="mt-1">잠시만 기다려 주세요</p>
+                <p className="mt-1">명함을 정리한 뒤 카카오톡으로 열어드릴게요</p>
+              </div>
+            ) : null}
+            {heroKakaoError ? (
+              <p className="mt-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs leading-relaxed text-red-700 sm:text-sm">
+                {heroKakaoError}
+              </p>
+            ) : null}
             <pre className="mt-3 whitespace-pre-wrap break-words rounded-lg border border-slate-100 bg-slate-50/80 p-3 text-left font-sans text-xs leading-relaxed text-slate-700">
               {heroShareText}
             </pre>
@@ -958,6 +1017,11 @@ export function CardEditorPage() {
           <CardForm
             errors={fieldErrors}
             variant={isLiveGenerator ? "studio" : "default"}
+            guestTempPreviewUrl={
+              isGuestRoute && !user && guestTempId && heroShareUrl ? heroShareUrl : null
+            }
+            guestTempId={isGuestRoute && !user ? guestTempId : null}
+            onPrepareGuestKakaoShare={prepareGuestPreviewForKakao}
             midSlot={
               isLiveGenerator ? (
                 <EditorFlowHint phase="mid" onTrySample={handleTrySample} showTrySample />

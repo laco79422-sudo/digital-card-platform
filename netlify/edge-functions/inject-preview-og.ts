@@ -56,7 +56,9 @@ function buildSeoBlock(origin: string, tempId: string, d: DraftLike): string {
   const base = origin.replace(/\/$/, "");
   const canonical = `${base}/preview/${encodeURIComponent(tempId)}`;
   const fallbackImage = `${base}/og-image.png`;
-  const { title, desc, image, siteName } = ogFromDraft(d, fallbackImage);
+  const { title, desc, siteName } = ogFromDraft(d, fallbackImage);
+  /** 카카오·크롤러가 동일 URL로 썸네일을 조회하도록 preview 전용 엔드포인트(302 → 실제 이미지) */
+  const image = `${base}/.netlify/functions/preview-og-image?tempId=${encodeURIComponent(tempId)}`;
   const e = esc;
   return `<!--LINKO_SEO_START-->
     <title>${e(title)}</title>

@@ -11,13 +11,13 @@ export async function syncTempPreviewRemote(payload: {
   tempId: string;
   draft: CardEditorDraft;
   linkRows: PendingCardLinkRow[];
-}): Promise<void> {
-  if (typeof window === "undefined") return;
+}): Promise<boolean> {
+  if (typeof window === "undefined") return false;
   const { tempId, draft, linkRows } = payload;
-  if (!tempId) return;
+  if (!tempId) return false;
 
   const body = JSON.stringify({ tempId, draft, linkRows });
-  if (body.length > MAX_BODY) return;
+  if (body.length > MAX_BODY) return false;
 
   try {
     const res = await fetch(`${window.location.origin}/.netlify/functions/sync-temp-preview`, {
@@ -28,7 +28,9 @@ export async function syncTempPreviewRemote(payload: {
     if (!res.ok && import.meta.env.DEV) {
       console.warn("[syncTempPreviewRemote]", res.status, await res.text().catch(() => ""));
     }
+    return res.ok;
   } catch {
     /* Netlify 미사용·오프라인 */
+    return false;
   }
 }

@@ -2,12 +2,13 @@ import { DigitalCardPublicView } from "@/components/digital-card/DigitalCardPubl
 import { DigitalCardSeo } from "@/components/digital-card/DigitalCardSeo";
 import { INSTANT_GUEST_USER_ID } from "@/lib/instantCardCreate";
 import { loadTempCard } from "@/lib/tempCardStorage";
+import { syncTempPreviewRemote } from "@/lib/syncTempPreviewRemote";
 import type { CardEditorDraft } from "@/stores/cardEditorDraftStore";
 import { draftToBusinessCard, mergeDraftDefaults } from "@/stores/cardEditorDraftStore";
 import { useAppDataStore } from "@/stores/appDataStore";
 import type { CardLink } from "@/types/domain";
 import QRCode from "qrcode";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
 function rowsToCardLinks(
@@ -72,6 +73,18 @@ export function TempCardPreviewPage() {
       .catch(() => setQr(null));
   }, [absoluteUrl]);
 
+  const onBeforeKakaoShare = useCallback(async () => {
+    if (!tempId) return;
+    const p = loadTempCard(tempId);
+    if (p?.draft) {
+      await syncTempPreviewRemote({
+        tempId,
+        draft: p.draft,
+        linkRows: p.linkRows ?? [],
+      });
+    }
+  }, [tempId]);
+
   useEffect(() => {
     if (!card) return;
     addCardView({
@@ -131,6 +144,7 @@ export function TempCardPreviewPage() {
         qrDataUrl={qr}
         shareUrlOverride={absoluteUrl}
         tempPreview
+        onBeforeKakaoShare={onBeforeKakaoShare}
       />
     </>
   );

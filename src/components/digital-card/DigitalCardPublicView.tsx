@@ -15,6 +15,7 @@ import {
 } from "@/lib/digitalCardViewModel";
 import { resolveCardShareUrl } from "@/lib/cardShareUrl";
 import { shareCardLinkNativeOrder } from "@/lib/kakaoWebShare";
+import { tempPreviewKakaoFeedFromCard } from "@/lib/previewShareMeta";
 import { layout } from "@/lib/ui-classes";
 import { buildViralShareText } from "@/lib/viralShareText";
 import { cn } from "@/lib/utils";
@@ -90,6 +91,8 @@ type Props = {
   shareUrlOverride?: string | null;
   /** 임시 링크 화면 — 공유 블록 문구·CTA 조정 */
   tempPreview?: boolean;
+  /** 카카오 공유 직전 — Supabase에 임시 명함 동기화(크롤러 OG와 일치) */
+  onBeforeKakaoShare?: () => void | Promise<void>;
 };
 
 export function DigitalCardPublicView({
@@ -101,6 +104,7 @@ export function DigitalCardPublicView({
   hideSticky,
   shareUrlOverride,
   tempPreview,
+  onBeforeKakaoShare,
 }: Props) {
   const grad = themeClass[card.theme] ?? themeClass.navy;
   const tagline = effectiveTagline(card);
@@ -154,17 +158,30 @@ export function DigitalCardPublicView({
 
   const kakaoShareCard = useCallback(async () => {
     if (!cardPublicUrl) return;
-    const title = `${card.person_name || card.brand_name || "디지털"} 명함`;
-    const r = await shareCardLinkNativeOrder({
-      shareUrl: cardPublicUrl,
-      title,
-      shortMessage: "내 디지털 명함 페이지 링크예요.",
-    });
+    if (onBeforeKakaoShare) await onBeforeKakaoShare();
+    const origin = shareOrigin || (typeof window !== "undefined" ? window.location.origin : "");
+    let r: Awaited<ReturnType<typeof shareCardLinkNativeOrder>>;
+    if (tempPreview) {
+      const feed = tempPreviewKakaoFeedFromCard(card, origin);
+      r = await shareCardLinkNativeOrder({
+        shareUrl: cardPublicUrl,
+        title: feed.title,
+        shortMessage: feed.description,
+        kakaoDescription: feed.description,
+        kakaoImageUrl: feed.imageUrl,
+      });
+    } else {
+      r = await shareCardLinkNativeOrder({
+        shareUrl: cardPublicUrl,
+        title: `${card.person_name || card.brand_name || "디지털"} 명함`,
+        shortMessage: "내 디지털 명함 페이지 링크예요.",
+      });
+    }
     if (r === "clipboard") {
       setKakaoHint(true);
       window.setTimeout(() => setKakaoHint(false), 2800);
     }
-  }, [card.brand_name, card.person_name, cardPublicUrl]);
+  }, [card, cardPublicUrl, onBeforeKakaoShare, shareOrigin, tempPreview]);
 
   const PrimaryHeroIcon =
     hero.mode === "from-links" && hero.primaryLinkType

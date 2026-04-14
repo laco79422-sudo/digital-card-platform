@@ -36,6 +36,12 @@ export function tryKakaoLinkFeedShare(params: {
   if (!K?.Link?.sendDefault || !K.isInitialized?.()) return false;
 
   const { shareUrl, title, description, imageUrl = KAKAO_FEED_DEFAULT_IMAGE } = params;
+  console.info("[Linko Kakao SDK payload]", {
+    shareUrl,
+    title,
+    description,
+    imageUrl,
+  });
   try {
     K.Link.sendDefault({
       objectType: "feed",
@@ -79,15 +85,6 @@ export async function shareCardLinkNativeOrder(opts: {
 
   const kakaoDescription = kakaoDescriptionOpt ?? shortMessage;
   const imageUrlResolved = kakaoImageUrl ?? KAKAO_FEED_DEFAULT_IMAGE;
-
-  if (import.meta.env.DEV) {
-    console.info("[Linko Kakao share payload]", {
-      shareUrl,
-      title,
-      description: kakaoDescription,
-      imageUrl: imageUrlResolved,
-    });
-  }
 
   if (tryKakaoLinkFeedShare({ shareUrl, title, description: kakaoDescription, imageUrl: imageUrlResolved })) {
     return "shared";
