@@ -1,4 +1,4 @@
-import { LandingSampleCard } from "@/components/landing/LandingSampleCard";
+import { LandingSampleCard, type LandingSampleType } from "@/components/landing/LandingSampleCard";
 import { SiteLinkPreviewSeo } from "@/components/seo/SiteLinkPreviewSeo";
 import { CreatorCard } from "@/components/ui/CreatorCard";
 import { PricingCard } from "@/components/ui/PricingCard";
@@ -9,11 +9,16 @@ import { layout, section, type } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
 import { useAppDataStore } from "@/stores/appDataStore";
 import { ArrowRight, Check, Video } from "lucide-react";
-import { useMemo, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 
 const CREATE_CARD_HREF = "/create-card";
 const CREATE_SAMPLE_HREF = "/create-card?sample=true";
+const LANDING_SAMPLE_TYPES: Array<{ id: LandingSampleType; label: string }> = [
+  { id: "personal", label: "개인형" },
+  { id: "business", label: "사업자형" },
+  { id: "store", label: "매장형" },
+];
 
 function FlowCtaLink({
   to,
@@ -45,6 +50,7 @@ function FlowCtaLink({
 
 export function LandingPage() {
   useDevMountLog("LandingPage");
+  const [sampleType, setSampleType] = useState<LandingSampleType>("personal");
   const featuredCreatorIds = useAppDataStore((s) => s.featuredCreatorIds);
   const creators = useAppDataStore((s) => s.creators);
   const featured = useMemo(
@@ -76,7 +82,7 @@ export function LandingPage() {
               명함 하나로 고객이 먼저 찾아옵니다
             </h1>
             <p className="mt-4 max-w-xl text-pretty text-base leading-relaxed text-slate-200 sm:mt-5 sm:text-lg">
-              링크 하나로 소개하고, 연결되고, 상담까지 이어집니다
+              링크 하나로 소개 → 연결 → 상담까지 이어집니다
             </p>
 
             <div className="mx-auto mt-8 w-full max-w-2xl sm:mt-10">
@@ -92,7 +98,7 @@ export function LandingPage() {
                       "bg-white hover:bg-slate-100",
                     )}
                   >
-                    내가 직접 만들어보기
+                    내 명함 만들기
                   </span>
                   <span className="text-center text-[13px] leading-snug text-slate-400 sm:text-sm">
                     무료로 바로 시작, 직접 수정 가능
@@ -145,28 +151,41 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* 3. 체험 유도 + 샘플 미리보기 */}
+      {/* 3. 명함 예시 — 서비스 설명과 분리 */}
       <section className={cn("bg-slate-50", section.y)}>
         <div className={layout.page}>
           <div className="mx-auto max-w-2xl text-center">
-            <h2 className={cn(type.sectionTitleCenter)}>지금 바로 만들어보세요</h2>
+            <p className="text-sm font-bold text-brand-700">이렇게 만들어집니다</p>
+            <h2 className={cn("mt-3", type.sectionTitleCenter)}>명함 예시</h2>
             <p className={cn("mx-auto mt-3 max-w-lg", type.sectionLead)}>
-              클릭하면 샘플이 자동으로 채워집니다
+              설명이 아니라 실제로 보이게 될 결과를 먼저 확인하세요.
             </p>
-            <div className="mt-8 flex justify-center">
-              <FlowCtaLink to={CREATE_SAMPLE_HREF} variant="outline" className="max-w-md">
-                샘플로 바로 만들어보기
-              </FlowCtaLink>
+            <div className="mt-7 flex flex-wrap justify-center gap-2" role="tablist" aria-label="명함 예시 유형">
+              {LANDING_SAMPLE_TYPES.map((item) => {
+                const selected = item.id === sampleType;
+
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={selected}
+                    onClick={() => setSampleType(item.id)}
+                    className={cn(
+                      "min-h-10 rounded-full border px-4 text-sm font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2",
+                      selected
+                        ? "border-brand-700 bg-brand-800 text-white shadow-md"
+                        : "border-slate-200 bg-white text-slate-700 hover:border-brand-300 hover:bg-brand-50",
+                    )}
+                  >
+                    {item.label}
+                  </button>
+                );
+              })}
             </div>
-            <div className="mx-auto mt-10 w-full max-w-lg">
-              <p className="text-sm font-semibold text-slate-700">디지털 명함 샘플 미리보기</p>
-              <div className="mt-3">
-                <LandingSampleCard variant="hero" />
-              </div>
-              <div className="mt-8 flex justify-center">
-                <FlowCtaLink to={CREATE_SAMPLE_HREF} className="max-w-md">
-                  이대로 내 명함 확인하기
-                </FlowCtaLink>
+            <div className="mx-auto mt-6 w-full max-w-lg">
+              <div className="rounded-[1.75rem] border border-slate-200 bg-white/70 p-3 shadow-sm sm:p-4">
+                <LandingSampleCard variant="hero" sampleType={sampleType} />
               </div>
             </div>
           </div>
