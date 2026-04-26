@@ -50,6 +50,7 @@ import {
 } from "@/lib/pendingCardStorage";
 import { removeTempCard, saveTempCard } from "@/lib/tempCardStorage";
 import { buildViralShareText } from "@/lib/viralShareText";
+import { upsertCardRemote } from "@/services/cardsService";
 import { ArrowRight, Check, Copy, Loader2, Share2, Sparkles } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -785,6 +786,7 @@ export function CardEditorPage() {
         created_at: existing?.created_at ?? new Date().toISOString(),
       });
       upsertBusinessCard(card);
+      await upsertCardRemote(card);
 
       const links: CardLink[] = linkRows
         .filter((r) => r.label && r.url)

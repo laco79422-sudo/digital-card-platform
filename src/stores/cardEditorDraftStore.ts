@@ -66,6 +66,15 @@ export function mergeDraftDefaults(
   partial: Partial<CardEditorDraft> & { services?: CardEditorDraft["services"]; trust_line?: string },
 ): CardEditorDraft {
   const base = createEmptyDraft();
+  const imageAliases = partial as Partial<CardEditorDraft> & {
+    imageUrl?: string | null;
+    profileImageUrl?: string | null;
+    logoUrl?: string | null;
+  };
+  const resolvedBrandImageUrl =
+    partial.brand_image_url !== undefined
+      ? partial.brand_image_url
+      : imageAliases.imageUrl ?? imageAliases.profileImageUrl ?? imageAliases.logoUrl ?? base.brand_image_url;
   const services =
     partial.services && partial.services.length >= 3 ? partial.services : base.services;
   let trust_testimonials = normalizeTrustTestimonialRows(partial.trust_testimonials);
@@ -99,7 +108,7 @@ export function mergeDraftDefaults(
       partialRest.brand_image_pan_x !== undefined ? clampPan(partialRest.brand_image_pan_x) : base.brand_image_pan_x,
     brand_image_pan_y:
       partialRest.brand_image_pan_y !== undefined ? clampPan(partialRest.brand_image_pan_y) : base.brand_image_pan_y,
-    brand_image_url: partialRest.brand_image_url !== undefined ? partialRest.brand_image_url : base.brand_image_url,
+    brand_image_url: resolvedBrandImageUrl,
     brand_image_legacy_object_position:
       partialRest.brand_image_legacy_object_position !== undefined
         ? partialRest.brand_image_legacy_object_position
@@ -142,6 +151,11 @@ export function createEmptyDraft(overrides: Partial<CardEditorDraft> = {}): Card
 }
 
 export function draftFromBusinessCard(card: BusinessCard): CardEditorDraft {
+  const imageAliases = card as BusinessCard & {
+    imageUrl?: string | null;
+    profileImageUrl?: string | null;
+    logoUrl?: string | null;
+  };
   const svc = card.services?.length ? [...card.services] : [];
   while (svc.length < 3) svc.push({ title: "", body: "" });
   return {
@@ -171,7 +185,7 @@ export function draftFromBusinessCard(card: BusinessCard): CardEditorDraft {
     ),
     gallery_urls_raw: card.gallery_urls?.join("\n") ?? "",
     services: svc.slice(0, 5),
-    brand_image_url: card.brand_image_url ?? null,
+    brand_image_url: card.brand_image_url ?? imageAliases.imageUrl ?? imageAliases.profileImageUrl ?? imageAliases.logoUrl ?? null,
     brand_image_frame_ratio: card.brand_image_frame_ratio?.trim() || "16:9",
     brand_image_natural_width: card.brand_image_natural_width ?? null,
     brand_image_natural_height: card.brand_image_natural_height ?? null,

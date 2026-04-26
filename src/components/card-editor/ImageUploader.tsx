@@ -8,6 +8,7 @@ import {
   computeHeroLayout,
 } from "@/lib/brandHeroLayout";
 import { optimizeImageFileToDataUrl } from "@/lib/brandImageProcess";
+import { uploadBrandImageDataUrl } from "@/lib/brandImageUpload";
 import { cn } from "@/lib/utils";
 import { ImageIcon, Minus, Move, Plus, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
@@ -95,9 +96,11 @@ export function ImageUploader({
     setProcessing(true);
     try {
       const { dataUrl, width, height } = await optimizeImageFileToDataUrl(file);
-      onUrlChange(dataUrl, { reset: true, naturalW: width, naturalH: height });
-    } catch {
-      window.alert("이미지를 불러오는 데 실패했습니다. 다른 파일로 시도해 주세요.");
+      const publicUrl = await uploadBrandImageDataUrl(dataUrl);
+      onUrlChange(publicUrl, { reset: true, naturalW: width, naturalH: height });
+    } catch (error) {
+      console.warn("[ImageUploader] upload failed", error);
+      window.alert("이미지 업로드에 실패했습니다. Supabase Storage 설정과 권한을 확인한 뒤 다시 시도해 주세요.");
     } finally {
       setProcessing(false);
     }
@@ -197,7 +200,7 @@ export function ImageUploader({
           disabled={processing}
           onClick={() => inputRef.current?.click()}
         >
-          {processing ? "처리 중…" : "파일 선택"}
+          {processing ? "업로드 중…" : "파일 선택"}
         </Button>
         {value ? (
           <Button
