@@ -74,13 +74,13 @@ export function LandingPage() {
       <SiteLinkPreviewSeo />
 
       {/* 1. 강한 결과 + 메인 CTA */}
-      <section className="hero-section text-white">
+      <section className="hero-section">
         <div className={cn("relative z-10", layout.page, section.yHero)}>
           <div className="mx-auto flex max-w-3xl flex-col items-center text-center">
-            <h1 className="text-balance text-3xl font-extrabold leading-snug tracking-tight text-white sm:text-4xl md:text-[2.65rem]">
+            <h1 className="text-balance text-3xl font-extrabold leading-snug tracking-tight text-slate-950 sm:text-4xl md:text-[2.65rem]">
               명함 하나로 고객이 먼저 찾아옵니다
             </h1>
-            <p className="mt-4 max-w-xl text-pretty text-base leading-relaxed text-slate-200 sm:mt-5 sm:text-lg">
+            <p className="mt-4 max-w-xl text-pretty text-base font-medium leading-relaxed text-slate-700 sm:mt-5 sm:text-lg">
               링크 하나로 소개 → 연결 → 상담까지 이어집니다
             </p>
 
@@ -89,7 +89,7 @@ export function LandingPage() {
               <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 sm:gap-12">
                 <Link
                   to={CREATE_CARD_HREF}
-                  className="group flex flex-col gap-2.5 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-300 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-950"
+                  className="group flex flex-col gap-2.5 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cta-400 focus-visible:ring-offset-2 focus-visible:ring-offset-sky-100"
                 >
                   <span
                     className={cn(
@@ -99,23 +99,23 @@ export function LandingPage() {
                   >
                     내 명함 만들기
                   </span>
-                  <span className="text-center text-[13px] leading-snug text-slate-400 sm:text-sm">
+                  <span className="text-center text-[13px] font-medium leading-snug text-slate-700 sm:text-sm">
                     무료로 바로 시작, 직접 수정 가능
                   </span>
                 </Link>
                 <Link
                   to="/signup?intent=expert-structure"
-                  className="group flex flex-col gap-2.5 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-950"
+                  className="group flex flex-col gap-2.5 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-sky-100"
                 >
                   <span
                     className={cn(
-                      "inline-flex min-h-[52px] w-full items-center justify-center rounded-xl border-2 border-brand-300/90 px-4 text-center text-sm font-bold leading-snug text-white shadow-inner transition-colors sm:text-base",
-                      "bg-white/10 hover:border-brand-200 hover:bg-brand-500/20",
+                      "inline-flex min-h-[52px] w-full items-center justify-center rounded-xl border-2 border-slate-900/70 px-4 text-center text-sm font-bold leading-snug text-slate-950 shadow-md transition-colors sm:text-base",
+                      "bg-white/45 backdrop-blur-sm hover:border-brand-600 hover:bg-white/70",
                     )}
                   >
                     전문가에게 맡기기
                   </span>
-                  <span className="text-center text-[13px] leading-snug text-slate-400 sm:text-sm">
+                  <span className="text-center text-[13px] font-medium leading-snug text-slate-700 sm:text-sm">
                     상담 후 제작 진행
                   </span>
                 </Link>
