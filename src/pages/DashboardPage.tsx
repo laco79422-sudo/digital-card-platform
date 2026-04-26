@@ -120,12 +120,6 @@ export function DashboardPage() {
         </div>
         <div className="flex flex-wrap gap-2">
           <Link
-            to="/cards/new"
-            className="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-cta-500 px-5 text-base font-semibold text-white shadow-sm shadow-cta-900/20 hover:bg-cta-600 sm:min-h-0 sm:py-2.5"
-          >
-            {brandCta.createDigitalCard}
-          </Link>
-          <Link
             to="/requests/new"
             className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-slate-300 bg-white px-5 text-base font-semibold text-slate-900 hover:bg-slate-50 sm:min-h-0 sm:py-2.5"
           >
@@ -133,6 +127,25 @@ export function DashboardPage() {
           </Link>
         </div>
       </div>
+
+      {!isCreator ? (
+        <section className="mt-8 rounded-2xl border border-cta-200/80 bg-white p-4 shadow-sm sm:p-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-900 sm:text-xl">내 명함을 만들어 공유해 보세요</h2>
+              <p className="mt-2 text-sm leading-relaxed text-slate-600 sm:text-base">
+                공개 링크와 QR로 바로 공유할 수 있는 명함을 만들 수 있어요.
+              </p>
+            </div>
+            <Link
+              to="/cards/new"
+              className="inline-flex min-h-[52px] shrink-0 items-center justify-center rounded-xl bg-cta-500 px-5 text-base font-bold text-white shadow-sm shadow-cta-900/20 hover:bg-cta-600"
+            >
+              {brandCta.createDigitalCard}
+            </Link>
+          </div>
+        </section>
+      ) : null}
 
       <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {isCreator ? (

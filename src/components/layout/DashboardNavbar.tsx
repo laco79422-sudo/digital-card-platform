@@ -1,4 +1,4 @@
-import { BRAND_DISPLAY_NAME, brandCta } from "@/lib/brand";
+import { BRAND_DISPLAY_NAME } from "@/lib/brand";
 import { signOutApp } from "@/lib/auth/signOutApp";
 import { layout } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
@@ -34,12 +34,6 @@ export function DashboardNavbar() {
           {BRAND_DISPLAY_NAME}
         </Link>
         <div className="flex shrink-0 items-center gap-2 sm:gap-3">
-          <Link
-            to="/cards/new"
-            className="inline-flex min-h-10 items-center justify-center rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-50 sm:px-4"
-          >
-            {brandCta.createDigitalCard}
-          </Link>
           <button
             type="button"
             className="inline-flex min-h-10 items-center justify-center rounded-xl border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50 sm:px-4"
