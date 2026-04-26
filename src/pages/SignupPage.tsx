@@ -29,7 +29,8 @@ import { useForm } from "react-hook-form";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { z } from "zod";
 
-const SIGNUP_SUCCESS_NOTICE = "회원가입이 완료되었습니다. 이메일 인증 후 로그인해 주세요.";
+const SIGNUP_SUCCESS_NOTICE =
+  "회원가입이 완료되었습니다. 이메일 인증 후 로그인하면 내 공간에서 명함을 만들고 의뢰도 할 수 있어요.";
 
 const schema = z.object({
   name: z.string().min(1, signupNameMessages.required),
@@ -192,7 +193,7 @@ export function SignupPage() {
           <p className="mt-2 text-base leading-relaxed text-slate-600">
             {hasPendingCardDraft()
               ? "만들어 두신 명함을 저장하려면 계정이 필요해요. 가입 후 이어서 저장할 수 있습니다."
-              : "이름과 이메일로 계정을 만든 뒤, 대시보드에서 명함과 의뢰를 이용할 수 있어요."}
+              : "이름과 이메일로 계정을 만들면, 내 공간에서 명함을 만들고 의뢰도 할 수 있어요."}
           </p>
         </CardHeader>
         <CardContent>

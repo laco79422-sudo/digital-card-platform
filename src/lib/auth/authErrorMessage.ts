@@ -65,7 +65,7 @@ export function authErrorToKorean(message: string, code?: string): string {
     lower.includes("unsupported provider") ||
     lower.includes("provider not enabled")
   ) {
-    return "Google 로그인이 Supabase에서 꺼져 있어요. 대시보드 → Authentication → Providers에서 Google을 켜고 Client ID·Secret을 저장해 주세요.";
+    return "Google 로그인이 Supabase에서 꺼져 있어요. Supabase 관리 화면 → Authentication → Providers에서 Google을 켜고 Client ID·Secret을 저장해 주세요.";
   }
 
   if (/[가-힣]/.test(t) && t.length > 0 && t.length < 300) {
