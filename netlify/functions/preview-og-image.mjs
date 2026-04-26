@@ -23,7 +23,7 @@ function resolveImageFromDraft(d, origin) {
   const base = origin.replace(/\/$/, "");
   let image = typeof d?.brand_image_url === "string" ? d.brand_image_url.trim() : "";
   if (!image.startsWith("https://")) image = firstGalleryHttps(d?.gallery_urls_raw);
-  if (!image.startsWith("https://")) image = `${base}/og-image.png`;
+  if (!image.startsWith("https://")) image = `${base}/og-default.png`;
   return image;
 }
 
@@ -33,7 +33,7 @@ export const handler = async (event) => {
   }
 
   const origin = requestOrigin(event);
-  const fallback = `${origin}/og-image.png`;
+  const fallback = `${origin}/og-default.png`;
 
   const tempId = typeof event.queryStringParameters?.tempId === "string" ? event.queryStringParameters.tempId.trim() : "";
   if (!tempId || !UUID_RE.test(tempId)) {
