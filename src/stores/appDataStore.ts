@@ -24,11 +24,13 @@ import type {
   Payment,
   PromoterParticipation,
   PromotionPoolEntry,
+  ReferralRecord,
   ServiceApplication,
   ServiceRequest,
   Subscription,
 } from "@/types/domain";
 import { INSTANT_GUEST_USER_ID } from "@/lib/instantCardCreate";
+import { buildReferralCode, rewardMonthsForReferralCount } from "@/lib/referrals";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
@@ -37,6 +39,14 @@ function mergeById<T extends { id: string }>(seed: T[], stored: T[] | undefined)
   const map = new Map<string, T>();
   for (const s of seed) map.set(s.id, s);
   for (const p of stored) map.set(p.id, p);
+  return [...map.values()];
+}
+
+function mergeReferralRecords(seed: ReferralRecord[], stored: ReferralRecord[] | undefined): ReferralRecord[] {
+  if (!stored?.length) return [...seed];
+  const map = new Map<string, ReferralRecord>();
+  for (const s of seed) map.set(s.user_id, s);
+  for (const p of stored) map.set(p.user_id, p);
   return [...map.values()];
 }
 
@@ -57,6 +67,7 @@ interface AppDataState {
   instructorApplications: InstructorApplication[];
   promotionPool: PromotionPoolEntry[];
   promoterParticipations: PromoterParticipation[];
+  referralRecords: ReferralRecord[];
 
   setBusinessCards: (cards: BusinessCard[]) => void;
   upsertBusinessCard: (card: BusinessCard) => void;
@@ -75,6 +86,7 @@ interface AppDataState {
   claimInstantGuestCard: (userId: string, cardId: string) => void;
 
   addPayment: (p: Payment) => void;
+  ensureReferralRecord: (userId: string, referredBy?: string | null) => void;
   addToPromotionPool: (entry: Omit<PromotionPoolEntry, "id" | "registered_at" | "status">) => boolean;
   enrollPromoter: (p: Omit<PromoterParticipation, "id" | "enrolled_at">) => boolean;
 }
@@ -98,6 +110,7 @@ export const useAppDataStore = create<AppDataState>()(
       instructorApplications: [],
       promotionPool: [],
       promoterParticipations: [],
+      referralRecords: [],
 
       setBusinessCards: (businessCards) => set({ businessCards }),
       upsertBusinessCard: (card) =>
@@ -143,6 +156,42 @@ export const useAppDataStore = create<AppDataState>()(
           ),
         })),
       addPayment: (payment) => set((s) => ({ payments: [...s.payments, payment] })),
+      ensureReferralRecord: (userId, referredBy = null) =>
+        set((s) => {
+          const ownCode = buildReferralCode(userId);
+          const normalizedReferredBy = referredBy?.trim().toUpperCase() || null;
+          const hasOwnRecord = s.referralRecords.some((x) => x.user_id === userId);
+          let records = hasOwnRecord
+            ? s.referralRecords.map((x) =>
+                x.user_id === userId && !x.referred_by && normalizedReferredBy && normalizedReferredBy !== x.ref_code
+                  ? { ...x, referred_by: normalizedReferredBy }
+                  : x,
+              )
+            : [
+                ...s.referralRecords,
+                {
+                  user_id: userId,
+                  ref_code: ownCode,
+                  referred_by: normalizedReferredBy === ownCode ? null : normalizedReferredBy,
+                  referred_count: 0,
+                  reward_months: 0,
+                },
+              ];
+
+          if (normalizedReferredBy && normalizedReferredBy !== ownCode && !hasOwnRecord) {
+            records = records.map((x) => {
+              if (x.ref_code !== normalizedReferredBy) return x;
+              const referred_count = x.referred_count + 1;
+              return {
+                ...x,
+                referred_count,
+                reward_months: rewardMonthsForReferralCount(referred_count),
+              };
+            });
+          }
+
+          return { referralRecords: records };
+        }),
       addToPromotionPool: (raw) => {
         let added = false;
         set((s) => {
@@ -194,6 +243,7 @@ export const useAppDataStore = create<AppDataState>()(
         instructorApplications: state.instructorApplications,
         promotionPool: state.promotionPool,
         promoterParticipations: state.promoterParticipations,
+        referralRecords: state.referralRecords,
       }),
       merge: (persisted, current) => {
         const p = persisted as Partial<AppDataState> | undefined;
@@ -228,6 +278,7 @@ export const useAppDataStore = create<AppDataState>()(
             current.promoterParticipations ?? [],
             p.promoterParticipations,
           ),
+          referralRecords: mergeReferralRecords(current.referralRecords ?? [], p.referralRecords),
         };
       },
     },

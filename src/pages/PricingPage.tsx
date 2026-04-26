@@ -34,15 +34,29 @@ export function PricingPage() {
       <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-600 sm:text-[15px]">
         개인·소규모는 스타터로 링크 공유를 시작하고, 방문·클릭·의뢰 응답이 늘면 프로까지 단계적으로 쓰기 좋아요.
       </p>
-      <div className="mt-8 grid gap-6 lg:grid-cols-4">
+      <div className="mt-8 grid gap-6 md:grid-cols-2 xl:grid-cols-5">
         <PricingCard
           name="무료"
           audience="가볍게 체험"
           priceLabel="₩0"
           description="시작해 보기"
-          features={["공개 명함 1개", "방문·클릭 기본 기록", "동시에 관리 가능한 의뢰 1건"]}
+          features={["공개 명함 1개(한 달 이용)", "방문·클릭 기본 기록", "동시에 관리 가능한 의뢰 1건"]}
           href="/signup"
           cta="무료로 시작"
+        />
+        <PricingCard
+          name="공개 명함 1개 이용권"
+          audience="한 달 이용권"
+          priceLabel="월 5,900원"
+          description="공개 명함 1개를 한 달 동안 이용할 수 있어요."
+          features={[
+            "공개 명함 1개",
+            "한 달 동안 이용",
+            "추천 공유로 무료 혜택 가능",
+          ]}
+          highlighted
+          href="/signup"
+          cta="5,900원으로 이용하기"
         />
         <PricingCard
           name="스타터"

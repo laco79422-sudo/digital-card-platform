@@ -172,6 +172,14 @@ export interface Payment {
   created_at: string;
 }
 
+export interface ReferralRecord {
+  user_id: string;
+  ref_code: string;
+  referred_by: string | null;
+  referred_count: number;
+  reward_months: number;
+}
+
 export interface MainBanner {
   id: string;
   title: string;

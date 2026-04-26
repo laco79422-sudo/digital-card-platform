@@ -36,6 +36,7 @@ export type SignUpWithEmailParams = {
   password: string;
   name: string;
   userType: string;
+  referralCode?: string | null;
 };
 
 export type SignUpWithEmailResult = {
@@ -67,6 +68,7 @@ export async function signUpWithEmail(params: SignUpWithEmailParams): Promise<Si
         data: {
           name: params.name,
           userType: params.userType,
+          referredBy: params.referralCode ?? null,
         },
         emailRedirectTo: `${window.location.origin}/dashboard`,
       },

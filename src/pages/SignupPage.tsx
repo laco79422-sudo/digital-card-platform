@@ -13,6 +13,7 @@ import { clearInstantCardId, peekInstantCardId } from "@/lib/instantCardStorage"
 import { getLandingEmail, hasPendingCardDraft } from "@/lib/pendingCardStorage";
 import { isSupabaseConfigured } from "@/lib/supabase/client";
 import { mapSupabaseUser } from "@/lib/supabase/mapAuthUser";
+import { getReferralCodeFromSearch } from "@/lib/referrals";
 import { useAppDataStore } from "@/stores/appDataStore";
 import { useAuthStore } from "@/stores/authStore";
 import {
@@ -75,6 +76,7 @@ export function SignupPage() {
 
   const emailValue = watch("email") ?? "";
   const emailFieldStatus = useMemo(() => getSignupEmailFieldStatus(emailValue), [emailValue]);
+  const referralCode = useMemo(() => getReferralCodeFromSearch(location.search), [location.search]);
 
   /** 이메일 칸 아래: 형식 안내만 (서버 중복 메시지는 errorMessage로만 표시) */
   const emailFormatHint = useMemo(() => {
@@ -117,6 +119,7 @@ export function SignupPage() {
         password: values.password,
         name: values.name.trim(),
         userType: values.role,
+        referralCode,
       });
 
       if (serverMsg) {
@@ -135,6 +138,7 @@ export function SignupPage() {
       if (data.session?.user) {
         setSession(data.session);
         setUser(mapSupabaseUser(data.session.user));
+        useAppDataStore.getState().ensureReferralRecord(data.session.user.id, referralCode);
         touchActivity();
         const instantId = peekInstantCardId();
         if (instantId) {
@@ -149,6 +153,7 @@ export function SignupPage() {
       }
 
       if (data.user) {
+        useAppDataStore.getState().ensureReferralRecord(data.user.id, referralCode);
         navigate("/login", {
           replace: true,
           state: { signupNotice: SIGNUP_SUCCESS_NOTICE },
