@@ -74,9 +74,8 @@ export function LandingPage() {
       <SiteLinkPreviewSeo />
 
       {/* 1. 강한 결과 + 메인 CTA */}
-      <section className="relative overflow-hidden bg-gradient-to-b from-surface-dark via-slate-950 to-brand-950 text-white">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(99,102,241,0.24),_transparent_55%)]" />
-        <div className={cn("relative", layout.page, section.yHero)}>
+      <section className="hero-section text-white">
+        <div className={cn("relative z-10", layout.page, section.yHero)}>
           <div className="mx-auto flex max-w-3xl flex-col items-center text-center">
             <h1 className="text-balance text-3xl font-extrabold leading-snug tracking-tight text-white sm:text-4xl md:text-[2.65rem]">
               명함 하나로 고객이 먼저 찾아옵니다
