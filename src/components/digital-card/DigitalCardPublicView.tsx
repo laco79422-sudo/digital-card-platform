@@ -113,6 +113,12 @@ export function DigitalCardPublicView({
   const grad = themeClass[card.theme] ?? themeClass.navy;
   const tagline = effectiveTagline(card);
   const hasPitchHeadline = Boolean(card.tagline?.trim());
+  const name = card.person_name.trim();
+  const position = card.job_title.trim();
+  const company = card.brand_name.trim();
+  const description = card.intro.trim();
+  const title = card.tagline?.trim() ?? "";
+  const showCompany = Boolean(company && company !== title);
   const trustMetric = trustMetricForView(card);
   const testimonials = trustTestimonialsForView(card);
   const gallery = galleryImages(card);
@@ -247,34 +253,46 @@ export function DigitalCardPublicView({
               <>
                 {tempPreview ? (
                   <>
-                    <h1 className="mt-5 max-w-xl break-keep text-3xl font-extrabold leading-[1.15] tracking-tight text-white sm:text-4xl">
-                      {previewMeta.name}
-                    </h1>
-                    <p className="mt-2 text-base font-semibold text-white/95 sm:text-lg">{previewMeta.brandName}</p>
-                    <p className="mt-3 max-w-md text-sm leading-relaxed text-white/88 sm:text-[15px]">
-                      {previewMeta.headline}
-                    </p>
+                    {previewMeta.name ? (
+                      <h1 className="mt-5 max-w-xl break-keep text-3xl font-extrabold leading-[1.15] tracking-tight text-white sm:text-4xl">
+                        {previewMeta.name}
+                      </h1>
+                    ) : null}
+                    {previewMeta.brandName && previewMeta.brandName !== previewMeta.title ? (
+                      <p className="mt-2 text-base font-semibold text-white/95 sm:text-lg">{previewMeta.brandName}</p>
+                    ) : null}
+                    {previewMeta.headline ? (
+                      <p className="mt-3 max-w-md text-sm leading-relaxed text-white/88 sm:text-[15px]">
+                        {previewMeta.headline}
+                      </p>
+                    ) : null}
                   </>
                 ) : (
                   <>
-                    <p className="mt-5 max-w-md text-xs font-semibold uppercase tracking-[0.2em] text-white/75 sm:text-sm">
-                      {card.brand_name}
-                    </p>
-                    <h1 className="mt-3 max-w-xl break-keep text-2xl font-extrabold leading-[1.2] tracking-tight text-white sm:mt-4 sm:text-3xl md:text-4xl">
-                      {card.tagline?.trim()}
-                    </h1>
-                    <p className="mt-3 text-base font-semibold text-white/95 sm:text-lg">{card.person_name}</p>
+                    {showCompany ? (
+                      <p className="mt-5 max-w-md text-xs font-semibold uppercase tracking-[0.2em] text-white/75 sm:text-sm">
+                        {company}
+                      </p>
+                    ) : null}
+                    {title ? (
+                      <h1 className="mt-3 max-w-xl break-keep text-2xl font-extrabold leading-[1.2] tracking-tight text-white sm:mt-4 sm:text-3xl md:text-4xl">
+                        {title}
+                      </h1>
+                    ) : null}
+                    {name ? <p className="mt-3 text-base font-semibold text-white/95 sm:text-lg">{name}</p> : null}
                   </>
                 )}
-                <Badge
-                  tone="default"
-                  className="mt-2 max-w-md border border-white/30 bg-white/10 px-3 py-1 text-[11px] leading-snug text-white/95 sm:text-xs"
-                >
-                  {card.job_title}
-                </Badge>
-                {card.intro.trim() ? (
+                {position ? (
+                  <Badge
+                    tone="default"
+                    className="mt-2 max-w-md border border-white/30 bg-white/10 px-3 py-1 text-[11px] leading-snug text-white/95 sm:text-xs"
+                  >
+                    {position}
+                  </Badge>
+                ) : null}
+                {description ? (
                   <p className="mt-4 max-w-md whitespace-pre-wrap break-words text-sm leading-relaxed text-white/88 sm:text-[15px]">
-                    {card.intro.trim()}
+                    {description}
                   </p>
                 ) : null}
               </>
@@ -282,34 +300,45 @@ export function DigitalCardPublicView({
               <>
                 {tempPreview ? (
                   <>
-                    <h1 className="mt-5 break-keep text-3xl font-extrabold leading-tight tracking-tight text-white sm:text-4xl">
-                      {previewMeta.name}
-                    </h1>
-                    <p className="mt-2 text-base font-semibold text-white/95 sm:text-lg">{previewMeta.brandName}</p>
-                    <p className="mt-3 max-w-md text-sm leading-relaxed text-white/90 sm:text-base">
-                      {previewMeta.headline}
-                    </p>
+                    {previewMeta.name ? (
+                      <h1 className="mt-5 break-keep text-3xl font-extrabold leading-tight tracking-tight text-white sm:text-4xl">
+                        {previewMeta.name}
+                      </h1>
+                    ) : null}
+                    {previewMeta.brandName && previewMeta.brandName !== previewMeta.title ? (
+                      <p className="mt-2 text-base font-semibold text-white/95 sm:text-lg">{previewMeta.brandName}</p>
+                    ) : null}
+                    {previewMeta.headline ? (
+                      <p className="mt-3 max-w-md text-sm leading-relaxed text-white/90 sm:text-base">
+                        {previewMeta.headline}
+                      </p>
+                    ) : null}
                   </>
                 ) : (
                   <>
-                    <h1 className="mt-5 break-keep text-2xl font-bold leading-tight tracking-tight text-white sm:text-3xl md:text-4xl">
-                      {card.brand_name}
-                    </h1>
-                    <p className="mt-2 text-base font-medium text-white/90 sm:text-lg">{card.person_name}</p>
+                    {name ? (
+                      <h1 className="mt-5 break-keep text-2xl font-bold leading-tight tracking-tight text-white sm:text-3xl md:text-4xl">
+                        {name}
+                      </h1>
+                    ) : null}
+                    {position ? <p className="mt-2 text-base font-medium text-white/90 sm:text-lg">{position}</p> : null}
+                    {showCompany ? (
+                      <p className="mt-2 text-sm font-semibold uppercase tracking-[0.18em] text-white/70">
+                        {company}
+                      </p>
+                    ) : null}
                   </>
                 )}
-                <Badge
-                  tone="default"
-                  className="mt-2 border border-white/30 bg-white/10 text-[11px] text-white/95 sm:text-xs"
-                >
-                  {card.job_title}
-                </Badge>
-                <p className="mt-4 max-w-md text-[15px] font-medium leading-relaxed text-white/95 sm:text-base">
-                  {tagline}
-                </p>
-                <p className="mt-3 max-w-md whitespace-pre-wrap break-words text-sm leading-relaxed text-white/88 sm:text-[15px]">
-                  {card.intro.trim()}
-                </p>
+                {tagline ? (
+                  <p className="mt-4 max-w-md text-[15px] font-medium leading-relaxed text-white/95 sm:text-base">
+                    {tagline}
+                  </p>
+                ) : null}
+                {description ? (
+                  <p className="mt-3 max-w-md whitespace-pre-wrap break-words text-sm leading-relaxed text-white/88 sm:text-[15px]">
+                    {description}
+                  </p>
+                ) : null}
               </>
             )}
             <div className="mt-7 flex w-full max-w-md flex-col gap-3 sm:mt-8 sm:flex-row sm:justify-center">
@@ -405,7 +434,7 @@ export function DigitalCardPublicView({
             서비스
           </h2>
           <p className="mt-2 max-w-xl text-sm font-medium leading-relaxed text-slate-600 sm:text-[15px]">
-            {card.brand_name}의 핵심 영역입니다. 짧게 읽고 바로 연결할 수 있습니다.
+            {company ? `${company}의 핵심 영역입니다. 짧게 읽고 바로 연결할 수 있습니다.` : "핵심 영역을 짧게 읽고 바로 연결할 수 있습니다."}
           </p>
           <ul className="mt-8 grid gap-4 sm:grid-cols-2">
             {services.map((s, idx) => {

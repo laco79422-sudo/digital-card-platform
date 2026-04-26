@@ -1,5 +1,3 @@
-import { BRAND_DISPLAY_NAME } from "@/lib/brand";
-
 export const PREVIEW_CARD_TYPES = [
   "person",
   "store",
@@ -39,9 +37,9 @@ export function buildPreviewMeta(input: {
   trust_metric?: string | null;
 }): { type: PreviewCardType; title: string; description: string; name: string; brandName: string; headline: string } {
   const type = normalizePreviewCardType(input.type);
-  const name = clean(input.person_name, 80) || "이름";
-  const brandName = clean(input.brand_name, 80) || BRAND_DISPLAY_NAME;
-  const headline = clean(input.tagline, 160) || clean(input.intro, 160) || "명함 미리보기";
+  const name = clean(input.person_name, 80);
+  const brandName = clean(input.brand_name, 80);
+  const headline = clean(input.tagline, 160) || clean(input.intro, 160);
   const address = clean(input.address, 180);
   const trust = clean(input.trust_metric, 160);
 
@@ -50,7 +48,7 @@ export function buildPreviewMeta(input: {
       return {
         type,
         title: brandName,
-        description: (headline || clean(input.intro, 220) || "매장 정보를 확인해 보세요").slice(0, 300),
+        description: (headline || clean(input.intro, 220)).slice(0, 300),
         name,
         brandName,
         headline,
@@ -59,7 +57,7 @@ export function buildPreviewMeta(input: {
       return {
         type,
         title: brandName || name,
-        description: (address || headline || clean(input.intro, 220) || "위치 정보를 확인해 보세요").slice(0, 300),
+        description: (address || headline || clean(input.intro, 220)).slice(0, 300),
         name,
         brandName,
         headline: address || headline,
@@ -68,7 +66,7 @@ export function buildPreviewMeta(input: {
       return {
         type,
         title: headline || name,
-        description: `${brandName} · ${clean(input.intro, 220) || "성과를 확인해 보세요"}`.slice(0, 300),
+        description: `${brandName} · ${clean(input.intro, 220)}`.trim().replace(/^·\s*/, "").slice(0, 300),
         name,
         brandName,
         headline,

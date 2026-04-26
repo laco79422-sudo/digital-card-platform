@@ -17,9 +17,7 @@ const DEFAULT_TRUST_TESTIMONIALS: TrustTestimonial[] = [
 export function effectiveTagline(card: BusinessCard): string {
   const t = card.tagline?.trim();
   if (t) return t;
-  const job = card.job_title.trim();
-  const brand = card.brand_name.trim();
-  return `${job} · ${brand} — 디지털 명함으로 만나는 첫인상`;
+  return "";
 }
 
 /** SEO·폴백용 — 첫 후기 인용 또는 기본 문장 */
@@ -190,5 +188,5 @@ export function seoTitle(card: BusinessCard): string {
 export function seoDescription(card: BusinessCard): string {
   const line = effectiveTagline(card);
   const intro = card.intro.trim().slice(0, 140);
-  return `${line} ${intro}`.trim().slice(0, 200);
+  return `${line} ${intro}`.trim().slice(0, 200) || card.brand_name.trim() || card.person_name.trim();
 }

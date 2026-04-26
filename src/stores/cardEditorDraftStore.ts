@@ -188,7 +188,7 @@ export function draftFromBusinessCard(card: BusinessCard): CardEditorDraft {
   };
 }
 
-/** 미리보기용 — 빈 필드는 placeholder 문구로만 보완 (저장값 변경 없음) */
+/** 미리보기용 — 입력하지 않은 텍스트는 화면에 기본 문구로 보완하지 않습니다. */
 export function draftToPreviewBusinessCard(
   draft: CardEditorDraft,
   meta: { userId: string; cardId?: string; createdAt?: string },
@@ -201,10 +201,6 @@ export function draftToPreviewBusinessCard(
   return {
     ...base,
     slug: base.slug || "preview",
-    brand_name: base.brand_name || "브랜드명",
-    person_name: base.person_name || "이름",
-    job_title: base.job_title || "직함",
-    intro: base.intro || "소개를 입력해 주세요.",
   };
 }
 

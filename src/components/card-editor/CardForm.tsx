@@ -172,6 +172,7 @@ export function CardForm({
           </label>
           <Input
             className="mt-1"
+            placeholder="예: 린코 디지털 명함"
             value={draft.brand_name}
             onChange={(e) => setDraft({ brand_name: e.target.value })}
             autoComplete="organization"
@@ -185,6 +186,7 @@ export function CardForm({
           </label>
           <Input
             className="mt-1"
+            placeholder="예: 송민호"
             value={draft.person_name}
             onChange={(e) => setDraft({ person_name: e.target.value })}
             autoComplete="name"
@@ -198,6 +200,7 @@ export function CardForm({
           </label>
           <Input
             className="mt-1"
+            placeholder="예: 대표"
             value={draft.job_title}
             onChange={(e) => setDraft({ job_title: e.target.value })}
           />
@@ -228,6 +231,7 @@ export function CardForm({
           <Textarea
             className="mt-1"
             rows={4}
+            placeholder="예: 연결을 만드는 사람입니다. 명함 하나로 고객이 먼저 연락하도록 돕습니다."
             value={draft.intro}
             onChange={(e) => setDraft({ intro: e.target.value })}
           />
