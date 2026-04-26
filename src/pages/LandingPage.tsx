@@ -79,15 +79,8 @@ export function LandingPage() {
               링크 하나로 소개하고, 연결되고, 상담까지 이어집니다
             </p>
 
-            <div className="mt-8 w-full max-w-md sm:mt-10">
-              <FlowCtaLink to={CREATE_CARD_HREF} className="w-full shadow-2xl ring-brand-400/40">
-                지금 바로 명함 만들기
-              </FlowCtaLink>
-              <p className="mt-3 text-center text-sm text-slate-300">가입 없이 바로 체험 가능합니다</p>
-            </div>
-
             <div className="mx-auto mt-8 w-full max-w-2xl sm:mt-10">
-              <p className="sr-only">체험으로 직접 만들거나 전문가에게 맡길 수 있습니다</p>
+              <p className="sr-only">직접 만들거나 전문가에게 맡길 수 있습니다</p>
               <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 sm:gap-12">
                 <Link
                   to={CREATE_CARD_HREF}
@@ -102,7 +95,7 @@ export function LandingPage() {
                     내가 직접 만들어보기
                   </span>
                   <span className="text-center text-[13px] leading-snug text-slate-400 sm:text-sm">
-                    샘플로 바로 체험하고 직접 수정할 수 있습니다
+                    무료로 바로 시작, 직접 수정 가능
                   </span>
                 </Link>
                 <Link
@@ -118,7 +111,7 @@ export function LandingPage() {
                     전문가에게 맡기기
                   </span>
                   <span className="text-center text-[13px] leading-snug text-slate-400 sm:text-sm">
-                    명함 제작부터 홍보까지 전문가가 도와드립니다
+                    상담 후 제작 진행
                   </span>
                 </Link>
               </div>
@@ -306,7 +299,7 @@ export function LandingPage() {
           </div>
           <div className="mt-10 flex justify-center">
             <FlowCtaLink to={CREATE_CARD_HREF} className="max-w-md">
-              지금 바로 명함 만들기
+              내가 직접 만들어보기
             </FlowCtaLink>
           </div>
         </div>
@@ -380,7 +373,7 @@ export function LandingPage() {
           </dl>
           <div className="mt-10 flex justify-center">
             <FlowCtaLink to={CREATE_CARD_HREF} className="max-w-md">
-              지금 바로 명함 만들기
+              내가 직접 만들어보기
             </FlowCtaLink>
           </div>
         </div>
