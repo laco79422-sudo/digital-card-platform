@@ -29,7 +29,7 @@ const SAMPLE_CARDS: Record<
     tagline: "연결을 만드는 사람",
     description: "홍보가 되는 명함,\n연결이 이어지는 구조까지 설계합니다",
     initials: "SM",
-    accent: "from-brand-500 via-sky-500 to-indigo-600",
+    accent: "from-brand-500 via-indigo-500 to-slate-900",
   },
   business: {
     typeLabel: "사업자형",
@@ -104,7 +104,7 @@ export function LandingSampleCard({ variant = "default", sampleType = "personal"
       <div className={cn("space-y-3", isHero ? "px-6 py-5 sm:px-8" : "px-5 py-4 sm:px-6")}>
         <span
           className={cn(
-            "inline-flex w-full items-center justify-center rounded-xl bg-brand-800 font-bold text-white shadow-lg",
+            "inline-flex w-full items-center justify-center rounded-xl bg-cta-500 font-bold text-white shadow-lg shadow-cta-900/20 hover:bg-cta-600",
             isHero ? "min-h-12 px-4 text-sm sm:text-[15px]" : "min-h-11 px-3 text-sm",
           )}
         >

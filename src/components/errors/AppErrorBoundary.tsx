@@ -34,7 +34,7 @@ export class AppErrorBoundary extends Component<Props, State> {
           ) : null}
           <button
             type="button"
-            className="rounded-xl bg-brand-800 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-900"
+            className="rounded-xl bg-cta-500 px-5 py-2.5 text-sm font-semibold text-white shadow-sm shadow-cta-900/20 hover:bg-cta-600"
             onClick={() => window.location.reload()}
           >
             새로고침

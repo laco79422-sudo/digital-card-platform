@@ -132,7 +132,7 @@ export function TempCardPreviewPage() {
         </p>
         <Link
           to="/create-card"
-          className="mt-8 inline-flex min-h-[52px] items-center justify-center rounded-xl bg-brand-700 px-6 text-base font-bold text-white"
+          className="mt-8 inline-flex min-h-[52px] items-center justify-center rounded-xl bg-cta-500 px-6 text-base font-bold text-white shadow-md shadow-cta-900/20 hover:bg-cta-600"
         >
           명함 만들기
         </Link>

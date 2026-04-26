@@ -57,7 +57,7 @@ export function PricingCard({
           className={cn(
             "inline-flex min-h-[52px] w-full items-center justify-center rounded-xl text-base font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600",
             highlighted
-              ? "bg-brand-800 text-white shadow-sm shadow-brand-900/20 hover:bg-brand-900"
+              ? "bg-cta-500 text-white shadow-sm shadow-cta-900/20 hover:bg-cta-600"
               : "border border-slate-300 bg-white text-brand-900 hover:bg-slate-50",
           )}
         >

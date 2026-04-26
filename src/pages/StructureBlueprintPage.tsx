@@ -140,7 +140,7 @@ export function StructureBlueprintPage() {
         <Button
           type="button"
           size="lg"
-          className="min-h-[52px] w-full max-w-md gap-2 bg-gradient-to-r from-brand-600 to-brand-800 text-base font-bold shadow-lg sm:w-auto sm:min-w-[280px]"
+          className="min-h-[52px] w-full max-w-md gap-2 bg-gradient-to-r from-cta-500 to-cta-600 text-base font-bold shadow-lg shadow-cta-900/20 hover:from-cta-400 hover:to-cta-500 sm:w-auto sm:min-w-[280px]"
           onClick={scrollToForm}
         >
           무료로 구조 받아보기
@@ -239,7 +239,7 @@ export function StructureBlueprintPage() {
               <div className="flex justify-center pt-2">
                 <Link
                   to="/signup?intent=expert-structure"
-                  className="inline-flex min-h-[52px] w-full max-w-md items-center justify-center rounded-xl bg-brand-900 px-6 text-base font-bold text-white shadow-md transition-colors hover:bg-brand-950"
+                  className="inline-flex min-h-[52px] w-full max-w-md items-center justify-center rounded-xl bg-cta-500 px-6 text-base font-bold text-white shadow-md shadow-cta-900/20 transition-colors hover:bg-cta-600"
                 >
                   전문가와 함께 진행하기
                 </Link>

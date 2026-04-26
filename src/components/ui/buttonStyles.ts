@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 /** `<button>`과 `<Link>`(앵커)가 동일한 시각 스타일을 쓰도록 공유합니다. 앵커 안에 button을 넣지 않습니다. */
 export const buttonVariants = {
   primary:
-    "bg-brand-800 text-white hover:bg-brand-900 shadow-sm shadow-brand-900/20",
+    "bg-cta-500 text-white shadow-sm shadow-cta-900/20 hover:bg-cta-600 active:bg-cta-700",
   secondary:
     "border border-slate-300 bg-white text-brand-900 hover:bg-slate-50",
   solidLight:
@@ -25,7 +25,7 @@ export type ButtonVariant = keyof typeof buttonVariants;
 export type ButtonSize = keyof typeof buttonSizes;
 
 export const buttonBaseClassName =
-  "inline-flex items-center justify-center gap-2 font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600 disabled:pointer-events-none disabled:opacity-50";
+  "inline-flex items-center justify-center gap-2 font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cta-500 disabled:pointer-events-none disabled:opacity-50";
 
 export function linkButtonClassName({
   variant = "primary",

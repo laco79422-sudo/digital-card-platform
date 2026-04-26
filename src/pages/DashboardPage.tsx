@@ -80,7 +80,7 @@ export function DashboardPage() {
         <div className="flex flex-wrap gap-2">
           <Link
             to="/cards/new"
-            className="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-brand-800 px-5 text-base font-semibold text-white hover:bg-brand-900 sm:min-h-0 sm:py-2.5"
+            className="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-cta-500 px-5 text-base font-semibold text-white shadow-sm shadow-cta-900/20 hover:bg-cta-600 sm:min-h-0 sm:py-2.5"
           >
             {brandCta.createDigitalCard}
           </Link>

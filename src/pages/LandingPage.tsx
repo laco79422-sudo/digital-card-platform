@@ -35,9 +35,9 @@ function FlowCtaLink({
     <Link
       to={to}
       className={cn(
-        "inline-flex min-h-[52px] w-full max-w-md items-center justify-center gap-2 rounded-xl px-6 text-base font-bold shadow-lg focus:outline-none focus:ring-2 focus:ring-brand-400 focus:ring-offset-2",
+        "inline-flex min-h-[52px] w-full max-w-md items-center justify-center gap-2 rounded-xl px-6 text-base font-bold shadow-lg focus:outline-none focus:ring-2 focus:ring-cta-400 focus:ring-offset-2",
         variant === "gradient"
-          ? "text-white ring-2 ring-brand-400/35 bg-gradient-to-r from-brand-500 to-brand-700 hover:from-brand-400 hover:to-brand-600 hover:ring-brand-300/50"
+          ? "bg-gradient-to-r from-cta-500 to-cta-600 text-white ring-2 ring-cta-300/45 hover:from-cta-400 hover:to-cta-500 hover:ring-cta-200/70"
           : "border-2 border-brand-600 bg-white text-brand-950 shadow-md hover:bg-brand-50",
         className,
       )}
@@ -74,8 +74,8 @@ export function LandingPage() {
       <SiteLinkPreviewSeo />
 
       {/* 1. 강한 결과 + 메인 CTA */}
-      <section className="relative overflow-hidden bg-gradient-to-b from-slate-900 via-brand-950 to-brand-950 text-white">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(96,165,250,0.2),_transparent_55%)]" />
+      <section className="relative overflow-hidden bg-gradient-to-b from-surface-dark via-slate-950 to-brand-950 text-white">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(99,102,241,0.24),_transparent_55%)]" />
         <div className={cn("relative", layout.page, section.yHero)}>
           <div className="mx-auto flex max-w-3xl flex-col items-center text-center">
             <h1 className="text-balance text-3xl font-extrabold leading-snug tracking-tight text-white sm:text-4xl md:text-[2.65rem]">
@@ -94,8 +94,8 @@ export function LandingPage() {
                 >
                   <span
                     className={cn(
-                      "inline-flex min-h-[52px] w-full items-center justify-center rounded-xl px-4 text-center text-sm font-bold leading-snug text-slate-900 shadow-md transition-colors sm:text-base",
-                      "bg-white hover:bg-slate-100",
+                      "inline-flex min-h-[52px] w-full items-center justify-center rounded-xl px-4 text-center text-sm font-bold leading-snug text-white shadow-lg transition-colors sm:text-base",
+                      "bg-cta-500 shadow-cta-900/25 hover:bg-cta-600",
                     )}
                   >
                     내 명함 만들기
@@ -110,8 +110,8 @@ export function LandingPage() {
                 >
                   <span
                     className={cn(
-                      "inline-flex min-h-[52px] w-full items-center justify-center rounded-xl border-2 border-white/90 px-4 text-center text-sm font-bold leading-snug text-white shadow-inner transition-colors sm:text-base",
-                      "bg-slate-950/75 hover:border-white hover:bg-slate-950/95",
+                      "inline-flex min-h-[52px] w-full items-center justify-center rounded-xl border-2 border-brand-300/90 px-4 text-center text-sm font-bold leading-snug text-white shadow-inner transition-colors sm:text-base",
+                      "bg-white/10 hover:border-brand-200 hover:bg-brand-500/20",
                     )}
                   >
                     전문가에게 맡기기
@@ -210,7 +210,7 @@ export function LandingPage() {
               <Link
                 to="/signup?intent=expert-structure"
                 className={cn(
-                  "inline-flex min-h-[52px] w-full max-w-md items-center justify-center rounded-xl bg-slate-900 px-6 text-base font-bold text-white shadow-md hover:bg-slate-800",
+                  "inline-flex min-h-[52px] w-full max-w-md items-center justify-center rounded-xl bg-cta-500 px-6 text-base font-bold text-white shadow-md shadow-cta-900/20 hover:bg-cta-600",
                 )}
               >
                 전문가와 함께 진행하기
