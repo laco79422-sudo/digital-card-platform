@@ -118,6 +118,7 @@ export function DigitalCardPublicView({
   const company = card.brand_name.trim();
   const description = card.intro.trim();
   const title = card.tagline?.trim() ?? "";
+  const imageUrl = card.imageUrl?.trim() || card.brand_image_url?.trim() || "";
   const showCompany = Boolean(company && company !== title);
   const trustMetric = trustMetricForView(card);
   const testimonials = trustTestimonialsForView(card);
@@ -229,10 +230,10 @@ export function DigitalCardPublicView({
           <div className="flex flex-col items-center text-center">
             <div className="relative w-full max-w-md overflow-hidden rounded-2xl bg-white/10 shadow-lg ring-1 ring-white/15">
               <div className="relative aspect-video w-full max-h-[min(42vh,320px)] overflow-hidden">
-                {card.brand_image_url ? (
+                {imageUrl ? (
                   <BrandHeroFrame
                     className="absolute inset-0 h-full w-full"
-                    imageUrl={card.brand_image_url}
+                    imageUrl={imageUrl}
                     naturalWidth={card.brand_image_natural_width ?? 0}
                     naturalHeight={card.brand_image_natural_height ?? 0}
                     zoom={card.brand_image_zoom ?? 1}

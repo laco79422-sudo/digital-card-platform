@@ -19,6 +19,7 @@ export function DigitalCardSeo({ card }: { card: BusinessCard }) {
     const title = `${card.person_name || card.brand_name} | ${card.job_title || "디지털 명함"}`.trim() || seoTitle(card);
     const desc = seoDescription(card);
     const imageUrl = previewOgImageUrlFromDraft({
+      imageUrl: card.imageUrl ?? null,
       brand_image_url: card.brand_image_url ?? null,
       gallery_urls_raw: card.gallery_urls?.join("\n") ?? "",
     });

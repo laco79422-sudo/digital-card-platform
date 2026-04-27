@@ -22,10 +22,10 @@ export function previewOgImageEndpointUrl(origin: string, tempId: string): strin
 
 /** Kakao / Open Graph — og:image must be an absolute https URL. */
 export function previewOgImageUrlFromDraft(
-  draft: Pick<CardEditorDraft, "brand_image_url" | "gallery_urls_raw">,
+  draft: Pick<CardEditorDraft, "brand_image_url" | "gallery_urls_raw"> & { imageUrl?: string | null },
   fallbackHttps: string = SITE_OG_IMAGE_URL,
 ): string {
-  const hero = draft.brand_image_url?.trim();
+  const hero = draft.imageUrl?.trim() || draft.brand_image_url?.trim();
   if (hero?.startsWith("https://")) return hero;
   const g = firstHttpsUrlFromGalleryRaw(draft.gallery_urls_raw);
   if (g) return g;
@@ -81,6 +81,7 @@ export function tempPreviewKakaoFeedFromCard(
     intro: card.intro,
     address: "",
     trust_metric: card.trust_metric ?? "",
+    imageUrl: card.imageUrl ?? null,
     brand_image_url: card.brand_image_url ?? null,
     gallery_urls_raw: card.gallery_urls?.join("\n") ?? "",
   };
@@ -102,6 +103,7 @@ export function previewKakaoFeedFromBusinessCard(
     intro: card.intro,
     address: "",
     trust_metric: card.trust_metric ?? "",
+    imageUrl: card.imageUrl ?? null,
     brand_image_url: card.brand_image_url ?? null,
     gallery_urls_raw: card.gallery_urls?.join("\n") ?? "",
   };

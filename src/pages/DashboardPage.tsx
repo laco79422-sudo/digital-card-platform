@@ -1,11 +1,14 @@
 import { BRAND_DISPLAY_NAME, brandCta } from "@/lib/brand";
+import { buildCardShareUrl } from "@/lib/cardShareUrl";
 import { shareCardLinkNativeOrder } from "@/lib/kakaoWebShare";
 import { buildReferralCode } from "@/lib/referrals";
 import { layout } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
+import { fetchMyCards } from "@/services/cardsService";
 import { useAuthStore } from "@/stores/authStore";
 import { useAppDataStore } from "@/stores/appDataStore";
-import type { User } from "@/types/domain";
+import type { BusinessCard, User } from "@/types/domain";
+import QRCode from "qrcode";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
@@ -40,6 +43,14 @@ function StatBlock({
   );
 }
 
+function cardDisplayName(card: BusinessCard): string {
+  return card.person_name.trim() || card.brand_name.trim() || "이름 없는 명함";
+}
+
+function cardSubline(card: BusinessCard): string {
+  return [card.job_title.trim(), card.brand_name.trim()].filter(Boolean).join(" · ") || "직업/회사명 미입력";
+}
+
 export function DashboardPage() {
   const user = useAuthStore((s) => s.user);
   const businessCards = useAppDataStore((s) => s.businessCards);
@@ -49,13 +60,30 @@ export function DashboardPage() {
   const applications = useAppDataStore((s) => s.applications);
   const referralRecords = useAppDataStore((s) => s.referralRecords);
   const ensureReferralRecord = useAppDataStore((s) => s.ensureReferralRecord);
-  const [copyDone, setCopyDone] = useState(false);
-  const [shareHint, setShareHint] = useState(false);
+  const upsertBusinessCard = useAppDataStore((s) => s.upsertBusinessCard);
+  const [referralCopyDone, setReferralCopyDone] = useState(false);
+  const [referralShareHint, setReferralShareHint] = useState(false);
+  const [cardCopyId, setCardCopyId] = useState<string | null>(null);
+  const [cardShareHintId, setCardShareHintId] = useState<string | null>(null);
+  const [qrCard, setQrCard] = useState<BusinessCard | null>(null);
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
 
   const uid = user?.id ?? "";
   useEffect(() => {
     if (uid) ensureReferralRecord(uid);
   }, [ensureReferralRecord, uid]);
+
+  useEffect(() => {
+    if (!uid) return;
+    let cancelled = false;
+    void fetchMyCards(uid).then((cards) => {
+      if (cancelled || !cards) return;
+      for (const card of cards) upsertBusinessCard(card);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [uid, upsertBusinessCard]);
 
   const myCards = useMemo(
     () => (uid ? businessCards.filter((c) => c.user_id === uid) : []),
@@ -88,8 +116,8 @@ export function DashboardPage() {
     } catch {
       window.prompt("추천 링크를 복사해 주세요", referralLink);
     }
-    setCopyDone(true);
-    window.setTimeout(() => setCopyDone(false), 2200);
+    setReferralCopyDone(true);
+    window.setTimeout(() => setReferralCopyDone(false), 2200);
   };
 
   const shareReferralLink = async () => {
@@ -101,8 +129,54 @@ export function DashboardPage() {
       kakaoDescription: "가입하고 디지털 명함을 만들어 보세요.",
     });
     if (r === "clipboard") {
-      setShareHint(true);
-      window.setTimeout(() => setShareHint(false), 3000);
+      setReferralShareHint(true);
+      window.setTimeout(() => setReferralShareHint(false), 3000);
+    }
+  };
+
+  const shareOrigin = typeof window !== "undefined" ? window.location.origin : "";
+
+  const copyCardLink = async (card: BusinessCard) => {
+    const url = buildCardShareUrl(shareOrigin, card.slug) ?? "";
+    if (!url) return;
+    try {
+      await navigator.clipboard.writeText(url);
+    } catch {
+      window.prompt("명함 링크를 복사해 주세요", url);
+    }
+    setCardCopyId(card.id);
+    window.setTimeout(() => setCardCopyId(null), 2200);
+  };
+
+  const shareCard = async (card: BusinessCard) => {
+    const url = buildCardShareUrl(shareOrigin, card.slug) ?? "";
+    if (!url) return;
+    const r = await shareCardLinkNativeOrder({
+      shareUrl: url,
+      title: `${cardDisplayName(card)} 명함`,
+      shortMessage: "내 디지털 명함 페이지 링크예요.",
+      kakaoDescription: card.intro.trim() || cardSubline(card),
+      kakaoImageUrl: card.imageUrl?.trim() || card.brand_image_url?.trim() || undefined,
+    });
+    if (r === "clipboard") {
+      setCardShareHintId(card.id);
+      window.setTimeout(() => setCardShareHintId(null), 3000);
+    }
+  };
+
+  const openQr = async (card: BusinessCard) => {
+    const url = buildCardShareUrl(shareOrigin, card.slug) ?? "";
+    if (!url) return;
+    setQrCard(card);
+    try {
+      const dataUrl = await QRCode.toDataURL(url, {
+        margin: 1,
+        width: 220,
+        color: { dark: "#0f172a", light: "#ffffff" },
+      });
+      setQrDataUrl(dataUrl);
+    } catch {
+      setQrDataUrl(null);
     }
   };
 
@@ -127,25 +201,6 @@ export function DashboardPage() {
           </Link>
         </div>
       </div>
-
-      {!isCreator ? (
-        <section className="mt-8 rounded-2xl border border-cta-200/80 bg-white p-4 shadow-sm sm:p-6">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h2 className="text-lg font-semibold text-slate-900 sm:text-xl">내 명함을 만들어 공유해 보세요</h2>
-              <p className="mt-2 text-sm leading-relaxed text-slate-600 sm:text-base">
-                공개 링크와 QR로 바로 공유할 수 있는 명함을 만들 수 있어요.
-              </p>
-            </div>
-            <Link
-              to="/cards/new"
-              className="inline-flex min-h-[52px] shrink-0 items-center justify-center rounded-xl bg-cta-500 px-5 text-base font-bold text-white shadow-sm shadow-cta-900/20 hover:bg-cta-600"
-            >
-              {brandCta.createDigitalCard}
-            </Link>
-          </div>
-        </section>
-      ) : null}
 
       <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {isCreator ? (
@@ -199,6 +254,122 @@ export function DashboardPage() {
         )}
       </div>
 
+      <section className="mt-8 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-900 sm:text-xl">내 명함</h2>
+            <p className="mt-2 text-sm leading-relaxed text-slate-600 sm:text-base">
+              만든 명함을 확인하고 수정하거나 공유할 수 있어요.
+            </p>
+          </div>
+          {!isCreator ? (
+            <Link
+              to="/cards/new"
+              className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-xl border border-cta-200 bg-cta-50 px-4 text-sm font-bold text-cta-700 hover:bg-cta-100"
+            >
+              {brandCta.createDigitalCard}
+            </Link>
+          ) : null}
+        </div>
+
+        {myCards.length === 0 ? (
+          <div className="mt-6 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-5 py-10 text-center">
+            <p className="text-lg font-bold text-slate-900">아직 만든 명함이 없어요.</p>
+            <p className="mt-2 text-sm leading-relaxed text-slate-600 sm:text-base">
+              먼저 내 명함을 만들어 공유해 보세요.
+            </p>
+            {!isCreator ? (
+              <Link
+                to="/cards/new"
+                className="mt-6 inline-flex min-h-[48px] items-center justify-center rounded-xl bg-cta-500 px-5 text-base font-bold text-white shadow-sm shadow-cta-900/20 hover:bg-cta-600"
+              >
+                {brandCta.createDigitalCard}
+              </Link>
+            ) : null}
+          </div>
+        ) : (
+          <ul className="mt-6 grid gap-4 lg:grid-cols-2">
+            {myCards.map((card) => {
+              const imageUrl = card.imageUrl?.trim() || card.brand_image_url?.trim() || "";
+              const publicUrl = buildCardShareUrl(shareOrigin, card.slug) ?? "";
+              const cardViewCount = cardViews.filter((v) => v.card_id === card.id).length;
+              const cardClickCount = cardClicks.filter((c) => c.card_id === card.id).length;
+
+              return (
+                <li key={card.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                  <div className="flex gap-4">
+                    <div className="h-20 w-28 shrink-0 overflow-hidden rounded-xl bg-gradient-to-br from-slate-100 to-slate-200 ring-1 ring-slate-200">
+                      {imageUrl ? (
+                        <img src={imageUrl} alt="" className="h-full w-full object-cover" loading="lazy" />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center px-3 text-center text-xs font-semibold text-slate-500">
+                          기본 썸네일
+                        </div>
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="truncate text-base font-bold text-slate-900">{cardDisplayName(card)}</h3>
+                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">
+                          {card.is_public ? "공개" : "비공개"}
+                        </span>
+                      </div>
+                      <p className="mt-1 truncate text-sm text-slate-600">{cardSubline(card)}</p>
+                      <p className="mt-2 break-all text-xs font-medium text-brand-800">{publicUrl || "/c/ 주소 미설정"}</p>
+                      <div className="mt-3 flex flex-wrap gap-2 text-xs font-semibold text-slate-600">
+                        <span className="rounded-full bg-slate-100 px-2.5 py-1">총 조회 {cardViewCount}</span>
+                        <span className="rounded-full bg-slate-100 px-2.5 py-1">클릭 수 {cardClickCount}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                    <Link
+                      to={`/c/${encodeURIComponent(card.slug)}`}
+                      className="inline-flex min-h-10 items-center justify-center rounded-xl bg-slate-900 px-3 text-sm font-bold text-white hover:bg-slate-800"
+                    >
+                      보기
+                    </Link>
+                    <Link
+                      to={`/cards/${encodeURIComponent(card.id)}/edit`}
+                      className="inline-flex min-h-10 items-center justify-center rounded-xl border border-slate-300 bg-white px-3 text-sm font-bold text-slate-900 hover:bg-slate-50"
+                    >
+                      수정
+                    </Link>
+                    <button
+                      type="button"
+                      className="inline-flex min-h-10 items-center justify-center rounded-xl border border-cta-200 bg-cta-50 px-3 text-sm font-bold text-cta-700 hover:bg-cta-100"
+                      onClick={() => void shareCard(card)}
+                    >
+                      공유
+                    </button>
+                    <button
+                      type="button"
+                      className="inline-flex min-h-10 items-center justify-center rounded-xl border border-slate-300 bg-white px-3 text-sm font-bold text-slate-900 hover:bg-slate-50"
+                      onClick={() => void openQr(card)}
+                    >
+                      QR 보기
+                    </button>
+                  </div>
+                  <button
+                    type="button"
+                    className="mt-2 text-xs font-semibold text-slate-500 underline underline-offset-4 hover:text-slate-800"
+                    onClick={() => void copyCardLink(card)}
+                  >
+                    {cardCopyId === card.id ? "공개 링크 복사됨" : "공개 링크 복사"}
+                  </button>
+                  {cardShareHintId === card.id ? (
+                    <p className="mt-2 text-sm font-medium text-brand-800">
+                      카카오톡 공유가 어려워 명함 링크를 복사했어요. 대화방에 붙여넣어 주세요.
+                    </p>
+                  ) : null}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
+
       {!isCreator ? (
         <section className="mt-10 rounded-2xl border border-brand-200/80 bg-gradient-to-br from-brand-50 via-white to-sky-50 p-4 shadow-sm sm:p-6">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -227,7 +398,7 @@ export function DashboardPage() {
               className="inline-flex min-h-11 items-center justify-center rounded-xl bg-cta-500 px-4 text-sm font-bold text-white shadow-sm shadow-cta-900/20 hover:bg-cta-600"
               onClick={() => void copyReferralLink()}
             >
-              {copyDone ? "복사됐어요" : "링크 복사하기"}
+              {referralCopyDone ? "복사됐어요" : "링크 복사하기"}
             </button>
             <button
               type="button"
@@ -237,7 +408,7 @@ export function DashboardPage() {
               카카오톡으로 공유하기
             </button>
           </div>
-          {shareHint ? (
+          {referralShareHint ? (
             <p className="mt-3 text-sm font-medium text-brand-800">
               카카오톡 공유가 어려워 추천 링크를 복사했어요. 대화방에 붙여넣어 주세요.
             </p>
@@ -260,6 +431,30 @@ export function DashboardPage() {
         <div className="mt-10 rounded-2xl border border-slate-200 bg-white p-4 sm:p-6">
           <h2 className="text-lg font-semibold text-slate-900 sm:text-xl">활동 기록</h2>
           <p className="mt-3 text-sm text-slate-600">활동 기록은 준비 중입니다.</p>
+        </div>
+      ) : null}
+
+      {qrCard ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 px-4" role="dialog" aria-modal="true">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-5 text-center shadow-xl">
+            <p className="text-lg font-bold text-slate-900">{cardDisplayName(qrCard)} QR</p>
+            <p className="mt-1 break-all text-xs font-medium text-slate-500">
+              {buildCardShareUrl(shareOrigin, qrCard.slug)}
+            </p>
+            <div className="mt-5 flex min-h-[220px] items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              {qrDataUrl ? <img src={qrDataUrl} alt="명함 QR 코드" className="h-52 w-52" /> : <p className="text-sm text-slate-500">QR을 만들 수 없어요.</p>}
+            </div>
+            <button
+              type="button"
+              className="mt-5 inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-slate-900 px-4 text-sm font-bold text-white hover:bg-slate-800"
+              onClick={() => {
+                setQrCard(null);
+                setQrDataUrl(null);
+              }}
+            >
+              닫기
+            </button>
+          </div>
         </div>
       ) : null}
     </div>
