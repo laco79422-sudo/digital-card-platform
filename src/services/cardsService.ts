@@ -25,6 +25,8 @@ const BUSINESS_CARD_REMOTE_KEYS = [
   "theme",
   "is_public",
   "created_at",
+  "expire_at",
+  "status",
   "tagline",
   "publicUrl",
   "trust_line",

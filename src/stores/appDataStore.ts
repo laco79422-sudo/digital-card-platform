@@ -15,6 +15,7 @@ import {
 import type {
   BusinessCard,
   CardClick,
+  CardLinkVisit,
   CardLink,
   CardView,
   CreatorProfile,
@@ -58,6 +59,7 @@ interface AppDataState {
   applications: ServiceApplication[];
   cardViews: CardView[];
   cardClicks: CardClick[];
+  cardLinkVisits: CardLinkVisit[];
   subscriptions: Subscription[];
   payments: Payment[];
   banners: MainBanner[];
@@ -75,6 +77,8 @@ interface AppDataState {
   setCardLinks: (cardId: string, links: CardLink[]) => void;
   addCardView: (view: CardView) => void;
   addCardClick: (click: CardClick) => void;
+  addCardLinkVisit: (visit: CardLinkVisit) => void;
+  extendCardAccess: (cardId: string, months?: number) => void;
   upsertServiceRequest: (r: ServiceRequest) => void;
   addApplication: (a: ServiceApplication) => void;
   upsertCreatorProfile: (c: CreatorProfile) => void;
@@ -101,6 +105,7 @@ export const useAppDataStore = create<AppDataState>()(
       applications: [...SAMPLE_APPLICATIONS],
       cardViews: [...SAMPLE_VIEWS],
       cardClicks: [...SAMPLE_CLICKS],
+      cardLinkVisits: [],
       subscriptions: [...SAMPLE_SUBSCRIPTIONS],
       payments: [...SAMPLE_PAYMENTS],
       banners: [...SAMPLE_BANNERS],
@@ -130,6 +135,17 @@ export const useAppDataStore = create<AppDataState>()(
         })),
       addCardView: (view) => set((s) => ({ cardViews: [...s.cardViews, view] })),
       addCardClick: (click) => set((s) => ({ cardClicks: [...s.cardClicks, click] })),
+      addCardLinkVisit: (visit) => set((s) => ({ cardLinkVisits: [...s.cardLinkVisits, visit] })),
+      extendCardAccess: (cardId, months = 1) =>
+        set((s) => ({
+          businessCards: s.businessCards.map((card) => {
+            if (card.id !== cardId) return card;
+            const now = new Date();
+            const base = card.expire_at && new Date(card.expire_at) > now ? new Date(card.expire_at) : now;
+            base.setDate(base.getDate() + 30 * months);
+            return { ...card, expire_at: base.toISOString(), status: "active" };
+          }),
+        })),
       upsertServiceRequest: (r) =>
         set((s) => ({
           serviceRequests: s.serviceRequests.some((x) => x.id === r.id)
@@ -234,6 +250,7 @@ export const useAppDataStore = create<AppDataState>()(
         applications: state.applications,
         cardViews: state.cardViews,
         cardClicks: state.cardClicks,
+        cardLinkVisits: state.cardLinkVisits,
         subscriptions: state.subscriptions,
         payments: state.payments,
         banners: state.banners,
@@ -258,6 +275,7 @@ export const useAppDataStore = create<AppDataState>()(
           applications: mergeById(current.applications, p.applications),
           cardViews: mergeById(current.cardViews, p.cardViews),
           cardClicks: mergeById(current.cardClicks, p.cardClicks),
+          cardLinkVisits: mergeById(current.cardLinkVisits ?? [], p.cardLinkVisits),
           subscriptions: mergeById(current.subscriptions, p.subscriptions),
           payments: mergeById(current.payments, p.payments),
           banners: mergeById(current.banners, p.banners),

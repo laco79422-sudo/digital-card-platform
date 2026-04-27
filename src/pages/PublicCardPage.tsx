@@ -1,18 +1,21 @@
 import { DigitalCardPublicView } from "@/components/digital-card/DigitalCardPublicView";
 import { DigitalCardSeo } from "@/components/digital-card/DigitalCardSeo";
 import { resolveBusinessCardPublicUrl } from "@/lib/cardShareUrl";
+import { savePromotionReferralCode } from "@/lib/promotionReferralStorage";
 import { getLinksForCard, useAppDataStore } from "@/stores/appDataStore";
 import type { CardLink } from "@/types/domain";
 import QRCode from "qrcode";
 import { useEffect, useMemo, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useLocation, useParams } from "react-router-dom";
 
 export function PublicCardPage() {
   const { slug } = useParams();
+  const location = useLocation();
   const businessCards = useAppDataStore((s) => s.businessCards);
   const cardLinks = useAppDataStore((s) => s.cardLinks);
   const addCardView = useAppDataStore((s) => s.addCardView);
   const addCardClick = useAppDataStore((s) => s.addCardClick);
+  const addCardLinkVisit = useAppDataStore((s) => s.addCardLinkVisit);
 
   const card = useMemo(
     () => businessCards.find((c) => c.slug === slug && c.is_public),
@@ -38,6 +41,7 @@ export function PublicCardPage() {
 
   useEffect(() => {
     if (!card) return;
+    const refCode = new URLSearchParams(location.search).get("ref")?.trim().toUpperCase();
     addCardView({
       id: crypto.randomUUID(),
       card_id: card.id,
@@ -45,7 +49,19 @@ export function PublicCardPage() {
       referrer: document.referrer || "direct",
       user_agent: navigator.userAgent,
     });
-  }, [card, addCardView]);
+    if (refCode) {
+      savePromotionReferralCode(refCode);
+      addCardLinkVisit({
+        id: crypto.randomUUID(),
+        card_id: card.id,
+        slug: card.slug,
+        ref_code: refCode,
+        visited_at: new Date().toISOString(),
+        page_path: `${location.pathname}${location.search}`,
+        user_agent: navigator.userAgent,
+      });
+    }
+  }, [card, addCardView, addCardLinkVisit, location.pathname, location.search]);
 
   const handleLink = (link: CardLink) => {
     if (!card) return;

@@ -40,6 +40,8 @@ export interface BusinessCard {
   theme: "navy" | "slate" | "midnight";
   is_public: boolean;
   created_at: string;
+  expire_at?: string | null;
+  status?: "active" | "expired" | "payment_required";
   /** Hero/SEO 한 줄 (비어 있으면 직함·소개로 보완) */
   tagline?: string | null;
   /** 공개 명함 절대 URL. 없으면 현재 origin + /c/{slug}로 생성 */
@@ -96,6 +98,16 @@ export interface CardClick {
   card_id: string;
   action_type: string;
   clicked_at: string;
+}
+
+export interface CardLinkVisit {
+  id: string;
+  card_id: string;
+  slug: string;
+  ref_code: string;
+  visited_at: string;
+  page_path: string;
+  user_agent: string | null;
 }
 
 export type CreatorType =
@@ -174,6 +186,7 @@ export interface Payment {
   payment_type: string;
   status: string;
   created_at: string;
+  card_id?: string | null;
 }
 
 export interface ReferralRecord {

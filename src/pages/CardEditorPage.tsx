@@ -420,7 +420,11 @@ export function CardEditorPage() {
             user_id: uid,
             created_at: existing?.created_at ?? new Date().toISOString(),
           });
-          upsertBusinessCard(card);
+          upsertBusinessCard({
+            ...card,
+            expire_at: existing?.expire_at ?? card.expire_at,
+            status: existing?.status ?? card.status,
+          });
           setCardLinks(cardId, draftLinkRowsToCardLinks(dly, linkRows, cardId));
         }
       }
@@ -637,7 +641,11 @@ export function CardEditorPage() {
         user_id: uid,
         created_at: existing?.created_at ?? new Date().toISOString(),
       });
-      upsertBusinessCard(card);
+      upsertBusinessCard({
+        ...card,
+        expire_at: existing?.expire_at ?? card.expire_at,
+        status: existing?.status ?? card.status,
+      });
       setCardLinks(cardId, draftLinkRowsToCardLinks(nextDraft, linkRows, cardId));
       addPayment({
         id: crypto.randomUUID(),
@@ -785,8 +793,13 @@ export function CardEditorPage() {
         user_id: user.id,
         created_at: existing?.created_at ?? new Date().toISOString(),
       });
-      upsertBusinessCard(card);
-      await upsertCardRemote(card);
+      const nextCard = {
+        ...card,
+        expire_at: existing?.expire_at ?? card.expire_at,
+        status: existing?.status ?? card.status,
+      };
+      upsertBusinessCard(nextCard);
+      await upsertCardRemote(nextCard);
 
       const links: CardLink[] = linkRows
         .filter((r) => r.label && r.url)

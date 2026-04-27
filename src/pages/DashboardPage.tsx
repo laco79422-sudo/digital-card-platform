@@ -10,7 +10,9 @@ import { useAppDataStore } from "@/stores/appDataStore";
 import type { BusinessCard, User } from "@/types/domain";
 import QRCode from "qrcode";
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+
+const CARD_MONTHLY_PRICE = 5900;
 
 function safeDisplayName(user: User | null): string {
   if (!user) return "사용자";
@@ -51,7 +53,38 @@ function cardSubline(card: BusinessCard): string {
   return [card.job_title.trim(), card.brand_name.trim()].filter(Boolean).join(" · ") || "직업/회사명 미입력";
 }
 
+function defaultExpireAt(createdAt: string): string {
+  const d = new Date(createdAt);
+  d.setDate(d.getDate() + 30);
+  return d.toISOString();
+}
+
+function cardAccessInfo(card: BusinessCard) {
+  const expireAt = card.expire_at ?? defaultExpireAt(card.created_at);
+  const msLeft = new Date(expireAt).getTime() - Date.now();
+  const daysLeft = Math.max(0, Math.ceil(msLeft / (1000 * 60 * 60 * 24)));
+  const expired = msLeft <= 0 || card.status === "expired" || card.status === "payment_required";
+  return {
+    expired,
+    daysLeft,
+    expireAt,
+    statusLabel: expired ? "만료됨 · 결제 필요" : `사용중 · ${daysLeft}일 남음`,
+  };
+}
+
+function buildPromotionLink(publicUrl: string, refCode: string): string {
+  if (!publicUrl || !refCode) return publicUrl;
+  try {
+    const u = new URL(publicUrl);
+    u.searchParams.set("ref", refCode);
+    return u.toString();
+  } catch {
+    return `${publicUrl}${publicUrl.includes("?") ? "&" : "?"}ref=${encodeURIComponent(refCode)}`;
+  }
+}
+
 export function DashboardPage() {
+  const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const businessCards = useAppDataStore((s) => s.businessCards);
   const cardViews = useAppDataStore((s) => s.cardViews);
@@ -61,12 +94,16 @@ export function DashboardPage() {
   const referralRecords = useAppDataStore((s) => s.referralRecords);
   const ensureReferralRecord = useAppDataStore((s) => s.ensureReferralRecord);
   const upsertBusinessCard = useAppDataStore((s) => s.upsertBusinessCard);
+  const addPayment = useAppDataStore((s) => s.addPayment);
+  const extendCardAccess = useAppDataStore((s) => s.extendCardAccess);
   const [referralCopyDone, setReferralCopyDone] = useState(false);
   const [referralShareHint, setReferralShareHint] = useState(false);
   const [cardCopyId, setCardCopyId] = useState<string | null>(null);
+  const [promoCopyId, setPromoCopyId] = useState<string | null>(null);
   const [cardShareHintId, setCardShareHintId] = useState<string | null>(null);
   const [qrCard, setQrCard] = useState<BusinessCard | null>(null);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+  const [qrLink, setQrLink] = useState("");
 
   const uid = user?.id ?? "";
   useEffect(() => {
@@ -164,13 +201,84 @@ export function DashboardPage() {
     }
   };
 
-  const openQr = async (card: BusinessCard) => {
-    const qrUrl = resolveBusinessCardPublicUrl(card, shareOrigin) ?? "";
+  const payForCardExtension = (card: BusinessCard) => {
+    if (!uid) return;
+    if (!window.confirm(`${CARD_MONTHLY_PRICE.toLocaleString()}원 결제 후 이 명함을 한 달 연장할까요?`)) {
+      return;
+    }
+    addPayment({
+      id: crypto.randomUUID(),
+      user_id: uid,
+      card_id: card.id,
+      amount: CARD_MONTHLY_PRICE,
+      payment_type: "card_month_extension",
+      status: "completed",
+      created_at: new Date().toISOString(),
+    });
+    extendCardAccess(card.id, 1);
+  };
+
+  const startAdditionalCard = () => {
+    if (myCards.length >= 1) {
+      if (
+        !window.confirm(
+          `무료 명함은 1개까지 이용할 수 있어요. ${CARD_MONTHLY_PRICE.toLocaleString()}원 결제 후 명함을 추가할까요?`,
+        )
+      ) {
+        return;
+      }
+      if (uid) {
+        addPayment({
+          id: crypto.randomUUID(),
+          user_id: uid,
+          amount: CARD_MONTHLY_PRICE,
+          payment_type: "additional_card_create",
+          status: "completed",
+          created_at: new Date().toISOString(),
+        });
+      }
+    }
+    navigate("/cards/new");
+  };
+
+  const copyPromotionLink = async (card: BusinessCard) => {
+    const publicUrl = resolveBusinessCardPublicUrl(card, shareOrigin) ?? "";
+    const promoUrl = buildPromotionLink(publicUrl, refCode);
+    if (!promoUrl) return;
+    try {
+      await navigator.clipboard.writeText(promoUrl);
+    } catch {
+      window.prompt("홍보 링크를 복사해 주세요", promoUrl);
+    }
+    setPromoCopyId(card.id);
+    window.setTimeout(() => setPromoCopyId(null), 2200);
+  };
+
+  const sharePromotionLink = async (card: BusinessCard) => {
+    const publicUrl = resolveBusinessCardPublicUrl(card, shareOrigin) ?? "";
+    const promoUrl = buildPromotionLink(publicUrl, refCode);
+    if (!promoUrl) return;
+    const r = await shareCardLinkNativeOrder({
+      shareUrl: promoUrl,
+      title: `${cardDisplayName(card)} 홍보 링크`,
+      shortMessage: "이 명함 링크로 소개해 주세요.",
+      kakaoDescription: card.intro.trim() || cardSubline(card),
+      kakaoImageUrl: card.imageUrl?.trim() || card.brand_image_url?.trim() || undefined,
+    });
+    if (r === "clipboard") {
+      setCardShareHintId(card.id);
+      window.setTimeout(() => setCardShareHintId(null), 3000);
+    }
+  };
+
+  const openQr = async (card: BusinessCard, explicitUrl?: string) => {
+    const qrUrl = explicitUrl ?? resolveBusinessCardPublicUrl(card, shareOrigin) ?? "";
     console.log("[QR URL]", qrUrl);
     console.log("[CARD SLUG]", card.slug);
     console.log("[CARD PUBLIC URL]", card.publicUrl);
     if (!qrUrl) return;
     setQrCard(card);
+    setQrLink(qrUrl);
     try {
       const dataUrl = await QRCode.toDataURL(qrUrl, {
         margin: 1,
@@ -266,12 +374,21 @@ export function DashboardPage() {
             </p>
           </div>
           {!isCreator ? (
-            <Link
-              to="/cards/new"
-              className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-xl border border-cta-200 bg-cta-50 px-4 text-sm font-bold text-cta-700 hover:bg-cta-100"
-            >
-              {brandCta.createDigitalCard}
-            </Link>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Link
+                to="/cards/new"
+                className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-xl border border-cta-200 bg-cta-50 px-4 text-sm font-bold text-cta-700 hover:bg-cta-100"
+              >
+                {brandCta.createDigitalCard}
+              </Link>
+              <button
+                type="button"
+                className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-xl bg-cta-500 px-4 text-sm font-bold text-white shadow-sm shadow-cta-900/20 hover:bg-cta-600"
+                onClick={startAdditionalCard}
+              >
+                명함 추가하기
+              </button>
+            </div>
           ) : null}
         </div>
 
@@ -295,9 +412,11 @@ export function DashboardPage() {
             {myCards.map((card) => {
               const imageUrl = card.imageUrl?.trim() || card.brand_image_url?.trim() || "";
               const publicUrl = resolveBusinessCardPublicUrl(card, shareOrigin) ?? "";
+              const promoUrl = buildPromotionLink(publicUrl, refCode);
               const cardViewCount = cardViews.filter((v) => v.card_id === card.id).length;
               const cardClickCount = cardClicks.filter((c) => c.card_id === card.id).length;
               const canEditCard = Boolean(user && user.id === card.user_id);
+              const access = cardAccessInfo(card);
 
               return (
                 <li key={card.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -317,15 +436,42 @@ export function DashboardPage() {
                         <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">
                           {card.is_public ? "공개" : "비공개"}
                         </span>
+                        <span
+                          className={cn(
+                            "rounded-full px-2 py-0.5 text-xs font-semibold",
+                            access.expired ? "bg-red-50 text-red-700" : "bg-emerald-50 text-emerald-700",
+                          )}
+                        >
+                          {access.statusLabel}
+                        </span>
                       </div>
                       <p className="mt-1 truncate text-sm text-slate-600">{cardSubline(card)}</p>
                       <p className="mt-2 break-all text-xs font-medium text-brand-800">{publicUrl || "/c/ 주소 미설정"}</p>
                       <div className="mt-3 flex flex-wrap gap-2 text-xs font-semibold text-slate-600">
                         <span className="rounded-full bg-slate-100 px-2.5 py-1">총 조회 {cardViewCount}</span>
                         <span className="rounded-full bg-slate-100 px-2.5 py-1">클릭 수 {cardClickCount}</span>
+                        <span className="rounded-full bg-slate-100 px-2.5 py-1">
+                          만료일 {new Date(access.expireAt).toLocaleDateString("ko-KR")}
+                        </span>
                       </div>
                     </div>
                   </div>
+
+                  {access.expired ? (
+                    <div className="mt-4 rounded-2xl border border-cta-200 bg-cta-50 px-4 py-4">
+                      <p className="text-sm font-bold text-slate-900">
+                        이 명함의 한 달 이용 기간이 끝났어요.
+                      </p>
+                      <p className="mt-1 text-sm text-slate-600">계속 이용하려면 결제가 필요합니다.</p>
+                      <button
+                        type="button"
+                        className="mt-3 inline-flex min-h-10 items-center justify-center rounded-xl bg-cta-500 px-4 text-sm font-bold text-white hover:bg-cta-600"
+                        onClick={() => payForCardExtension(card)}
+                      >
+                        5,900원 결제하고 한 달 연장
+                      </button>
+                    </div>
+                  ) : null}
 
                   <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
                     <Link
@@ -369,6 +515,33 @@ export function DashboardPage() {
                       카카오톡 공유가 어려워 명함 링크를 복사했어요. 대화방에 붙여넣어 주세요.
                     </p>
                   ) : null}
+                  <div className="mt-4 rounded-2xl border border-brand-100 bg-brand-50/50 px-4 py-4">
+                    <p className="text-sm font-bold text-slate-900">내 홍보 링크</p>
+                    <p className="mt-2 break-all text-xs font-semibold text-brand-900">{promoUrl}</p>
+                    <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                      <button
+                        type="button"
+                        className="inline-flex min-h-10 items-center justify-center rounded-xl bg-white px-3 text-sm font-bold text-slate-900 ring-1 ring-slate-200 hover:bg-slate-50"
+                        onClick={() => void copyPromotionLink(card)}
+                      >
+                        {promoCopyId === card.id ? "복사됨" : "홍보 링크 복사"}
+                      </button>
+                      <button
+                        type="button"
+                        className="inline-flex min-h-10 items-center justify-center rounded-xl bg-white px-3 text-sm font-bold text-slate-900 ring-1 ring-slate-200 hover:bg-slate-50"
+                        onClick={() => void sharePromotionLink(card)}
+                      >
+                        카카오톡으로 홍보하기
+                      </button>
+                      <button
+                        type="button"
+                        className="inline-flex min-h-10 items-center justify-center rounded-xl bg-white px-3 text-sm font-bold text-slate-900 ring-1 ring-slate-200 hover:bg-slate-50"
+                        onClick={() => void openQr(card, promoUrl)}
+                      >
+                        QR 보기
+                      </button>
+                    </div>
+                  </div>
                 </li>
               );
             })}
@@ -445,7 +618,7 @@ export function DashboardPage() {
           <div className="w-full max-w-sm rounded-2xl bg-white p-5 text-center shadow-xl">
             <p className="text-lg font-bold text-slate-900">{cardDisplayName(qrCard)} QR</p>
             <p className="mt-1 break-all text-xs font-medium text-slate-500">
-              {resolveBusinessCardPublicUrl(qrCard, shareOrigin)}
+              {qrLink || resolveBusinessCardPublicUrl(qrCard, shareOrigin)}
             </p>
             <div className="mt-5 flex min-h-[220px] items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 p-4">
               {qrDataUrl ? <img src={qrDataUrl} alt="명함 QR 코드" className="h-52 w-52" /> : <p className="text-sm text-slate-500">QR을 만들 수 없어요.</p>}
@@ -456,6 +629,7 @@ export function DashboardPage() {
               onClick={() => {
                 setQrCard(null);
                 setQrDataUrl(null);
+                setQrLink("");
               }}
             >
               닫기

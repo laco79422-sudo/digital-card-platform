@@ -13,6 +13,12 @@ function normalizePhoneNumber(phone: string): string | null {
   return digits || null;
 }
 
+function defaultExpireAt(createdAt: string): string {
+  const d = new Date(createdAt);
+  d.setDate(d.getDate() + 30);
+  return d.toISOString();
+}
+
 /** 편집기·미리보기가 공유하는 단일 드래프트 (리렌더·스크롤 후에도 유지) */
 export type CardEditorDraft = {
   brand_name: string;
@@ -276,6 +282,8 @@ export function draftToBusinessCard(
     theme: draft.theme,
     is_public: draft.is_public,
     created_at: opts.created_at,
+    expire_at: defaultExpireAt(opts.created_at),
+    status: "active",
     tagline: draft.tagline.trim() || null,
     publicUrl,
     trust_line,

@@ -14,6 +14,7 @@ import { getLandingEmail, hasPendingCardDraft } from "@/lib/pendingCardStorage";
 import { isSupabaseConfigured } from "@/lib/supabase/client";
 import { mapSupabaseUser } from "@/lib/supabase/mapAuthUser";
 import { getReferralCodeFromSearch } from "@/lib/referrals";
+import { getPromotionReferralCode } from "@/lib/promotionReferralStorage";
 import { useAppDataStore } from "@/stores/appDataStore";
 import { useAuthStore } from "@/stores/authStore";
 import {
@@ -76,7 +77,10 @@ export function SignupPage() {
 
   const emailValue = watch("email") ?? "";
   const emailFieldStatus = useMemo(() => getSignupEmailFieldStatus(emailValue), [emailValue]);
-  const referralCode = useMemo(() => getReferralCodeFromSearch(location.search), [location.search]);
+  const referralCode = useMemo(
+    () => getReferralCodeFromSearch(location.search) ?? getPromotionReferralCode(),
+    [location.search],
+  );
 
   /** 이메일 칸 아래: 형식 안내만 (서버 중복 메시지는 errorMessage로만 표시) */
   const emailFormatHint = useMemo(() => {
