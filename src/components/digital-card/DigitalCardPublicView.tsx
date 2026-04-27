@@ -119,6 +119,7 @@ export function DigitalCardPublicView({
   const description = card.intro.trim();
   const title = card.tagline?.trim() ?? "";
   const imageUrl = card.imageUrl?.trim() || card.brand_image_url?.trim() || "";
+  const hasPhone = Boolean(card.phone?.replace(/\D/g, ""));
   const showCompany = Boolean(company && company !== title);
   const trustMetric = trustMetricForView(card);
   const testimonials = trustTestimonialsForView(card);
@@ -343,14 +344,16 @@ export function DigitalCardPublicView({
               </>
             )}
             <div className="mt-7 flex w-full max-w-md flex-col gap-3 sm:mt-8 sm:flex-row sm:justify-center">
-              <Button
-                type="button"
-                className="min-h-[54px] w-full flex-1 border-0 bg-white text-base font-bold text-slate-900 shadow-[0_12px_40px_-8px_rgba(0,0,0,0.45)] ring-2 ring-white/40 hover:bg-white/95 sm:min-h-[52px]"
-                onClick={() => navigateCta(hero.primary.href)}
-              >
-                <PrimaryHeroIcon className="mr-2 h-5 w-5 shrink-0" aria-hidden />
-                {hero.primary.label}
-              </Button>
+              {hasPhone || hero.mode === "from-links" ? (
+                <Button
+                  type="button"
+                  className="min-h-[54px] w-full flex-1 border-0 bg-white text-base font-bold text-slate-900 shadow-[0_12px_40px_-8px_rgba(0,0,0,0.45)] ring-2 ring-white/40 hover:bg-white/95 sm:min-h-[52px]"
+                  onClick={() => navigateCta(hero.primary.href)}
+                >
+                  <PrimaryHeroIcon className="mr-2 h-5 w-5 shrink-0" aria-hidden />
+                  {hero.primary.label}
+                </Button>
+              ) : null}
               <Button
                 type="button"
                 variant="secondary"
@@ -361,6 +364,9 @@ export function DigitalCardPublicView({
                 {hero.secondary.label}
               </Button>
             </div>
+            {!hasPhone && hero.mode !== "from-links" ? (
+              <p className="mt-3 text-sm font-medium text-white/80">전화번호가 등록되지 않았습니다</p>
+            ) : null}
           </div>
         </div>
       </section>
@@ -624,7 +630,7 @@ export function DigitalCardPublicView({
               <Button
                 key={a.label + a.href}
                 type="button"
-                variant={a.label === "전화" ? "primary" : "secondary"}
+                variant={a.label === "문의하기" ? "primary" : "secondary"}
                 className="min-h-[48px] flex-1 px-2 text-sm font-semibold sm:text-base"
                 onClick={() => navigateCta(a.href)}
               >

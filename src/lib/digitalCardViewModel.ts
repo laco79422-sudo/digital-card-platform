@@ -84,7 +84,7 @@ export type HeroCtaBundle = {
 };
 
 function telHref(phone: string): string {
-  const p = phone.replace(/\s/g, "");
+  const p = phone.replace(/\D/g, "");
   if (p.startsWith("tel:")) return p;
   return `tel:${p}`;
 }
@@ -129,7 +129,7 @@ export function resolveHeroCtas(card: BusinessCard, links: CardLink[]): HeroCtaB
     links.find((l) => /카카오|kakao/i.test(l.label))?.url;
 
   const primary: CtaAction = card.phone?.trim()
-    ? { label: "전화하기", href: telHref(card.phone), external: true }
+    ? { label: "문의하기", href: telHref(card.phone), external: true }
     : card.email?.trim()
       ? { label: "문의하기", href: mailHref(card.email), external: true }
       : {
@@ -163,7 +163,7 @@ export function resolveHeroCtas(card: BusinessCard, links: CardLink[]): HeroCtaB
 export function resolveStickyCtas(card: BusinessCard, links: CardLink[]): CtaAction[] {
   const out: CtaAction[] = [];
   if (card.phone?.trim()) {
-    out.push({ label: "전화", href: telHref(card.phone), external: true });
+    out.push({ label: "문의하기", href: telHref(card.phone), external: true });
   }
   const kakao =
     card.kakao_url?.trim() ||

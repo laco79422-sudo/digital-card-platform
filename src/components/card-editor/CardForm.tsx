@@ -602,14 +602,18 @@ export function CardForm({
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2">
           <div>
-            <label className="text-base font-medium text-slate-800">전화</label>
+            <label className="text-base font-medium text-slate-800">전화번호</label>
             <Input
               className="mt-1"
               value={draft.phone}
               onChange={(e) => setDraft({ phone: e.target.value })}
+              placeholder="01012345678"
               inputMode="tel"
               autoComplete="tel"
             />
+            <p className="mt-1 text-xs leading-relaxed text-slate-500">
+              문의하기 버튼에 연결될 전화번호입니다.
+            </p>
           </div>
           <div>
             <label className="text-base font-medium text-slate-800">이메일</label>

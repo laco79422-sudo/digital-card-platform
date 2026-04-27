@@ -8,6 +8,11 @@ function clampPan(n: number): number {
   return Math.max(-1, Math.min(1, n));
 }
 
+function normalizePhoneNumber(phone: string): string | null {
+  const digits = phone.replace(/\D/g, "");
+  return digits || null;
+}
+
 /** 편집기·미리보기가 공유하는 단일 드래프트 (리렌더·스크롤 후에도 유지) */
 export type CardEditorDraft = {
   brand_name: string;
@@ -262,7 +267,7 @@ export function draftToBusinessCard(
     person_name: draft.person_name.trim(),
     job_title: draft.job_title.trim(),
     intro: draft.intro.trim(),
-    phone: draft.phone.trim() || null,
+    phone: normalizePhoneNumber(draft.phone),
     email: draft.email.trim() || null,
     website_url: draft.website_url.trim() || null,
     blog_url: draft.blog_url.trim() || null,
