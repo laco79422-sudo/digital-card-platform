@@ -1,4 +1,5 @@
 import type { BusinessCard, DigitalCardServiceLine, TrustTestimonial } from "@/types/domain";
+import { buildCardShareUrl } from "@/lib/cardShareUrl";
 import { clampZoom } from "@/lib/brandHeroLayout";
 import type { PreviewCardType } from "@/lib/previewCardType";
 import { create } from "zustand";
@@ -250,6 +251,8 @@ export function draftToBusinessCard(
   const trust_line = trimmedTestimonials[0]?.quote ?? null;
   const trust_metric = draft.trust_metric.trim() || null;
   const imageUrl = (draft.imageUrl ?? draft.brand_image_url)?.trim() || null;
+  const publicUrl =
+    typeof window !== "undefined" ? buildCardShareUrl(window.location.origin, draft.slug.trim()) : null;
 
   return {
     id: opts.id,
@@ -269,6 +272,7 @@ export function draftToBusinessCard(
     is_public: draft.is_public,
     created_at: opts.created_at,
     tagline: draft.tagline.trim() || null,
+    publicUrl,
     trust_line,
     trust_metric,
     trust_testimonials,

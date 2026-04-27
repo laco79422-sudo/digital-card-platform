@@ -16,6 +16,15 @@ export function buildCardShareUrl(origin: string, slug: string): string | null {
   return `${base}/c/${encodeURIComponent(s)}`;
 }
 
+export function resolveBusinessCardPublicUrl(
+  card: { slug?: string | null; publicUrl?: string | null },
+  origin: string,
+): string | null {
+  const publicUrl = card.publicUrl?.trim();
+  if (publicUrl) return publicUrl;
+  return buildCardShareUrl(origin, card.slug ?? "");
+}
+
 /**
  * 공개 명함 페이지에 있으면 `window.location.href`를 우선 (가장 정확한 현재 주소).
  * 그 외에는 origin + slug로 조합.

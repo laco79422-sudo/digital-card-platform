@@ -42,6 +42,8 @@ export interface BusinessCard {
   created_at: string;
   /** Hero/SEO 한 줄 (비어 있으면 직함·소개로 보완) */
   tagline?: string | null;
+  /** 공개 명함 절대 URL. 없으면 현재 origin + /c/{slug}로 생성 */
+  publicUrl?: string | null;
   /** 신뢰 영역 갤러리 이미지 URL */
   gallery_urls?: string[] | null;
   /** 서비스 3~5개 */

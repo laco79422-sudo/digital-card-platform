@@ -1,5 +1,5 @@
 import { BRAND_DISPLAY_NAME, brandCta } from "@/lib/brand";
-import { buildCardShareUrl } from "@/lib/cardShareUrl";
+import { resolveBusinessCardPublicUrl } from "@/lib/cardShareUrl";
 import { shareCardLinkNativeOrder } from "@/lib/kakaoWebShare";
 import { buildReferralCode } from "@/lib/referrals";
 import { layout } from "@/lib/ui-classes";
@@ -137,7 +137,7 @@ export function DashboardPage() {
   const shareOrigin = typeof window !== "undefined" ? window.location.origin : "";
 
   const copyCardLink = async (card: BusinessCard) => {
-    const url = buildCardShareUrl(shareOrigin, card.slug) ?? "";
+    const url = resolveBusinessCardPublicUrl(card, shareOrigin) ?? "";
     if (!url) return;
     try {
       await navigator.clipboard.writeText(url);
@@ -149,7 +149,7 @@ export function DashboardPage() {
   };
 
   const shareCard = async (card: BusinessCard) => {
-    const url = buildCardShareUrl(shareOrigin, card.slug) ?? "";
+    const url = resolveBusinessCardPublicUrl(card, shareOrigin) ?? "";
     if (!url) return;
     const r = await shareCardLinkNativeOrder({
       shareUrl: url,
@@ -165,11 +165,14 @@ export function DashboardPage() {
   };
 
   const openQr = async (card: BusinessCard) => {
-    const url = buildCardShareUrl(shareOrigin, card.slug) ?? "";
-    if (!url) return;
+    const qrUrl = resolveBusinessCardPublicUrl(card, shareOrigin) ?? "";
+    console.log("[QR URL]", qrUrl);
+    console.log("[CARD SLUG]", card.slug);
+    console.log("[CARD PUBLIC URL]", card.publicUrl);
+    if (!qrUrl) return;
     setQrCard(card);
     try {
-      const dataUrl = await QRCode.toDataURL(url, {
+      const dataUrl = await QRCode.toDataURL(qrUrl, {
         margin: 1,
         width: 220,
         color: { dark: "#0f172a", light: "#ffffff" },
@@ -291,7 +294,7 @@ export function DashboardPage() {
           <ul className="mt-6 grid gap-4 lg:grid-cols-2">
             {myCards.map((card) => {
               const imageUrl = card.imageUrl?.trim() || card.brand_image_url?.trim() || "";
-              const publicUrl = buildCardShareUrl(shareOrigin, card.slug) ?? "";
+              const publicUrl = resolveBusinessCardPublicUrl(card, shareOrigin) ?? "";
               const cardViewCount = cardViews.filter((v) => v.card_id === card.id).length;
               const cardClickCount = cardClicks.filter((c) => c.card_id === card.id).length;
 
@@ -325,7 +328,7 @@ export function DashboardPage() {
 
                   <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
                     <Link
-                      to={`/c/${encodeURIComponent(card.slug)}`}
+                      to={publicUrl || `/c/${encodeURIComponent(card.slug)}`}
                       className="inline-flex min-h-10 items-center justify-center rounded-xl bg-slate-900 px-3 text-sm font-bold text-white hover:bg-slate-800"
                     >
                       보기
@@ -439,7 +442,7 @@ export function DashboardPage() {
           <div className="w-full max-w-sm rounded-2xl bg-white p-5 text-center shadow-xl">
             <p className="text-lg font-bold text-slate-900">{cardDisplayName(qrCard)} QR</p>
             <p className="mt-1 break-all text-xs font-medium text-slate-500">
-              {buildCardShareUrl(shareOrigin, qrCard.slug)}
+              {resolveBusinessCardPublicUrl(qrCard, shareOrigin)}
             </p>
             <div className="mt-5 flex min-h-[220px] items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 p-4">
               {qrDataUrl ? <img src={qrDataUrl} alt="명함 QR 코드" className="h-52 w-52" /> : <p className="text-sm text-slate-500">QR을 만들 수 없어요.</p>}

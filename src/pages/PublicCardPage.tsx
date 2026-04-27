@@ -1,7 +1,7 @@
 import { DigitalCardPublicView } from "@/components/digital-card/DigitalCardPublicView";
 import { DigitalCardSeo } from "@/components/digital-card/DigitalCardSeo";
 import { linkButtonClassName } from "@/components/ui/buttonStyles";
-import { buildCardShareUrl } from "@/lib/cardShareUrl";
+import { resolveBusinessCardPublicUrl } from "@/lib/cardShareUrl";
 import { useAuthStore } from "@/stores/authStore";
 import { getLinksForCard, useAppDataStore } from "@/stores/appDataStore";
 import type { CardLink } from "@/types/domain";
@@ -31,9 +31,12 @@ export function PublicCardPage() {
 
   useEffect(() => {
     if (!card) return;
-    const url = buildCardShareUrl(window.location.origin, card.slug) ?? "";
-    if (!url) return;
-    QRCode.toDataURL(url, { margin: 1, width: 200, color: { dark: "#0f172a", light: "#ffffff" } })
+    const qrUrl = resolveBusinessCardPublicUrl(card, window.location.origin) ?? "";
+    console.log("[QR URL]", qrUrl);
+    console.log("[CARD SLUG]", card.slug);
+    console.log("[CARD PUBLIC URL]", card.publicUrl);
+    if (!qrUrl) return;
+    QRCode.toDataURL(qrUrl, { margin: 1, width: 200, color: { dark: "#0f172a", light: "#ffffff" } })
       .then(setQr)
       .catch(() => setQr(null));
   }, [card]);
