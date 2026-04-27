@@ -29,6 +29,7 @@ const BUSINESS_CARD_REMOTE_KEYS = [
   "trust_line",
   "gallery_urls",
   "services",
+  "imageUrl",
   "brand_image_url",
   "brand_image_frame_ratio",
   "brand_image_natural_width",

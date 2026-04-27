@@ -22,6 +22,7 @@ type DraftLike = {
   intro?: string;
   address?: string;
   trust_metric?: string;
+  imageUrl?: string | null;
   brand_image_url?: string | null;
   gallery_urls_raw?: string;
 };
@@ -33,6 +34,7 @@ type CardLike = {
   job_title?: string;
   tagline?: string | null;
   intro?: string;
+  imageUrl?: string | null;
   brand_image_url?: string | null;
   gallery_urls?: string[] | null;
 };
@@ -98,7 +100,7 @@ function ogFromDraft(
       : type === "trust"
         ? `${brand} · ${trust || headline}`.slice(0, 300)
         : `${brand} · ${headline}`.slice(0, 300);
-  let image = d.brand_image_url?.trim() || "";
+  let image = d.imageUrl?.trim() || d.brand_image_url?.trim() || "";
   if (!image.startsWith("https://")) image = firstGalleryHttps(d.gallery_urls_raw);
   if (!image.startsWith("https://")) image = fallbackImage;
   return { title, desc, image, siteName: brand };
@@ -184,7 +186,7 @@ function ogFromCard(card: CardLike, fallbackImage: string): { title: string; des
   const titleText = (card.job_title || "디지털 명함").trim().slice(0, 80);
   const title = `${name} | ${titleText}`.slice(0, 160);
   const desc = ((card.tagline || card.intro || "명함 하나로 고객이 먼저 찾아옵니다").trim()).slice(0, 300);
-  let image = card.brand_image_url?.trim() || "";
+  let image = card.imageUrl?.trim() || card.brand_image_url?.trim() || "";
   if (!image.startsWith("https://")) image = firstGalleryHttpsFromList(card.gallery_urls);
   if (!image.startsWith("https://")) image = fallbackImage;
   return { title, desc, image, siteName: (card.brand_name || COMPANY_OG_TITLE).trim() };
@@ -195,7 +197,7 @@ async function fetchPublicCardBySlug(
   supabaseKey: string,
   slug: string,
 ): Promise<{ card: CardLike | null; status: number }> {
-  const rest = `${supabaseUrl.replace(/\/$/, "")}/rest/v1/business_cards?slug=eq.${encodeURIComponent(slug)}&is_public=eq.true&select=slug,person_name,brand_name,job_title,tagline,intro,brand_image_url,gallery_urls&limit=1`;
+  const rest = `${supabaseUrl.replace(/\/$/, "")}/rest/v1/business_cards?slug=eq.${encodeURIComponent(slug)}&is_public=eq.true&select=slug,person_name,brand_name,job_title,tagline,intro,imageUrl,brand_image_url,gallery_urls&limit=1`;
   const r = await fetch(rest, {
     headers: {
       Accept: "application/json",

@@ -21,7 +21,8 @@ function firstGalleryHttps(raw) {
 
 function resolveImageFromDraft(d, origin) {
   const base = origin.replace(/\/$/, "");
-  let image = typeof d?.brand_image_url === "string" ? d.brand_image_url.trim() : "";
+  let image = typeof d?.imageUrl === "string" ? d.imageUrl.trim() : "";
+  if (!image) image = typeof d?.brand_image_url === "string" ? d.brand_image_url.trim() : "";
   if (!image.startsWith("https://")) image = firstGalleryHttps(d?.gallery_urls_raw);
   if (!image.startsWith("https://")) image = `${base}/og-default.png`;
   return image;

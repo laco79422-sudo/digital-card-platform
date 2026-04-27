@@ -257,7 +257,7 @@ export function CardForm({
         ) : null}
         <ImageUploader
           label={isStudio ? "이미지 업로드 & 구도 조정" : "브랜드 대표 이미지"}
-            value={draft.brand_image_url}
+            value={draft.imageUrl ?? draft.brand_image_url}
             naturalWidth={draft.brand_image_natural_width}
             naturalHeight={draft.brand_image_natural_height}
             zoom={draft.brand_image_zoom}
@@ -270,6 +270,7 @@ export function CardForm({
                 return {
                   draft: {
                     ...s.draft,
+                    imageUrl: url,
                     brand_image_url: url,
                     ...(reset
                       ? {

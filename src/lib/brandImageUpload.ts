@@ -18,7 +18,12 @@ function safePathSegment(value: string): string {
   return value.replace(/[^a-z0-9_-]/gi, "-").replace(/-+/g, "-").slice(0, 80) || "user";
 }
 
-export async function uploadBrandImageDataUrl(dataUrl: string): Promise<string> {
+function safeFileStem(value: string): string {
+  const stem = value.replace(/\.[^.]+$/, "");
+  return safePathSegment(stem).slice(0, 48) || "image";
+}
+
+export async function uploadBrandImageDataUrl(dataUrl: string, originalFilename = "image.jpg"): Promise<string> {
   if (!isSupabaseConfigured || !supabase) {
     throw new Error("Supabase is not configured");
   }
@@ -27,7 +32,7 @@ export async function uploadBrandImageDataUrl(dataUrl: string): Promise<string> 
   const { data: userData } = await supabase.auth.getUser();
   const owner = safePathSegment(userData.user?.id ?? "guest");
   const bucket = import.meta.env.VITE_SUPABASE_CARD_IMAGE_BUCKET?.trim() || DEFAULT_BUCKET;
-  const path = `${owner}/${crypto.randomUUID()}.jpg`;
+  const path = `${owner}/${Date.now()}-${safeFileStem(originalFilename)}.jpg`;
 
   const { error } = await supabase.storage.from(bucket).upload(path, blob, {
     contentType: "image/jpeg",

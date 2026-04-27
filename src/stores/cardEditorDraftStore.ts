@@ -29,6 +29,7 @@ export type CardEditorDraft = {
   trust_testimonials: TrustTestimonial[];
   gallery_urls_raw: string;
   services: DigitalCardServiceLine[];
+  imageUrl: string | null;
   brand_image_url: string | null;
   brand_image_frame_ratio: string;
   brand_image_natural_width: number | null;
@@ -71,10 +72,12 @@ export function mergeDraftDefaults(
     profileImageUrl?: string | null;
     logoUrl?: string | null;
   };
-  const resolvedBrandImageUrl =
-    partial.brand_image_url !== undefined
-      ? partial.brand_image_url
-      : imageAliases.imageUrl ?? imageAliases.profileImageUrl ?? imageAliases.logoUrl ?? base.brand_image_url;
+  const resolvedImageUrl =
+    imageAliases.imageUrl ??
+    partial.brand_image_url ??
+    imageAliases.profileImageUrl ??
+    imageAliases.logoUrl ??
+    base.brand_image_url;
   const services =
     partial.services && partial.services.length >= 3 ? partial.services : base.services;
   let trust_testimonials = normalizeTrustTestimonialRows(partial.trust_testimonials);
@@ -108,7 +111,8 @@ export function mergeDraftDefaults(
       partialRest.brand_image_pan_x !== undefined ? clampPan(partialRest.brand_image_pan_x) : base.brand_image_pan_x,
     brand_image_pan_y:
       partialRest.brand_image_pan_y !== undefined ? clampPan(partialRest.brand_image_pan_y) : base.brand_image_pan_y,
-    brand_image_url: resolvedBrandImageUrl,
+    imageUrl: resolvedImageUrl,
+    brand_image_url: resolvedImageUrl,
     brand_image_legacy_object_position:
       partialRest.brand_image_legacy_object_position !== undefined
         ? partialRest.brand_image_legacy_object_position
@@ -138,6 +142,7 @@ export function createEmptyDraft(overrides: Partial<CardEditorDraft> = {}): Card
     trust_testimonials: [emptyTrustTestimonial(), emptyTrustTestimonial()],
     gallery_urls_raw: "",
     services: emptyServiceRows(),
+    imageUrl: null,
     brand_image_url: null,
     brand_image_frame_ratio: "16:9",
     brand_image_natural_width: null,
@@ -185,7 +190,8 @@ export function draftFromBusinessCard(card: BusinessCard): CardEditorDraft {
     ),
     gallery_urls_raw: card.gallery_urls?.join("\n") ?? "",
     services: svc.slice(0, 5),
-    brand_image_url: card.brand_image_url ?? imageAliases.imageUrl ?? imageAliases.profileImageUrl ?? imageAliases.logoUrl ?? null,
+    imageUrl: card.imageUrl ?? card.brand_image_url ?? imageAliases.profileImageUrl ?? imageAliases.logoUrl ?? null,
+    brand_image_url: card.imageUrl ?? card.brand_image_url ?? imageAliases.profileImageUrl ?? imageAliases.logoUrl ?? null,
     brand_image_frame_ratio: card.brand_image_frame_ratio?.trim() || "16:9",
     brand_image_natural_width: card.brand_image_natural_width ?? null,
     brand_image_natural_height: card.brand_image_natural_height ?? null,
@@ -243,6 +249,7 @@ export function draftToBusinessCard(
   const trust_testimonials = trimmedTestimonials.length > 0 ? trimmedTestimonials : null;
   const trust_line = trimmedTestimonials[0]?.quote ?? null;
   const trust_metric = draft.trust_metric.trim() || null;
+  const imageUrl = (draft.imageUrl ?? draft.brand_image_url)?.trim() || null;
 
   return {
     id: opts.id,
@@ -268,8 +275,8 @@ export function draftToBusinessCard(
     gallery_urls: galleryList.length > 0 ? galleryList : null,
     services: serviceList.length > 0 ? serviceList : null,
     brand_image_frame_ratio: draft.brand_image_frame_ratio?.trim() || "16:9",
-    imageUrl: draft.brand_image_url?.trim() ? draft.brand_image_url.trim() : null,
-    brand_image_url: draft.brand_image_url?.trim() ? draft.brand_image_url.trim() : null,
+    imageUrl,
+    brand_image_url: imageUrl,
     brand_image_natural_width: hasNewHeroMeta ? draft.brand_image_natural_width : null,
     brand_image_natural_height: hasNewHeroMeta ? draft.brand_image_natural_height : null,
     brand_image_zoom: hasNewHeroMeta ? clampZoom(draft.brand_image_zoom) : null,

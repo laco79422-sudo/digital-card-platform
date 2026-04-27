@@ -33,6 +33,7 @@ export const cardEditorSubmitSchema = z.object({
     .length(2),
   gallery_urls_raw: z.string().optional(),
   services: z.array(z.object({ title: z.string(), body: z.string() })).max(5),
+  imageUrl: z.string().url().nullable().optional(),
   brand_image_url: z.string().nullable().optional(),
   brand_image_frame_ratio: z.string().max(16).optional(),
   brand_image_natural_width: z.number().int().positive().nullable().optional(),

@@ -66,6 +66,7 @@ export function ImageUploader({
   const inputRef = useRef<HTMLInputElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
   const [processing, setProcessing] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const [frame, setFrame] = useState({ w: 0, h: 0 });
   const dragRef = useRef({ active: false, lastX: 0, lastY: 0 });
 
@@ -90,17 +91,18 @@ export function ImageUploader({
     e.target.value = "";
     if (!file) return;
     if (!isAllowedImage(file)) {
-      window.alert("jpg, jpeg, png, webp 형식이며 4MB 이하만 업로드할 수 있습니다.");
+      setUploadError("jpg, jpeg, png, webp 형식이며 4MB 이하만 업로드할 수 있습니다.");
       return;
     }
     setProcessing(true);
+    setUploadError(null);
     try {
       const { dataUrl, width, height } = await optimizeImageFileToDataUrl(file);
-      const publicUrl = await uploadBrandImageDataUrl(dataUrl);
+      const publicUrl = await uploadBrandImageDataUrl(dataUrl, file.name);
       onUrlChange(publicUrl, { reset: true, naturalW: width, naturalH: height });
     } catch (error) {
       console.warn("[ImageUploader] upload failed", error);
-      window.alert("이미지 업로드에 실패했습니다. Supabase Storage 설정과 권한을 확인한 뒤 다시 시도해 주세요.");
+      setUploadError("이미지 업로드에 실패했습니다");
     } finally {
       setProcessing(false);
     }
@@ -200,7 +202,7 @@ export function ImageUploader({
           disabled={processing}
           onClick={() => inputRef.current?.click()}
         >
-          {processing ? "업로드 중…" : "파일 선택"}
+          {processing ? "이미지 업로드 중..." : "파일 선택"}
         </Button>
         {value ? (
           <Button
@@ -215,6 +217,8 @@ export function ImageUploader({
           </Button>
         ) : null}
       </div>
+      {processing ? <p className="text-sm font-medium text-brand-700">이미지 업로드 중...</p> : null}
+      {uploadError ? <p className="text-sm font-medium text-red-600">{uploadError}</p> : null}
 
       {value ? (
         <div className="space-y-3">
