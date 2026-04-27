@@ -179,7 +179,7 @@ export function DashboardPage() {
     try {
       await navigator.clipboard.writeText(url);
     } catch {
-      window.prompt("명함 링크를 복사해 주세요", url);
+      window.prompt("공개 링크를 복사해 주세요", url);
     }
     setCardCopyId(card.id);
     window.setTimeout(() => setCardCopyId(null), 2200);
@@ -191,7 +191,7 @@ export function DashboardPage() {
     const r = await shareCardLinkNativeOrder({
       shareUrl: url,
       title: `${cardDisplayName(card)} 명함`,
-      shortMessage: "내 디지털 명함 페이지 링크예요.",
+      shortMessage: "내 디지털 명함 공개 링크예요.",
       kakaoDescription: card.intro.trim() || cardSubline(card),
       kakaoImageUrl: card.imageUrl?.trim() || card.brand_image_url?.trim() || undefined,
     });
@@ -222,7 +222,7 @@ export function DashboardPage() {
     if (myCards.length >= 1) {
       if (
         !window.confirm(
-          `무료 명함은 1개까지 이용할 수 있어요. ${CARD_MONTHLY_PRICE.toLocaleString()}원 결제 후 명함을 추가할까요?`,
+          `무료 명함은 1개까지 이용할 수 있어요. ${CARD_MONTHLY_PRICE.toLocaleString()}원 결제 후 새 명함을 만들까요?`,
         )
       ) {
         return;
@@ -261,7 +261,7 @@ export function DashboardPage() {
     const r = await shareCardLinkNativeOrder({
       shareUrl: promoUrl,
       title: `${cardDisplayName(card)} 홍보 링크`,
-      shortMessage: "이 명함 링크로 소개해 주세요.",
+      shortMessage: "이 홍보 링크로 소개해 주세요.",
       kakaoDescription: card.intro.trim() || cardSubline(card),
       kakaoImageUrl: card.imageUrl?.trim() || card.brand_image_url?.trim() || undefined,
     });
@@ -322,12 +322,7 @@ export function DashboardPage() {
             sub="의뢰에 보낸 제안 개수예요"
           />
         ) : (
-          <StatBlock
-            key="client-cards"
-            label="내 명함"
-            value={String(myCards.length)}
-            sub="공개 링크와 QR로 공유하세요"
-          />
+          <StatBlock key="client-cards" label="내 명함" value={String(myCards.length)} sub="실제 프로필 페이지예요" />
         )}
         {isCreator ? (
           <StatBlock
@@ -370,7 +365,7 @@ export function DashboardPage() {
           <div>
             <h2 className="text-lg font-semibold text-slate-900 sm:text-xl">내 명함</h2>
             <p className="mt-2 text-sm leading-relaxed text-slate-600 sm:text-base">
-              만든 명함을 확인하고 수정하거나 공유할 수 있어요.
+              내 명함은 실제 프로필 페이지이고, 공개 링크와 홍보 링크는 이 명함으로 들어오는 공유 경로예요.
             </p>
           </div>
           {!isCreator ? (
@@ -386,7 +381,7 @@ export function DashboardPage() {
                 className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-xl bg-cta-500 px-4 text-sm font-bold text-white shadow-sm shadow-cta-900/20 hover:bg-cta-600"
                 onClick={startAdditionalCard}
               >
-                명함 추가하기
+                새 명함 만들기
               </button>
             </div>
           ) : null}
@@ -396,7 +391,7 @@ export function DashboardPage() {
           <div className="mt-6 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-5 py-10 text-center">
             <p className="text-lg font-bold text-slate-900">아직 만든 명함이 없어요.</p>
             <p className="mt-2 text-sm leading-relaxed text-slate-600 sm:text-base">
-              먼저 내 명함을 만들어 공유해 보세요.
+              먼저 내 명함을 만들고, 공개 링크나 홍보 링크로 공유해 보세요.
             </p>
             {!isCreator ? (
               <Link
@@ -446,7 +441,12 @@ export function DashboardPage() {
                         </span>
                       </div>
                       <p className="mt-1 truncate text-sm text-slate-600">{cardSubline(card)}</p>
-                      <p className="mt-2 break-all text-xs font-medium text-brand-800">{publicUrl || "/c/ 주소 미설정"}</p>
+                      <div className="mt-3 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3">
+                        <p className="text-xs font-bold text-slate-700">공개 링크 (일반 공유)</p>
+                        <p className="mt-1 break-all text-xs font-semibold text-brand-800">
+                          {publicUrl || "/c/ 주소 미설정"}
+                        </p>
+                      </div>
                       <div className="mt-3 flex flex-wrap gap-2 text-xs font-semibold text-slate-600">
                         <span className="rounded-full bg-slate-100 px-2.5 py-1">총 조회 {cardViewCount}</span>
                         <span className="rounded-full bg-slate-100 px-2.5 py-1">클릭 수 {cardClickCount}</span>
@@ -512,11 +512,14 @@ export function DashboardPage() {
                   </button>
                   {cardShareHintId === card.id ? (
                     <p className="mt-2 text-sm font-medium text-brand-800">
-                      카카오톡 공유가 어려워 명함 링크를 복사했어요. 대화방에 붙여넣어 주세요.
+                      카카오톡 공유가 어려워 공개 링크를 복사했어요. 대화방에 붙여넣어 주세요.
                     </p>
                   ) : null}
                   <div className="mt-4 rounded-2xl border border-brand-100 bg-brand-50/50 px-4 py-4">
-                    <p className="text-sm font-bold text-slate-900">내 홍보 링크</p>
+                    <p className="text-sm font-bold text-slate-900">내 홍보 링크 (추천용)</p>
+                    <p className="mt-1 text-xs font-medium text-slate-600">
+                      이 링크로 가입하면 혜택을 받을 수 있어요. 명함은 하나이고, 링크만 목적별로 나뉩니다.
+                    </p>
                     <p className="mt-2 break-all text-xs font-semibold text-brand-900">{promoUrl}</p>
                     <div className="mt-3 grid gap-2 sm:grid-cols-3">
                       <button
