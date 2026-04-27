@@ -13,6 +13,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 const CARD_MONTHLY_PRICE = 14900;
+const PROMOTION_LINK_PRICE = 10900;
 
 function safeDisplayName(user: User | null): string {
   if (!user) return "사용자";
@@ -83,12 +84,22 @@ function buildPromotionLink(publicUrl: string, refCode: string): string {
   }
 }
 
+function buildRandomPromotionRefCode(existingCodes: Set<string>): string {
+  for (let i = 0; i < 10; i += 1) {
+    const code = `LINKO${Math.random().toString(36).slice(2, 10).toUpperCase()}`;
+    if (!existingCodes.has(code)) return code;
+  }
+  return `LINKO${Date.now().toString(36).toUpperCase()}`;
+}
+
 export function DashboardPage() {
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const businessCards = useAppDataStore((s) => s.businessCards);
   const cardViews = useAppDataStore((s) => s.cardViews);
   const cardClicks = useAppDataStore((s) => s.cardClicks);
+  const cardLinkVisits = useAppDataStore((s) => s.cardLinkVisits);
+  const cardPromotionLinks = useAppDataStore((s) => s.cardPromotionLinks);
   const requests = useAppDataStore((s) => s.serviceRequests);
   const applications = useAppDataStore((s) => s.applications);
   const referralRecords = useAppDataStore((s) => s.referralRecords);
@@ -96,6 +107,7 @@ export function DashboardPage() {
   const upsertBusinessCard = useAppDataStore((s) => s.upsertBusinessCard);
   const addPayment = useAppDataStore((s) => s.addPayment);
   const extendCardAccess = useAppDataStore((s) => s.extendCardAccess);
+  const addCardPromotionLink = useAppDataStore((s) => s.addCardPromotionLink);
   const [referralCopyDone, setReferralCopyDone] = useState(false);
   const [referralShareHint, setReferralShareHint] = useState(false);
   const [cardCopyId, setCardCopyId] = useState<string | null>(null);
@@ -241,22 +253,50 @@ export function DashboardPage() {
     navigate("/cards/new");
   };
 
-  const copyPromotionLink = async (card: BusinessCard) => {
-    const publicUrl = resolveBusinessCardPublicUrl(card, shareOrigin) ?? "";
-    const promoUrl = buildPromotionLink(publicUrl, refCode);
+  const addPromotionLink = (card: BusinessCard) => {
+    if (!uid) return;
+    if (
+      !window.confirm(
+        "홍보 링크를 추가하려면 10,900원이 필요합니다.\n결제 후 새로운 홍보 링크가 생성됩니다.",
+      )
+    ) {
+      return;
+    }
+    const existingCodes = new Set([
+      ...referralRecords.map((r) => r.ref_code),
+      ...cardPromotionLinks.map((link) => link.ref_code),
+    ]);
+    const ref_code = buildRandomPromotionRefCode(existingCodes);
+    addPayment({
+      id: crypto.randomUUID(),
+      user_id: uid,
+      card_id: card.id,
+      amount: PROMOTION_LINK_PRICE,
+      payment_type: "promotion_link_add",
+      status: "completed",
+      created_at: new Date().toISOString(),
+    });
+    addCardPromotionLink({
+      id: crypto.randomUUID(),
+      card_id: card.id,
+      ref_code,
+      type: "promotion",
+      created_at: new Date().toISOString(),
+    });
+  };
+
+  const copyPromotionLink = async (promoUrl: string, key: string) => {
     if (!promoUrl) return;
     try {
       await navigator.clipboard.writeText(promoUrl);
     } catch {
       window.prompt("홍보 링크를 복사해 주세요", promoUrl);
     }
-    setPromoCopyId(card.id);
+    setPromoCopyId(key);
     window.setTimeout(() => setPromoCopyId(null), 2200);
   };
 
-  const sharePromotionLink = async (card: BusinessCard) => {
-    const publicUrl = resolveBusinessCardPublicUrl(card, shareOrigin) ?? "";
-    const promoUrl = buildPromotionLink(publicUrl, refCode);
+  const sharePromotionLink = async (card: BusinessCard, promoUrl: string) => {
     if (!promoUrl) return;
     const r = await shareCardLinkNativeOrder({
       shareUrl: promoUrl,
@@ -407,11 +447,20 @@ export function DashboardPage() {
             {myCards.map((card) => {
               const imageUrl = card.imageUrl?.trim() || card.brand_image_url?.trim() || "";
               const publicUrl = resolveBusinessCardPublicUrl(card, shareOrigin) ?? "";
-              const promoUrl = buildPromotionLink(publicUrl, refCode);
               const cardViewCount = cardViews.filter((v) => v.card_id === card.id).length;
               const cardClickCount = cardClicks.filter((c) => c.card_id === card.id).length;
               const canEditCard = Boolean(user && user.id === card.user_id);
               const access = cardAccessInfo(card);
+              const promotionLinks = [
+                { id: `base-${card.id}`, ref_code: refCode, label: "기본 홍보 링크" },
+                ...cardPromotionLinks
+                  .filter((link) => link.card_id === card.id)
+                  .map((link, index) => ({
+                    id: link.id,
+                    ref_code: link.ref_code,
+                    label: `추가 홍보 링크 ${index + 1}`,
+                  })),
+              ].filter((link) => link.ref_code);
 
               return (
                 <li key={card.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -520,30 +569,56 @@ export function DashboardPage() {
                     <p className="mt-1 text-xs font-medium text-slate-600">
                       이 링크로 가입하면 혜택을 받을 수 있어요. 명함은 하나이고, 링크만 목적별로 나뉩니다.
                     </p>
-                    <p className="mt-2 break-all text-xs font-semibold text-brand-900">{promoUrl}</p>
-                    <div className="mt-3 grid gap-2 sm:grid-cols-3">
-                      <button
-                        type="button"
-                        className="inline-flex min-h-10 items-center justify-center rounded-xl bg-white px-3 text-sm font-bold text-slate-900 ring-1 ring-slate-200 hover:bg-slate-50"
-                        onClick={() => void copyPromotionLink(card)}
-                      >
-                        {promoCopyId === card.id ? "복사됨" : "홍보 링크 복사"}
-                      </button>
-                      <button
-                        type="button"
-                        className="inline-flex min-h-10 items-center justify-center rounded-xl bg-white px-3 text-sm font-bold text-slate-900 ring-1 ring-slate-200 hover:bg-slate-50"
-                        onClick={() => void sharePromotionLink(card)}
-                      >
-                        카카오톡으로 홍보하기
-                      </button>
-                      <button
-                        type="button"
-                        className="inline-flex min-h-10 items-center justify-center rounded-xl bg-white px-3 text-sm font-bold text-slate-900 ring-1 ring-slate-200 hover:bg-slate-50"
-                        onClick={() => void openQr(card, promoUrl)}
-                      >
-                        QR 보기
-                      </button>
+                    <div className="mt-3 space-y-3">
+                      {promotionLinks.map((link) => {
+                        const linkUrl = buildPromotionLink(publicUrl, link.ref_code);
+                        const visitCount = cardLinkVisits.filter(
+                          (visit) => visit.card_id === card.id && visit.ref_code === link.ref_code,
+                        ).length;
+                        const signupCount = referralRecords.filter((record) => record.referred_by === link.ref_code).length;
+                        return (
+                          <div key={link.id} className="rounded-2xl border border-brand-100 bg-white px-3 py-3">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <p className="text-xs font-bold text-slate-800">{link.label}</p>
+                              <p className="text-xs font-semibold text-slate-500">
+                                조회수 {visitCount} · 가입수 {signupCount}
+                              </p>
+                            </div>
+                            <p className="mt-2 break-all text-xs font-semibold text-brand-900">{linkUrl}</p>
+                            <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                              <button
+                                type="button"
+                                className="inline-flex min-h-10 items-center justify-center rounded-xl bg-slate-50 px-3 text-sm font-bold text-slate-900 ring-1 ring-slate-200 hover:bg-slate-100"
+                                onClick={() => void copyPromotionLink(linkUrl, link.id)}
+                              >
+                                {promoCopyId === link.id ? "복사됨" : "홍보 링크 복사"}
+                              </button>
+                              <button
+                                type="button"
+                                className="inline-flex min-h-10 items-center justify-center rounded-xl bg-slate-50 px-3 text-sm font-bold text-slate-900 ring-1 ring-slate-200 hover:bg-slate-100"
+                                onClick={() => void sharePromotionLink(card, linkUrl)}
+                              >
+                                카카오톡으로 홍보하기
+                              </button>
+                              <button
+                                type="button"
+                                className="inline-flex min-h-10 items-center justify-center rounded-xl bg-slate-50 px-3 text-sm font-bold text-slate-900 ring-1 ring-slate-200 hover:bg-slate-100"
+                                onClick={() => void openQr(card, linkUrl)}
+                              >
+                                QR 보기
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
+                    <button
+                      type="button"
+                      className="mt-3 inline-flex min-h-10 items-center justify-center rounded-xl bg-cta-500 px-4 text-sm font-bold text-white shadow-sm shadow-cta-900/20 hover:bg-cta-600"
+                      onClick={() => addPromotionLink(card)}
+                    >
+                      홍보 링크 추가
+                    </button>
                   </div>
                 </li>
               );

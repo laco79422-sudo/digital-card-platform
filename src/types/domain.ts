@@ -110,6 +110,14 @@ export interface CardLinkVisit {
   user_agent: string | null;
 }
 
+export interface CardPromotionLink {
+  id: string;
+  card_id: string;
+  ref_code: string;
+  type: "promotion";
+  created_at: string;
+}
+
 export type CreatorType =
   | "blog_writer"
   | "youtube_producer"

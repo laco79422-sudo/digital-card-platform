@@ -17,6 +17,7 @@ import type {
   CardClick,
   CardLinkVisit,
   CardLink,
+  CardPromotionLink,
   CardView,
   CreatorProfile,
   EducationApplication,
@@ -60,6 +61,7 @@ interface AppDataState {
   cardViews: CardView[];
   cardClicks: CardClick[];
   cardLinkVisits: CardLinkVisit[];
+  cardPromotionLinks: CardPromotionLink[];
   subscriptions: Subscription[];
   payments: Payment[];
   banners: MainBanner[];
@@ -78,6 +80,7 @@ interface AppDataState {
   addCardView: (view: CardView) => void;
   addCardClick: (click: CardClick) => void;
   addCardLinkVisit: (visit: CardLinkVisit) => void;
+  addCardPromotionLink: (link: CardPromotionLink) => void;
   extendCardAccess: (cardId: string, months?: number) => void;
   upsertServiceRequest: (r: ServiceRequest) => void;
   addApplication: (a: ServiceApplication) => void;
@@ -106,6 +109,7 @@ export const useAppDataStore = create<AppDataState>()(
       cardViews: [...SAMPLE_VIEWS],
       cardClicks: [...SAMPLE_CLICKS],
       cardLinkVisits: [],
+      cardPromotionLinks: [],
       subscriptions: [...SAMPLE_SUBSCRIPTIONS],
       payments: [...SAMPLE_PAYMENTS],
       banners: [...SAMPLE_BANNERS],
@@ -136,6 +140,11 @@ export const useAppDataStore = create<AppDataState>()(
       addCardView: (view) => set((s) => ({ cardViews: [...s.cardViews, view] })),
       addCardClick: (click) => set((s) => ({ cardClicks: [...s.cardClicks, click] })),
       addCardLinkVisit: (visit) => set((s) => ({ cardLinkVisits: [...s.cardLinkVisits, visit] })),
+      addCardPromotionLink: (link) =>
+        set((s) => {
+          if (s.cardPromotionLinks.some((x) => x.ref_code === link.ref_code)) return s;
+          return { cardPromotionLinks: [...s.cardPromotionLinks, link] };
+        }),
       extendCardAccess: (cardId, months = 1) =>
         set((s) => ({
           businessCards: s.businessCards.map((card) => {
@@ -251,6 +260,7 @@ export const useAppDataStore = create<AppDataState>()(
         cardViews: state.cardViews,
         cardClicks: state.cardClicks,
         cardLinkVisits: state.cardLinkVisits,
+        cardPromotionLinks: state.cardPromotionLinks,
         subscriptions: state.subscriptions,
         payments: state.payments,
         banners: state.banners,
@@ -276,6 +286,7 @@ export const useAppDataStore = create<AppDataState>()(
           cardViews: mergeById(current.cardViews, p.cardViews),
           cardClicks: mergeById(current.cardClicks, p.cardClicks),
           cardLinkVisits: mergeById(current.cardLinkVisits ?? [], p.cardLinkVisits),
+          cardPromotionLinks: mergeById(current.cardPromotionLinks ?? [], p.cardPromotionLinks),
           subscriptions: mergeById(current.subscriptions, p.subscriptions),
           payments: mergeById(current.payments, p.payments),
           banners: mergeById(current.banners, p.banners),
