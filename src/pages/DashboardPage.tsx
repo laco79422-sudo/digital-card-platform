@@ -297,6 +297,7 @@ export function DashboardPage() {
               const publicUrl = resolveBusinessCardPublicUrl(card, shareOrigin) ?? "";
               const cardViewCount = cardViews.filter((v) => v.card_id === card.id).length;
               const cardClickCount = cardClicks.filter((c) => c.card_id === card.id).length;
+              const canEditCard = Boolean(user && user.id === card.user_id);
 
               return (
                 <li key={card.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -333,12 +334,14 @@ export function DashboardPage() {
                     >
                       보기
                     </Link>
-                    <Link
-                      to={`/cards/${encodeURIComponent(card.id)}/edit`}
-                      className="inline-flex min-h-10 items-center justify-center rounded-xl border border-slate-300 bg-white px-3 text-sm font-bold text-slate-900 hover:bg-slate-50"
-                    >
-                      수정
-                    </Link>
+                    {canEditCard ? (
+                      <Link
+                        to={`/cards/${encodeURIComponent(card.id)}/edit`}
+                        className="inline-flex min-h-10 items-center justify-center rounded-xl border border-slate-300 bg-white px-3 text-sm font-bold text-slate-900 hover:bg-slate-50"
+                      >
+                        수정
+                      </Link>
+                    ) : null}
                     <button
                       type="button"
                       className="inline-flex min-h-10 items-center justify-center rounded-xl border border-cta-200 bg-cta-50 px-3 text-sm font-bold text-cta-700 hover:bg-cta-100"
