@@ -115,8 +115,7 @@ export function StructureBlueprintPage() {
             <p className="text-sm font-medium text-slate-700">명함 샘플 먼저 보기</p>
           </CardHeader>
           <CardContent className="text-sm leading-relaxed text-slate-600">
-            입력만으로 헤드라인·소개·버튼·공유·홍보 방향 초안을 바로 확인합니다. 혼자 판단하기 어려울 때 첫 지도를
-            받는 단계예요.
+            입력만 하면 완성된 명함 모습을 바로 확인할 수 있어요.
           </CardContent>
         </Card>
         <Card className="border-brand-200/90 bg-brand-50/40 ring-1 ring-brand-200/30">
@@ -128,8 +127,8 @@ export function StructureBlueprintPage() {
             <p className="text-sm font-medium text-slate-800">전문가 연결 · 실행 + 결과</p>
           </CardHeader>
           <CardContent className="text-sm leading-relaxed text-slate-700">
-            전문 상담가 연결, 1:1 상담, 맞춤 명함 제작, 블로그/영상 홍보, 의뢰가 이어지는 연결 구조까지 함께
-            설계합니다.
+            전문 상담가 연결, 1:1 상담, 맞춤 명함 제작, 블로그/영상 홍보, 의뢰가 이어지는 화면까지 함께
+            만듭니다.
           </CardContent>
         </Card>
       </div>
@@ -150,7 +149,7 @@ export function StructureBlueprintPage() {
         <Card className="border-slate-200 shadow-md">
           <CardHeader>
             <h2 className="text-lg font-bold text-slate-900">간단 입력</h2>
-            <p className="text-sm text-slate-600">아래만 채우면 맞춤 구조 초안이 생성됩니다.</p>
+            <p className="text-sm text-slate-600">아래만 채우면 명함 샘플이 바로 만들어집니다.</p>
           </CardHeader>
           <CardContent>
             <form onSubmit={onGenerate} className="space-y-5">
@@ -201,7 +200,7 @@ export function StructureBlueprintPage() {
                 />
               </div>
               <Button type="submit" className="min-h-12 w-full text-base font-semibold">
-                구조 생성하기
+                샘플 먼저 확인하기
               </Button>
             </form>
           </CardContent>
@@ -219,14 +218,14 @@ export function StructureBlueprintPage() {
           <Card className="border-2 border-brand-200/90 bg-gradient-to-b from-brand-50/80 to-white">
             <CardContent className="space-y-4 pt-6 sm:pt-7">
               <p className="text-center text-base font-bold text-slate-900 sm:text-lg">
-                이 구조를 실제로 만들어드립니다
+                이 명함을 실제로 만들어드립니다
               </p>
               <ul className="mx-auto max-w-md space-y-2.5 text-[15px] text-slate-800">
                 {[
                   "명함 제작",
                   "블로그 홍보",
                   "영상 콘텐츠 제작",
-                  "상담 연결 구조 설계",
+                  "문의 연결 화면 설계",
                 ].map((line) => (
                   <li key={line} className="flex gap-2">
                     <Check className="mt-0.5 h-4 w-4 shrink-0 text-brand-700" aria-hidden />
@@ -243,7 +242,7 @@ export function StructureBlueprintPage() {
                 </Link>
               </div>
               <p className="text-center text-xs leading-relaxed text-slate-500">
-                유료 신청 시 전문 상담가 연결 후 1:1 상담, 맞춤 명함·블로그/영상·의뢰 연결 구조를 함께 진행합니다.
+                유료 신청 시 전문 상담가 연결 후 1:1 상담, 맞춤 명함·블로그/영상·의뢰 연결 화면을 함께 진행합니다.
                 (데모에서는 가입 화면으로 연결됩니다.)
               </p>
             </CardContent>
@@ -251,11 +250,11 @@ export function StructureBlueprintPage() {
 
           <div className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50/70 px-5 py-6 text-center sm:px-8">
             <p className="text-[15px] font-medium leading-relaxed text-slate-800">
-              구조는 잡았습니다.
+              샘플은 확인했습니다.
               <br />
               이제 실행만 남았습니다.
             </p>
-            <p className="text-sm leading-relaxed text-slate-600">무료: 방향 제시 · 유료: 실행 + 결과</p>
+            <p className="text-sm leading-relaxed text-slate-600">무료: 샘플 확인 · 유료: 제작 + 결과</p>
             <p className="border-t border-slate-200 pt-4 text-[15px] font-medium leading-relaxed text-slate-800">
               혼자 만들면 오래 걸립니다.
               <br />

@@ -18,7 +18,7 @@ const navLinkClass = ({ isActive }: { isActive: boolean }) =>
 
 const links = [
   { to: "/pricing", label: "이용 안내" },
-  { to: "/structure", label: "구조 받아보기" },
+  { to: "/structure", label: "명함 샘플 보기" },
   { to: "/promotion/guide", label: "홍보·연결" },
   { to: "/education", label: "교육신청" },
   { to: "/creators", label: "제작자" },

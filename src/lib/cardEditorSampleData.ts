@@ -70,9 +70,9 @@ export function getSampleLinkRows(): SampleLinkRow[] {
     },
     {
       id: "sample-cta-guide",
-      label: "무료로 구조 받아보기",
+      label: "명함 샘플 보기",
       type: "email",
-      url: "mailto:hello@linko.app?subject=%EB%AC%B4%EB%A3%8C%20%EA%B5%AC%EC%A1%B0%20%EB%B0%9B%EA%B8%B0",
+      url: "mailto:hello@linko.app?subject=%EB%AA%85%ED%95%A8%20%EC%83%98%ED%94%8C%20%EB%B3%B4%EA%B8%B0",
     },
     {
       id: "sample-quick-phone",
