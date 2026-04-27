@@ -409,21 +409,27 @@ export function DashboardPage() {
             </p>
           </div>
           {!isCreator ? (
-            <div className="flex flex-col gap-2 sm:flex-row">
+            myCards.length === 0 ? (
               <Link
                 to="/cards/new"
-                className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-xl border border-cta-200 bg-cta-50 px-4 text-sm font-bold text-cta-700 hover:bg-cta-100"
+                className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-xl bg-cta-500 px-4 text-sm font-bold text-white shadow-sm shadow-cta-900/20 hover:bg-cta-600"
               >
                 {brandCta.createDigitalCard}
               </Link>
-              <button
-                type="button"
-                className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-xl bg-cta-500 px-4 text-sm font-bold text-white shadow-sm shadow-cta-900/20 hover:bg-cta-600"
-                onClick={startAdditionalCard}
-              >
-                새 명함 만들기
-              </button>
-            </div>
+            ) : (
+              <div className="max-w-xs">
+                <button
+                  type="button"
+                  className="inline-flex min-h-11 w-full shrink-0 items-center justify-center rounded-xl bg-cta-500 px-4 text-sm font-bold text-white shadow-sm shadow-cta-900/20 hover:bg-cta-600"
+                  onClick={startAdditionalCard}
+                >
+                  새 명함 만들기
+                </button>
+                <p className="mt-2 text-xs leading-relaxed text-slate-500">
+                  새로운 명함을 추가로 만듭니다. 추가 명함은 유료로 이용할 수 있어요.
+                </p>
+              </div>
+            )
           ) : null}
         </div>
 
