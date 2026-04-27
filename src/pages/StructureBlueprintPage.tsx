@@ -97,13 +97,11 @@ export function StructureBlueprintPage() {
       <div className="mx-auto max-w-3xl text-center">
         <p className="text-xs font-bold uppercase tracking-widest text-brand-800">무료 → 유료 전환</p>
         <h1 className="mt-2 text-balance text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl md:text-4xl">
-          명함 구조, 먼저 받아보기
+          명함 미리보기
         </h1>
         <p className="mx-auto mt-4 max-w-2xl text-pretty text-[15px] leading-relaxed text-slate-600 sm:text-lg">
-          <span className="font-semibold text-slate-800">무료</span>는 자동으로{" "}
-          <span className="font-semibold text-slate-800">방향</span>을 제시하고,{" "}
-          <span className="font-semibold text-slate-800">유료</span>는{" "}
-          <span className="font-semibold text-slate-800">전문가 연결</span>로 실행과 결과까지 이어집니다.
+          내 업종과 목표를 넣으면, 완성된 명함이 어떤 모습일지 먼저 볼 수 있어요. 마음에 들면 전문가와 함께
+          실제 제작까지 이어갑니다.
         </p>
       </div>
 
@@ -114,7 +112,7 @@ export function StructureBlueprintPage() {
               <Sparkles className="h-5 w-5 shrink-0" aria-hidden />
               <h2 className="text-base font-bold">무료</h2>
             </div>
-            <p className="text-sm font-medium text-slate-700">구조 안내 · 방향 제시</p>
+            <p className="text-sm font-medium text-slate-700">명함 샘플 먼저 보기</p>
           </CardHeader>
           <CardContent className="text-sm leading-relaxed text-slate-600">
             입력만으로 헤드라인·소개·버튼·공유·홍보 방향 초안을 바로 확인합니다. 혼자 판단하기 어려울 때 첫 지도를
@@ -143,7 +141,7 @@ export function StructureBlueprintPage() {
           className="min-h-[52px] w-full max-w-md gap-2 bg-gradient-to-r from-cta-500 to-cta-600 text-base font-bold shadow-lg shadow-cta-900/20 hover:from-cta-400 hover:to-cta-500 sm:w-auto sm:min-w-[280px]"
           onClick={scrollToForm}
         >
-          무료로 구조 받아보기
+          완성된 명함 먼저 보기
           <ArrowDown className="h-4 w-4 shrink-0" aria-hidden />
         </Button>
       </div>

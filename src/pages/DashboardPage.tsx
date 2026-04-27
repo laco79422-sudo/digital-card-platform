@@ -1,5 +1,5 @@
 import { BRAND_DISPLAY_NAME, brandCta } from "@/lib/brand";
-import { resolveBusinessCardPublicUrl } from "@/lib/cardShareUrl";
+import { buildCardShareUrl, resolveBusinessCardPublicUrl } from "@/lib/cardShareUrl";
 import { shareCardLinkNativeOrder } from "@/lib/kakaoWebShare";
 import { buildReferralCode } from "@/lib/referrals";
 import { layout } from "@/lib/ui-classes";
@@ -73,7 +73,8 @@ function cardAccessInfo(card: BusinessCard) {
   };
 }
 
-function buildPromotionLink(publicUrl: string, refCode: string): string {
+function buildPromotionLink(card: BusinessCard, origin: string, refCode: string): string {
+  const publicUrl = buildCardShareUrl(origin, card.slug ?? "") ?? "";
   if (!publicUrl || !refCode) return publicUrl;
   try {
     const u = new URL(publicUrl);
@@ -138,6 +139,7 @@ export function DashboardPage() {
     () => (uid ? businessCards.filter((c) => c.user_id === uid) : []),
     [businessCards, uid],
   );
+  const shareOrigin = typeof window !== "undefined" ? window.location.origin : "";
   const myCardIds = useMemo(() => new Set(myCards.map((c) => c.id)), [myCards]);
 
   const viewsCount = cardViews.filter((v) => myCardIds.has(v.card_id)).length;
@@ -155,8 +157,8 @@ export function DashboardPage() {
   const refCode = myReferral?.ref_code ?? (uid ? buildReferralCode(uid) : "");
   const referredCount = myReferral?.referred_count ?? 0;
   const rewardMonths = myReferral?.reward_months ?? 0;
-  const referralLink =
-    refCode && typeof window !== "undefined" ? `${window.location.origin}/signup?ref=${encodeURIComponent(refCode)}` : "";
+  const referralCard = myCards.find((card) => card.is_public && card.slug.trim()) ?? null;
+  const referralLink = refCode && referralCard ? buildPromotionLink(referralCard, shareOrigin, refCode) : "";
 
   const copyReferralLink = async () => {
     if (!referralLink) return;
@@ -170,20 +172,19 @@ export function DashboardPage() {
   };
 
   const shareReferralLink = async () => {
-    if (!referralLink) return;
+    if (!referralLink || !referralCard) return;
     const r = await shareCardLinkNativeOrder({
       shareUrl: referralLink,
-      title: "린코 디지털 명함 추천 링크",
-      shortMessage: "이 링크로 가입하면 디지털 명함을 만들고 이용 혜택도 받을 수 있어요.",
-      kakaoDescription: "가입하고 디지털 명함을 만들어 보세요.",
+      title: `${cardDisplayName(referralCard)} 추천 링크`,
+      shortMessage: "이 명함 링크로 가입하면 디지털 명함 이용 혜택을 받을 수 있어요.",
+      kakaoDescription: referralCard.intro.trim() || cardSubline(referralCard),
+      kakaoImageUrl: referralCard.imageUrl?.trim() || referralCard.brand_image_url?.trim() || undefined,
     });
     if (r === "clipboard") {
       setReferralShareHint(true);
       window.setTimeout(() => setReferralShareHint(false), 3000);
     }
   };
-
-  const shareOrigin = typeof window !== "undefined" ? window.location.origin : "";
 
   const copyCardLink = async (card: BusinessCard) => {
     const url = resolveBusinessCardPublicUrl(card, shareOrigin) ?? "";
@@ -577,7 +578,7 @@ export function DashboardPage() {
                     </p>
                     <div className="mt-3 space-y-3">
                       {promotionLinks.map((link) => {
-                        const linkUrl = buildPromotionLink(publicUrl, link.ref_code);
+                        const linkUrl = buildPromotionLink(card, shareOrigin, link.ref_code);
                         const visitCount = cardLinkVisits.filter(
                           (visit) => visit.card_id === card.id && visit.ref_code === link.ref_code,
                         ).length;
@@ -640,7 +641,7 @@ export function DashboardPage() {
               <p className="text-sm font-bold text-brand-800">내 추천 링크</p>
               <h2 className="mt-1 text-lg font-semibold text-slate-900 sm:text-xl">추천하고 이용권 혜택 받기</h2>
               <p className="mt-2 text-sm leading-relaxed text-slate-600 sm:text-base">
-                이 링크로 다른 사람이 가입하면 이용 혜택을 받을 수 있어요.
+                내 명함 링크로 다른 사람이 가입하면 이용 혜택을 받을 수 있어요.
               </p>
             </div>
             <div className="rounded-xl bg-white px-4 py-3 text-sm font-semibold text-slate-900 shadow-sm ring-1 ring-slate-200">
@@ -651,7 +652,7 @@ export function DashboardPage() {
           <div className="mt-5">
             <p className="text-sm font-semibold text-slate-800">내 추천 링크 주소</p>
             <p className="mt-2 break-all rounded-xl border border-slate-200 bg-white px-4 py-3 font-mono text-sm font-semibold text-brand-900">
-              {referralLink}
+              {referralLink || "명함을 만든 뒤 추천 링크가 생성됩니다."}
             </p>
           </div>
 
@@ -660,6 +661,7 @@ export function DashboardPage() {
               type="button"
               className="inline-flex min-h-11 items-center justify-center rounded-xl bg-cta-500 px-4 text-sm font-bold text-white shadow-sm shadow-cta-900/20 hover:bg-cta-600"
               onClick={() => void copyReferralLink()}
+              disabled={!referralLink}
             >
               {referralCopyDone ? "복사됐어요" : "링크 복사하기"}
             </button>
@@ -667,6 +669,7 @@ export function DashboardPage() {
               type="button"
               className="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 text-sm font-bold text-slate-900 hover:bg-slate-50"
               onClick={() => void shareReferralLink()}
+              disabled={!referralLink}
             >
               카카오톡으로 공유하기
             </button>

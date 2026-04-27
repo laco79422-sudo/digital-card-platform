@@ -25,6 +25,10 @@ export function PublicCardPage() {
     () => (card ? getLinksForCard(card.id, cardLinks) : []),
     [card, cardLinks],
   );
+  const referralCode = useMemo(
+    () => new URLSearchParams(location.search).get("ref")?.trim().toUpperCase() ?? "",
+    [location.search],
+  );
   const [qr, setQr] = useState<string | null>(null);
 
   useEffect(() => {
@@ -41,7 +45,6 @@ export function PublicCardPage() {
 
   useEffect(() => {
     if (!card) return;
-    const refCode = new URLSearchParams(location.search).get("ref")?.trim().toUpperCase();
     addCardView({
       id: crypto.randomUUID(),
       card_id: card.id,
@@ -49,19 +52,19 @@ export function PublicCardPage() {
       referrer: document.referrer || "direct",
       user_agent: navigator.userAgent,
     });
-    if (refCode) {
-      savePromotionReferralCode(refCode);
+    if (referralCode) {
+      savePromotionReferralCode(referralCode);
       addCardLinkVisit({
         id: crypto.randomUUID(),
         card_id: card.id,
         slug: card.slug,
-        ref_code: refCode,
+        ref_code: referralCode,
         visited_at: new Date().toISOString(),
         page_path: `${location.pathname}${location.search}`,
         user_agent: navigator.userAgent,
       });
     }
-  }, [card, addCardView, addCardLinkVisit, location.pathname, location.search]);
+  }, [card, addCardView, addCardLinkVisit, location.pathname, location.search, referralCode]);
 
   const handleLink = (link: CardLink) => {
     if (!card) return;
@@ -98,7 +101,13 @@ export function PublicCardPage() {
   return (
     <>
       <DigitalCardSeo card={card} />
-      <DigitalCardPublicView card={card} links={links} onLinkClick={handleLink} qrDataUrl={qr} />
+      <DigitalCardPublicView
+        card={card}
+        links={links}
+        onLinkClick={handleLink}
+        qrDataUrl={qr}
+        referralLanding={Boolean(referralCode)}
+      />
     </>
   );
 }

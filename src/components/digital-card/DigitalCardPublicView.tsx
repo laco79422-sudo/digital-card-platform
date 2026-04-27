@@ -94,6 +94,8 @@ type Props = {
   tempPreview?: boolean;
   /** /preview 유형별 카드 레이아웃 분기 */
   previewVariant?: PreviewCardType;
+  /** 추천 링크로 들어온 방문자에게 가입 전 가치 확인 흐름을 안내 */
+  referralLanding?: boolean;
   /** 카카오 공유 직전 — Supabase에 임시 명함 동기화(크롤러 OG와 일치) */
   onBeforeKakaoShare?: () => void | Promise<void>;
 };
@@ -108,6 +110,7 @@ export function DigitalCardPublicView({
   shareUrlOverride,
   tempPreview,
   previewVariant,
+  referralLanding,
   onBeforeKakaoShare,
 }: Props) {
   const grad = themeClass[card.theme] ?? themeClass.navy;
@@ -609,6 +612,39 @@ export function DigitalCardPublicView({
             <p className="mt-2 text-center text-xs leading-relaxed text-slate-500">
               {BRAND_DISPLAY_NAME}은 명함 제작 도구가 아니라,{" "}
               <span className="font-medium text-slate-700">공유로 퍼지는 연결 구조</span>예요.
+            </p>
+          </section>
+        ) : null}
+
+        {!compact && referralLanding ? (
+          <section
+            className="rounded-2xl border border-cta-200 bg-gradient-to-br from-cta-50 via-white to-brand-50 p-5 shadow-[0_18px_45px_-26px_rgba(15,23,42,0.28)] sm:p-7"
+            aria-label="명함을 본 뒤 시작하기"
+          >
+            <p className="text-center text-sm font-bold text-cta-700">추천 링크로 들어오셨나요?</p>
+            <h2 className="mt-2 break-keep text-center text-xl font-extrabold leading-snug tracking-tight text-slate-900 sm:text-2xl">
+              먼저 명함을 확인하고, 필요할 때만 시작하세요
+            </h2>
+            <p className="mx-auto mt-3 max-w-md break-keep text-center text-sm leading-relaxed text-slate-600 sm:text-base">
+              가입을 먼저 요구하지 않습니다. 이 명함처럼 나를 소개하고 싶거나, 전문가 상담이 필요할 때 다음 단계로
+              이동해 주세요.
+            </p>
+            <div className="mt-6 grid gap-3 sm:grid-cols-2">
+              <Link
+                to="/create-card"
+                className={cn(linkButtonClassName({ variant: "primary", size: "lg" }), "min-h-[52px] justify-center")}
+              >
+                내 명함 만들기
+              </Link>
+              <Link
+                to="/signup?intent=expert-structure"
+                className={cn(linkButtonClassName({ variant: "outline", size: "lg" }), "min-h-[52px] justify-center")}
+              >
+                전문가에게 상담하기
+              </Link>
+            </div>
+            <p className="mt-4 text-center text-xs leading-relaxed text-slate-500">
+              문의 작성이나 저장이 필요한 순간에 회원가입으로 이어집니다.
             </p>
           </section>
         ) : null}
