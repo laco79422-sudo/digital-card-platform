@@ -12,7 +12,7 @@ import QRCode from "qrcode";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
-const CARD_MONTHLY_PRICE = 5900;
+const CARD_MONTHLY_PRICE = 14900;
 
 function safeDisplayName(user: User | null): string {
   if (!user) return "사용자";
@@ -468,7 +468,7 @@ export function DashboardPage() {
                         className="mt-3 inline-flex min-h-10 items-center justify-center rounded-xl bg-cta-500 px-4 text-sm font-bold text-white hover:bg-cta-600"
                         onClick={() => payForCardExtension(card)}
                       >
-                        5,900원 결제하고 한 달 연장
+                        14,900원 결제하고 한 달 연장
                       </button>
                     </div>
                   ) : null}
@@ -599,11 +599,11 @@ export function DashboardPage() {
           <div className="mt-5 rounded-xl border border-slate-200 bg-white/80 px-4 py-4">
             <p className="text-sm font-bold text-slate-900">혜택 안내</p>
             <ul className="mt-2 space-y-1.5 text-sm leading-relaxed text-slate-700">
-              <li>10명이 가입하면 5,900원 이용권 1개월 무료</li>
-              <li>20명이 가입하면 5,900원 이용권 2개월 무료</li>
+              <li>10명이 가입하면 14,900원 이용권 1개월 무료</li>
+              <li>20명이 가입하면 14,900원 이용권 2개월 무료</li>
             </ul>
             <p className="mt-3 text-sm font-semibold text-brand-900">
-              현재 적용 가능 혜택: 5,900원 이용권 {rewardMonths}개월 무료
+              현재 적용 가능 혜택: 14,900원 이용권 {rewardMonths}개월 무료
             </p>
           </div>
         </section>

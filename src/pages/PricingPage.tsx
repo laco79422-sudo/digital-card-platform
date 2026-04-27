@@ -47,7 +47,7 @@ export function PricingPage() {
         <PricingCard
           name="공개 명함 1개 이용권"
           audience="한 달 이용권"
-          priceLabel="월 5,900원"
+          priceLabel="월 14,900원"
           description="공개 명함 1개를 한 달 동안 이용할 수 있어요."
           features={[
             "공개 명함 1개",
@@ -56,7 +56,7 @@ export function PricingPage() {
           ]}
           highlighted
           href="/signup"
-          cta="5,900원으로 이용하기"
+          cta="14,900원으로 이용하기"
         />
         <PricingCard
           name="스타터"
