@@ -121,10 +121,10 @@ export function LandingPage() {
                       "bg-white/45 backdrop-blur-sm hover:border-brand-600 hover:bg-white/70",
                     )}
                   >
-                    전문가에게 맡기기
+                    명함 디자인 전문가에게 맡기기
                   </span>
                   <span className="text-center text-[13px] font-medium leading-snug text-slate-700 sm:text-sm">
-                    상담 후 제작 진행
+                    디자인 상담 후 맞춤 제작 진행
                   </span>
                 </Link>
               </div>
