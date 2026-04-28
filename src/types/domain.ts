@@ -26,6 +26,10 @@ export type TrustTestimonial = {
 export interface BusinessCard {
   id: string;
   user_id: string;
+  /** Legacy/alternate owner column used by some Supabase schemas. */
+  owner_id?: string | null;
+  /** Optional owner email for older email-keyed card rows. */
+  owner_email?: string | null;
   slug: string;
   brand_name: string;
   person_name: string;

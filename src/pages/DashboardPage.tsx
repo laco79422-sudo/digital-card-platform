@@ -4,7 +4,7 @@ import { shareCardLinkNativeOrder } from "@/lib/kakaoWebShare";
 import { buildReferralCode } from "@/lib/referrals";
 import { layout } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
-import { fetchMyCards } from "@/services/cardsService";
+import { fetchMyCardsForUser, type FetchMyCardsResult } from "@/services/cardsService";
 import { useAuthStore } from "@/stores/authStore";
 import { useAppDataStore } from "@/stores/appDataStore";
 import type { BusinessCard, User } from "@/types/domain";
@@ -52,6 +52,16 @@ function cardDisplayName(card: BusinessCard): string {
 
 function cardSubline(card: BusinessCard): string {
   return [card.job_title.trim(), card.brand_name.trim()].filter(Boolean).join(" · ") || "직업/회사명 미입력";
+}
+
+function cardBelongsToUser(card: BusinessCard, user: User | null): boolean {
+  if (!user) return false;
+  const email = user.email.trim().toLowerCase();
+  return (
+    card.user_id === user.id ||
+    card.owner_id === user.id ||
+    Boolean(email && (card.owner_email?.trim().toLowerCase() === email || card.email?.trim().toLowerCase() === email))
+  );
 }
 
 function defaultExpireAt(createdAt: string): string {
@@ -117,6 +127,12 @@ export function DashboardPage() {
   const [qrCard, setQrCard] = useState<BusinessCard | null>(null);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [qrLink, setQrLink] = useState("");
+  const [cardsFetch, setCardsFetch] = useState<FetchMyCardsResult>({
+    status: "ok",
+    cards: [],
+    source: "none",
+  });
+  const [cardsLoading, setCardsLoading] = useState(false);
 
   const uid = user?.id ?? "";
   useEffect(() => {
@@ -124,20 +140,42 @@ export function DashboardPage() {
   }, [ensureReferralRecord, uid]);
 
   useEffect(() => {
-    if (!uid) return;
+    if (!user?.id) return;
+    console.info("[DashboardPage] auth user", {
+      id: user.id,
+      email: user.email,
+    });
     let cancelled = false;
-    void fetchMyCards(uid).then((cards) => {
-      if (cancelled || !cards) return;
-      for (const card of cards) upsertBusinessCard(card);
+    setCardsLoading(true);
+    void fetchMyCardsForUser({ id: user.id, email: user.email }).then((result) => {
+      if (cancelled) return;
+      setCardsFetch(result);
+      setCardsLoading(false);
+      console.info("[DashboardPage] business_cards lookup", {
+        authUserId: user.id,
+        email: user.email,
+        status: result.status,
+        source: result.source,
+        count: result.cards.length,
+        error: result.error ?? null,
+        owners: result.cards.slice(0, 5).map((card) => ({
+          id: card.id,
+          user_id: card.user_id,
+          owner_id: card.owner_id ?? null,
+          email: card.email ?? null,
+          owner_email: card.owner_email ?? null,
+        })),
+      });
+      for (const card of result.cards) upsertBusinessCard(card);
     });
     return () => {
       cancelled = true;
     };
-  }, [uid, upsertBusinessCard]);
+  }, [user, upsertBusinessCard]);
 
   const myCards = useMemo(
-    () => (uid ? businessCards.filter((c) => c.user_id === uid) : []),
-    [businessCards, uid],
+    () => (uid ? businessCards.filter((card) => cardBelongsToUser(card, user)) : []),
+    [businessCards, uid, user],
   );
   const shareOrigin = typeof window !== "undefined" ? window.location.origin : "";
   const myCardIds = useMemo(() => new Set(myCards.map((c) => c.id)), [myCards]);
@@ -332,6 +370,9 @@ export function DashboardPage() {
     }
   };
 
+  const cardsLookupFailed = myCards.length === 0 && (cardsFetch.status === "error" || cardsFetch.status === "not_configured");
+  const cardsActuallyEmpty = !cardsLoading && !cardsLookupFailed && myCards.length === 0;
+
   return (
     <div className={cn(layout.page, "py-10 sm:py-12")}>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -410,14 +451,14 @@ export function DashboardPage() {
             </p>
           </div>
           {!isCreator ? (
-            myCards.length === 0 ? (
+            cardsActuallyEmpty ? (
               <Link
                 to="/cards/new"
                 className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-xl bg-cta-500 px-4 text-sm font-bold text-white shadow-sm shadow-cta-900/20 hover:bg-cta-600"
               >
                 {brandCta.createDigitalCard}
               </Link>
-            ) : (
+            ) : myCards.length > 0 ? (
               <div className="max-w-xs">
                 <button
                   type="button"
@@ -430,15 +471,38 @@ export function DashboardPage() {
                   새로운 명함을 추가로 만듭니다. 추가 명함은 유료로 이용할 수 있어요.
                 </p>
               </div>
+            ) : (
+              <div className="rounded-xl bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-600 ring-1 ring-slate-200">
+                {cardsLoading ? "명함을 불러오는 중..." : "명함 조회 상태를 확인하는 중..."}
+              </div>
             )
           ) : null}
         </div>
 
-        {myCards.length === 0 ? (
+        {cardsLoading ? (
+          <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 px-5 py-10 text-center">
+            <p className="text-lg font-bold text-slate-900">명함을 불러오는 중입니다.</p>
+            <p className="mt-2 text-sm leading-relaxed text-slate-600 sm:text-base">
+              로그인 계정과 연결된 기존 명함을 확인하고 있어요.
+            </p>
+          </div>
+        ) : cardsLookupFailed ? (
+          <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-10 text-center">
+            <p className="text-lg font-bold text-amber-950">명함을 불러오지 못했습니다.</p>
+            <p className="mt-2 text-sm leading-relaxed text-amber-900 sm:text-base">
+              Supabase 연결 또는 권한 정책을 확인해 주세요. 콘솔에 조회 실패 원인을 남겼습니다.
+            </p>
+            {cardsFetch.error ? (
+              <p className="mx-auto mt-3 max-w-lg break-all rounded-xl bg-white/70 px-3 py-2 text-xs font-medium text-amber-900">
+                {cardsFetch.error}
+              </p>
+            ) : null}
+          </div>
+        ) : cardsActuallyEmpty ? (
           <div className="mt-6 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-5 py-10 text-center">
             <p className="text-lg font-bold text-slate-900">아직 만든 명함이 없어요.</p>
             <p className="mt-2 text-sm leading-relaxed text-slate-600 sm:text-base">
-              먼저 내 명함을 만들고, 공개 링크나 홍보 링크로 공유해 보세요.
+              현재 로그인 계정으로 연결된 명함을 찾지 못했습니다. 이전 계정 이메일로 만든 명함도 함께 확인했습니다.
             </p>
             {!isCreator ? (
               <Link
@@ -456,7 +520,7 @@ export function DashboardPage() {
               const publicUrl = resolveBusinessCardPublicUrl(card, shareOrigin) ?? "";
               const cardViewCount = cardViews.filter((v) => v.card_id === card.id).length;
               const cardClickCount = cardClicks.filter((c) => c.card_id === card.id).length;
-              const canEditCard = Boolean(user && user.id === card.user_id);
+              const canEditCard = cardBelongsToUser(card, user);
               const access = cardAccessInfo(card);
               const promotionLinks = [
                 { id: `base-${card.id}`, ref_code: refCode, label: "기본 홍보 링크" },

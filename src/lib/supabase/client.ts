@@ -38,6 +38,7 @@ function isLikelyAnonKey(k: string): boolean {
 }
 
 export const isSupabaseConfigured = isLikelySupabaseUrl(url) && isLikelyAnonKey(anonKey);
+export const supabaseProjectUrl = url;
 
 function logSupabaseConfigError(): void {
   const lines: string[] = [
