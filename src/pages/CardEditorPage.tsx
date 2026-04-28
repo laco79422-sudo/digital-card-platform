@@ -1,6 +1,7 @@
 import { PostSaveGrowthPanel } from "@/components/card/PostSaveGrowthPanel";
 import { GuestSavePrompt } from "@/components/card/SavePrompt";
 import { CardQrAndExportPanel } from "@/components/card-print/CardQrAndExportPanel";
+import type { BrandImagePersistPayload } from "@/components/card-editor/ImageUploader";
 import { CardForm } from "@/components/card-editor/CardForm";
 import { CardEditorGrowthLadder } from "@/components/card-editor/CardEditorGrowthLadder";
 import { CardEditorSaveCompletionPanel } from "@/components/card-editor/CardEditorSaveCompletionPanel";
@@ -52,7 +53,7 @@ import {
 } from "@/lib/pendingCardStorage";
 import { removeTempCard, saveTempCard } from "@/lib/tempCardStorage";
 import { buildViralShareText } from "@/lib/viralShareText";
-import { upsertCardRemote } from "@/services/cardsService";
+import { patchCardBrandHeroRemote, upsertCardRemote } from "@/services/cardsService";
 import { syncQrImageAfterSave } from "@/services/cardQrSync";
 import { ArrowRight, Check, Copy, Loader2, Share2, Sparkles } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -623,6 +624,29 @@ export function CardEditorPage() {
     applySampleDraft();
     scrollToId("card-preview-hero");
   }, [applySampleDraft]);
+
+  const handleBrandImagePersist = useCallback(
+    async (payload: BrandImagePersistPayload) => {
+      const cardId = existing?.id;
+      if (!cardId) return;
+      const patch = {
+        imageUrl: payload.publicUrl,
+        brand_image_url: payload.publicUrl,
+        brand_image_natural_width: payload.naturalW,
+        brand_image_natural_height: payload.naturalH,
+        brand_image_zoom: 1,
+        brand_image_pan_x: 0,
+        brand_image_pan_y: 0,
+        brand_image_object_position: null as string | null,
+      };
+      const remoteOk = await patchCardBrandHeroRemote(cardId, patch);
+      const row = businessCards.find((c) => c.id === cardId);
+      if (remoteOk && row) {
+        upsertBusinessCard({ ...row, ...patch });
+      }
+    },
+    [businessCards, existing?.id, upsertBusinessCard],
+  );
 
   const runPaidActivation = useCallback(() => {
     if (isGuestRoute && !user) {
@@ -1225,6 +1249,8 @@ export function CardEditorPage() {
             }
             guestTempId={isGuestRoute && !user ? guestTempId : null}
             onPrepareGuestKakaoShare={prepareGuestPreviewForKakao}
+            persistBrandImageCardId={existing?.id ?? null}
+            onBrandImagePersist={handleBrandImagePersist}
             midSlot={
               isLiveGenerator ? (
                 <EditorFlowHint phase="mid" onTrySample={handleTrySample} showTrySample />

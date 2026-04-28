@@ -282,6 +282,46 @@ export async function fetchCardLinks(cardId: string): Promise<CardLink[] | null>
   return data as CardLink[];
 }
 
+export async function patchCardBrandHeroRemote(
+  cardId: string,
+  patch: Partial<
+    Pick<
+      BusinessCard,
+      | "imageUrl"
+      | "brand_image_url"
+      | "brand_image_natural_width"
+      | "brand_image_natural_height"
+      | "brand_image_zoom"
+      | "brand_image_pan_x"
+      | "brand_image_pan_y"
+      | "brand_image_object_position"
+    >
+  >,
+): Promise<boolean> {
+  if (!isSupabaseConfigured || !supabase || !cardId.trim()) return false;
+  const row: Record<string, unknown> = {};
+  const keys = [
+    "imageUrl",
+    "brand_image_url",
+    "brand_image_natural_width",
+    "brand_image_natural_height",
+    "brand_image_zoom",
+    "brand_image_pan_x",
+    "brand_image_pan_y",
+    "brand_image_object_position",
+  ] as const;
+  for (const key of keys) {
+    if (patch[key] !== undefined) row[key] = patch[key];
+  }
+  if (Object.keys(row).length === 0) return true;
+  const { error } = await supabase.from(TABLE_CARDS).update(row).eq("id", cardId);
+  if (error) {
+    console.warn("[cardsService] patchCardBrandHeroRemote", error.message);
+    return false;
+  }
+  return true;
+}
+
 export async function upsertCardRemote(card: BusinessCard): Promise<boolean> {
   if (!isSupabaseConfigured || !supabase) return false;
   const { error } = await supabase.from(TABLE_CARDS).upsert(pickBusinessCardForRemote(card));

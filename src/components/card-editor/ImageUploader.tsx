@@ -7,19 +7,26 @@ import {
   clampZoom,
   computeHeroLayout,
 } from "@/lib/brandHeroLayout";
+import {
+  BRAND_IMAGE_ACCEPT,
+  validateBrandImageFile,
+} from "@/lib/brandImageConstraints";
 import { optimizeImageFileToDataUrl } from "@/lib/brandImageProcess";
 import { uploadBrandImageDataUrl } from "@/lib/brandImageUpload";
 import { cn } from "@/lib/utils";
 import { ImageIcon, Minus, Move, Plus, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 
-const MAX_BYTES = 4 * 1024 * 1024;
-const ACCEPT = "image/jpeg,image/jpg,image/png,image/webp,.jpg,.jpeg,.png,.webp";
-
 type UrlMeta = {
   reset?: boolean;
   naturalW?: number | null;
   naturalH?: number | null;
+};
+
+export type BrandImagePersistPayload = {
+  publicUrl: string;
+  naturalW: number | null;
+  naturalH: number | null;
 };
 
 type Props = {
@@ -38,14 +45,10 @@ type Props = {
   /** natural 없을 때만 적용 (구 카드) */
   legacyObjectPosition?: string | null;
   error?: string;
+  /** 저장된 명함이 있으면 업로드 직후 원격 DB에도 반영 */
+  persistBrandImageCardId?: string | null;
+  onBrandImagePersist?: (payload: BrandImagePersistPayload) => Promise<void>;
 };
-
-function isAllowedImage(file: File): boolean {
-  if (file.size > MAX_BYTES) return false;
-  const okType = /^image\/(jpeg|jpg|png|webp)$/i.test(file.type);
-  const okName = /\.(jpe?g|png|webp)$/i.test(file.name);
-  return okType || okName;
-}
 
 export function ImageUploader({
   label = "브랜드 대표 이미지",
@@ -61,14 +64,26 @@ export function ImageUploader({
   onNaturalMeasured,
   legacyObjectPosition,
   error,
+  persistBrandImageCardId,
+  onBrandImagePersist,
 }: Props) {
   const inputId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
+  /** 업로드 완료 전 로컬 미리보기(data URL). 업로드 성공 시 비움 */
+  const [previewDuringUpload, setPreviewDuringUpload] = useState<string | null>(null);
   const [processing, setProcessing] = useState(false);
-  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadLine, setUploadLine] = useState<string | null>(null);
+  const successClearRef = useRef<number | null>(null);
+
   const [frame, setFrame] = useState({ w: 0, h: 0 });
   const dragRef = useRef({ active: false, lastX: 0, lastY: 0 });
+
+  useEffect(() => {
+    return () => {
+      if (successClearRef.current !== null) window.clearTimeout(successClearRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     const el = frameRef.current;
@@ -81,28 +96,55 @@ export function ImageUploader({
     const r = el.getBoundingClientRect();
     setFrame({ w: r.width, h: r.height });
     return () => ro.disconnect();
-  }, [value]);
+  }, [value, previewDuringUpload]);
 
   const iw = naturalWidth ?? 0;
   const ih = naturalHeight ?? 0;
+
+  /** 미리보기/저장에 쓰는 URL — 업로드 중에는 로컬 data URL */
+  const displayUrl = previewDuringUpload ?? value;
 
   const onPick = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
-    if (!isAllowedImage(file)) {
-      setUploadError("jpg, jpeg, png, webp 형식이며 4MB 이하만 업로드할 수 있습니다.");
+
+    const valid = validateBrandImageFile(file);
+    if (!valid.ok) {
+      setUploadLine(valid.message);
+      setPreviewDuringUpload(null);
       return;
     }
+
     setProcessing(true);
-    setUploadError(null);
+    setUploadLine("이미지를 업로드하고 있습니다...");
     try {
       const { dataUrl, width, height } = await optimizeImageFileToDataUrl(file);
+      setPreviewDuringUpload(dataUrl);
+
       const publicUrl = await uploadBrandImageDataUrl(dataUrl, file.name);
       onUrlChange(publicUrl, { reset: true, naturalW: width, naturalH: height });
-    } catch (error) {
-      console.warn("[ImageUploader] upload failed", error);
-      setUploadError("이미지 업로드에 실패했습니다");
+      setPreviewDuringUpload(null);
+
+      if (persistBrandImageCardId && onBrandImagePersist) {
+        await onBrandImagePersist({
+          publicUrl,
+          naturalW: width,
+          naturalH: height,
+        });
+      }
+
+      setUploadLine("이미지가 저장되었습니다.");
+      if (successClearRef.current !== null) window.clearTimeout(successClearRef.current);
+      successClearRef.current = window.setTimeout(() => {
+        setUploadLine(null);
+        successClearRef.current = null;
+      }, 4000);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error("[ImageUploader] 이미지 저장 실패:", msg, err);
+      setPreviewDuringUpload(null);
+      setUploadLine("이미지 저장에 실패했습니다. 저장소 설정을 확인해 주세요.");
     } finally {
       setProcessing(false);
     }
@@ -124,12 +166,12 @@ export function ImageUploader({
 
   const onPointerDownFrame = useCallback(
     (e: React.PointerEvent) => {
-      if (!value || !frameRef.current) return;
+      if (!displayUrl || !frameRef.current) return;
       e.preventDefault();
       dragRef.current = { active: true, lastX: e.clientX, lastY: e.clientY };
       frameRef.current.setPointerCapture(e.pointerId);
     },
-    [value],
+    [displayUrl],
   );
 
   const onPointerMoveFrame = useCallback(
@@ -170,13 +212,19 @@ export function ImageUploader({
 
   const onWheelFrame = useCallback(
     (e: React.WheelEvent) => {
-      if (!value || !(e.ctrlKey || e.metaKey)) return;
+      if (!displayUrl || !(e.ctrlKey || e.metaKey)) return;
       e.preventDefault();
       const dz = e.deltaY > 0 ? -0.08 : 0.08;
       setZoomAndClampPan(zoom + dz);
     },
-    [setZoomAndClampPan, value, zoom],
+    [displayUrl, setZoomAndClampPan, zoom],
   );
+
+  const clearImage = () => {
+    setPreviewDuringUpload(null);
+    setUploadLine(null);
+    onUrlChange(null, { reset: true, naturalW: null, naturalH: null });
+  };
 
   return (
     <div className="space-y-3">
@@ -184,13 +232,13 @@ export function ImageUploader({
         {label}
       </label>
       <p className="text-xs text-slate-500">
-        jpg · jpeg · png · webp · 최대 4MB · 업로드 시 긴 변 기준 최대 1920px로 최적화됩니다
+        JPG · PNG · WEBP · 최대 5MB · 업로드 시 긴 변 기준 최대 1920px로 최적화됩니다
       </p>
       <input
         id={inputId}
         ref={inputRef}
         type="file"
-        accept={ACCEPT}
+        accept={BRAND_IMAGE_ACCEPT}
         className="sr-only"
         onChange={onPick}
       />
@@ -202,32 +250,42 @@ export function ImageUploader({
           disabled={processing}
           onClick={() => inputRef.current?.click()}
         >
-          {processing ? "이미지 업로드 중..." : "파일 선택"}
+          {processing ? "이미지를 업로드하고 있습니다..." : "파일 선택"}
         </Button>
-        {value ? (
+        {displayUrl ? (
           <Button
             type="button"
             variant="outline"
             size="sm"
             className="text-red-600 hover:bg-red-50"
-            onClick={() => onUrlChange(null, { reset: true, naturalW: null, naturalH: null })}
+            disabled={processing}
+            onClick={clearImage}
           >
             <Trash2 className="mr-1.5 h-4 w-4" aria-hidden />
             삭제
           </Button>
         ) : null}
       </div>
-      {processing ? <p className="text-sm font-medium text-brand-700">이미지 업로드 중...</p> : null}
-      {uploadError ? <p className="text-sm font-medium text-red-600">{uploadError}</p> : null}
+      {uploadLine ? (
+        <p
+          className={cn(
+            "text-sm font-medium",
+            uploadLine.includes("실패") ? "text-red-600" : "text-brand-700",
+          )}
+          role="status"
+        >
+          {uploadLine}
+        </p>
+      ) : null}
 
-      {value ? (
+      {displayUrl ? (
         <div className="space-y-3">
           <p className="flex flex-wrap items-center gap-2 text-sm font-medium text-slate-700">
             <Move className="h-4 w-4 shrink-0 text-slate-500" aria-hidden />
             미리보기 (16:9) — 드래그로 위치 · 슬라이더 또는 ±로 확대/축소
           </p>
 
-          <div className="flex flex-wrap items-center gap-3 max-w-xl">
+          <div className="flex max-w-xl flex-wrap items-center gap-3">
             <span className="text-xs font-medium text-slate-600 sm:text-sm">확대</span>
             <Button
               type="button"
@@ -282,7 +340,7 @@ export function ImageUploader({
           >
             <BrandHeroFrame
               className="absolute inset-0 h-full w-full"
-              imageUrl={value}
+              imageUrl={displayUrl}
               naturalWidth={iw}
               naturalHeight={ih}
               zoom={clampZoom(zoom)}

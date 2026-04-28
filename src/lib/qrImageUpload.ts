@@ -1,3 +1,4 @@
+import { getCardImageBucket } from "@/lib/brandImageUpload";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase/client";
 
 function dataUrlToBlob(dataUrl: string): Blob {
@@ -25,7 +26,7 @@ export async function uploadQrImageDataUrl(cardId: string, pngDataUrl: string): 
   const blob = dataUrlToBlob(pngDataUrl);
   const { data: userData } = await supabase.auth.getUser();
   const owner = safeSeg(userData.user?.id ?? "guest");
-  const bucket = import.meta.env.VITE_SUPABASE_CARD_IMAGE_BUCKET?.trim() || "card-images";
+  const bucket = getCardImageBucket();
   const path = `${owner}/qr-${safeSeg(cardId)}.png`;
 
   const { error } = await supabase.storage.from(bucket).upload(path, blob, {
@@ -34,7 +35,10 @@ export async function uploadQrImageDataUrl(cardId: string, pngDataUrl: string): 
     upsert: true,
   });
 
-  if (error) throw error;
+  if (error) {
+    console.error("[qrImageUpload] 업로드 실패:", error.message, error);
+    throw error;
+  }
 
   const { data } = supabase.storage.from(bucket).getPublicUrl(path);
   if (!data.publicUrl) throw new Error("Public URL was not returned");

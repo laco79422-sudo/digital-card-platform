@@ -1,3 +1,4 @@
+import type { BrandImagePersistPayload } from "@/components/card-editor/ImageUploader";
 import { ImageUploader } from "@/components/card-editor/ImageUploader";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader } from "@/components/ui/Card";
@@ -46,6 +47,8 @@ export function CardForm({
   guestTempPreviewUrl = null,
   guestTempId = null,
   onPrepareGuestKakaoShare,
+  persistBrandImageCardId = null,
+  onBrandImagePersist,
 }: {
   errors?: FieldErrors;
   /** studio: 양식 느낌 완화, 실시간 명함 조정 톤 */
@@ -55,6 +58,8 @@ export function CardForm({
   guestTempPreviewUrl?: string | null;
   guestTempId?: string | null;
   onPrepareGuestKakaoShare?: () => Promise<boolean>;
+  persistBrandImageCardId?: string | null;
+  onBrandImagePersist?: (payload: BrandImagePersistPayload) => Promise<void>;
 }) {
   const draft = useCardEditorDraftStore((s) => s.draft);
   const setDraft = useCardEditorDraftStore((s) => s.setDraft);
@@ -302,6 +307,8 @@ export function CardForm({
                 brand_image_pan_y: 0,
               })
             }
+            persistBrandImageCardId={persistBrandImageCardId}
+            onBrandImagePersist={onBrandImagePersist}
           />
       </div>
 

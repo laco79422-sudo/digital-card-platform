@@ -1,16 +1,19 @@
 import { DigitalCardPublicView } from "@/components/digital-card/DigitalCardPublicView";
+import {
+  BRAND_IMAGE_ACCEPT,
+  validateBrandImageFile,
+} from "@/lib/brandImageConstraints";
 import { optimizeImageFileToDataUrl } from "@/lib/brandImageProcess";
 import { uploadBrandImageDataUrl } from "@/lib/brandImageUpload";
+import { patchCardBrandHeroRemote } from "@/services/cardsService";
 import { DEFAULT_CARD_PERSON_NAME, draftToPreviewBusinessCard } from "@/stores/cardEditorDraftStore";
 import { useCardEditorDraftStore } from "@/stores/cardEditorDraftStore";
+import { useAppDataStore } from "@/stores/appDataStore";
 import { useAuthStore } from "@/stores/authStore";
 import type { CardLink, CardLinkType } from "@/types/domain";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export type CardPreviewLinkRow = { id: string; label: string; type: CardLinkType; url: string };
-
-const ACCEPT = "image/jpeg,image/jpg,image/png,image/webp,.jpg,.jpeg,.png,.webp";
-const MAX_BYTES = 4 * 1024 * 1024;
 
 function navigatePreviewLink(url: string) {
   const t = url.trim();
@@ -41,9 +44,20 @@ export function CardPreview({ linkRows, existingCardId, createdAt, guestTempHint
   const draft = useCardEditorDraftStore((s) => s.draft);
   const setDraft = useCardEditorDraftStore((s) => s.setDraft);
   const user = useAuthStore((s) => s.user);
+  const businessCards = useAppDataStore((s) => s.businessCards);
+  const upsertBusinessCard = useAppDataStore((s) => s.upsertBusinessCard);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
+  /** 업로드 완료 전에만 사용하는 로컬 data URL 미리보기 */
   const [localImagePreview, setLocalImagePreview] = useState<string | null>(null);
   const [imageMessage, setImageMessage] = useState<string | null>(null);
+  const successClearRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (successClearRef.current !== null) window.clearTimeout(successClearRef.current);
+    };
+  }, []);
 
   const card = draftToPreviewBusinessCard(draft, {
     userId: user?.id ?? "preview",
@@ -66,18 +80,21 @@ export function CardPreview({ linkRows, existingCardId, createdAt, guestTempHint
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
-    const okType = /^image\/(jpeg|jpg|png|webp)$/i.test(file.type);
-    const okName = /\.(jpe?g|png|webp)$/i.test(file.name);
-    if (file.size > MAX_BYTES || (!okType && !okName)) {
-      setImageMessage("jpg, jpeg, png, webp 형식이며 4MB 이하만 업로드할 수 있습니다.");
+
+    const valid = validateBrandImageFile(file);
+    if (!valid.ok) {
+      setLocalImagePreview(null);
+      setImageMessage(valid.message);
       return;
     }
 
-    setImageMessage("이미지 업로드 중...");
+    setImageMessage("이미지를 업로드하고 있습니다...");
     try {
       const { dataUrl, width, height } = await optimizeImageFileToDataUrl(file);
       setLocalImagePreview(dataUrl);
+
       const publicUrl = await uploadBrandImageDataUrl(dataUrl, file.name);
+
       setDraft({
         imageUrl: publicUrl,
         brand_image_url: publicUrl,
@@ -88,11 +105,37 @@ export function CardPreview({ linkRows, existingCardId, createdAt, guestTempHint
         brand_image_pan_y: 0,
         brand_image_legacy_object_position: null,
       });
+
+      if (existingCardId) {
+        const patch = {
+          imageUrl: publicUrl,
+          brand_image_url: publicUrl,
+          brand_image_natural_width: width,
+          brand_image_natural_height: height,
+          brand_image_zoom: 1,
+          brand_image_pan_x: 0,
+          brand_image_pan_y: 0,
+          brand_image_object_position: null,
+        };
+        const remoteOk = await patchCardBrandHeroRemote(existingCardId, patch);
+        const row = businessCards.find((c) => c.id === existingCardId);
+        if (remoteOk && row) {
+          upsertBusinessCard({ ...row, ...patch });
+        }
+      }
+
       setLocalImagePreview(null);
-      setImageMessage(null);
+      setImageMessage("이미지가 저장되었습니다.");
+      if (successClearRef.current !== null) window.clearTimeout(successClearRef.current);
+      successClearRef.current = window.setTimeout(() => {
+        setImageMessage(null);
+        successClearRef.current = null;
+      }, 4000);
     } catch (error) {
-      console.warn("[CardPreview] image upload failed", error);
-      setImageMessage("이미지 업로드에 실패했습니다. 다시 시도해 주세요.");
+      const msg = error instanceof Error ? error.message : String(error);
+      console.error("[CardPreview] 이미지 저장 실패:", msg, error);
+      setLocalImagePreview(null);
+      setImageMessage("이미지 저장에 실패했습니다. 저장소 설정을 확인해 주세요.");
     }
   };
 
@@ -106,7 +149,7 @@ export function CardPreview({ linkRows, existingCardId, createdAt, guestTempHint
       <input
         ref={fileInputRef}
         type="file"
-        accept={ACCEPT}
+        accept={BRAND_IMAGE_ACCEPT}
         className="hidden"
         onChange={(e) => void pickPreviewImage(e)}
       />
