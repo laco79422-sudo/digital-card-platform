@@ -21,7 +21,7 @@ const links = [
   { to: "/structure", label: "명함 샘플 보기" },
   { to: "/promotion/guide", label: "홍보·연결" },
   { to: "/education", label: "교육신청" },
-  { to: "/creators", label: "Expert" },
+  { to: "/creators", label: "제작 전문가" },
   { to: "/requests", label: "의뢰하기" },
 ];
 

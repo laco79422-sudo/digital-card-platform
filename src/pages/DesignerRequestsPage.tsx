@@ -53,10 +53,10 @@ export function DesignerRequestsPage() {
             배정된 디자인 의뢰
           </h1>
           <p className="mt-1 text-base leading-relaxed text-slate-600">
-            Expert에게 배정된 의뢰를 확인하고 시안 이미지 URL을 제출합니다.
+            제작 전문가에게 배정된 의뢰를 확인하고 시안 이미지 URL을 제출합니다.
           </p>
         </div>
-        <Badge tone="brand">Expert</Badge>
+        <Badge tone="brand">제작 전문가</Badge>
       </div>
 
       <div className="mt-8 grid gap-4">

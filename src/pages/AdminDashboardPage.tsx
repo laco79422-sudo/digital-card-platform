@@ -11,15 +11,15 @@ import { CreditCard, ImageIcon, LayoutDashboard, Users } from "lucide-react";
 import { useMemo, useState } from "react";
 
 const ROLE_LABEL: Record<string, string> = {
-  client: "Creator",
-  creator: "Expert",
+  client: "명함 사용자",
+  creator: "제작 전문가",
   admin: "관리자",
   company_admin: "기업 관리자",
 };
 
 const PAYMENT_TYPE_LABEL: Record<string, string> = {
-  subscription: "Creator 구독",
-  creator_membership: "Expert 멤버십",
+  subscription: "명함 사용자 구독",
+  creator_membership: "제작 전문가 멤버십",
   linko_card_pro: "디지털 명함 프로(데모)",
 };
 
@@ -71,7 +71,7 @@ export function AdminDashboardPage() {
             관리 화면
           </h1>
           <p className="mt-1 text-base leading-relaxed text-slate-600">
-            회원·명함·의뢰·결제·추천 Expert·배너를 한 화면에서 다룰 수 있어요.
+            회원·명함·의뢰·결제·추천 제작 전문가·배너를 한 화면에서 다룰 수 있어요.
           </p>
         </div>
         <Badge tone="brand">관리자</Badge>
@@ -163,8 +163,8 @@ export function AdminDashboardPage() {
 
       <Card className="mt-6">
         <CardHeader>
-          <h2 className="text-base font-semibold">추천 Expert 관리</h2>
-          <p className="text-sm text-slate-500">랜딩 &quot;추천 Expert&quot; 섹션에 노출됩니다.</p>
+          <h2 className="text-base font-semibold">추천 제작 전문가 관리</h2>
+          <p className="text-sm text-slate-500">랜딩 &quot;추천 제작 전문가&quot; 섹션에 노출됩니다.</p>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-2">
           {creators.map((c) => (

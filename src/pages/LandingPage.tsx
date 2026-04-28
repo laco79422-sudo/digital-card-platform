@@ -94,7 +94,7 @@ export function LandingPage() {
             </p>
 
             <div className="mx-auto mt-8 w-full max-w-2xl sm:mt-10">
-              <p className="sr-only">직접 만들거나 Expert에게 맡길 수 있습니다</p>
+              <p className="sr-only">직접 만들거나 제작 전문가에게 맡길 수 있습니다</p>
               <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 sm:gap-12">
                 <Link
                   to={CREATE_CARD_HREF}
@@ -122,7 +122,7 @@ export function LandingPage() {
                       "bg-white/45 backdrop-blur-sm hover:border-brand-600 hover:bg-white/70",
                     )}
                   >
-                    Expert에게 명함 디자인 맡기기
+                    제작 전문가에게 명함 디자인 맡기기
                   </span>
                   <span className="text-center text-[13px] font-medium leading-snug text-slate-700 sm:text-sm">
                     디자인 상담 후 맞춤 제작 진행
@@ -200,13 +200,13 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* 4. 유료 전환 (Expert) — 체험 이후 */}
+      {/* 4. 유료 전환 (제작 전문가) — 체험 이후 */}
       <section className={cn("border-y border-slate-200 bg-white", section.y)}>
         <div className={layout.page}>
           <div className="mx-auto max-w-2xl text-center">
-            <h2 className={cn(type.sectionTitleCenter)}>Expert와 함께하면, 명함은 홍보가 됩니다</h2>
+            <h2 className={cn(type.sectionTitleCenter)}>제작 전문가와 함께하면, 명함은 홍보가 됩니다</h2>
             <p className={cn("mt-3", type.sectionLead)}>
-              명함 제작부터 블로그·영상 홍보까지 Expert가 함께 설계합니다
+              명함 제작부터 블로그·영상 홍보까지 제작 전문가가 함께 설계합니다
             </p>
             <ul className="mx-auto mt-8 max-w-md space-y-2.5 text-left text-[15px] text-slate-800 sm:text-base">
               {expertItems.map((line) => (
@@ -223,7 +223,7 @@ export function LandingPage() {
                   "inline-flex min-h-[52px] w-full max-w-md items-center justify-center rounded-xl bg-cta-500 px-6 text-base font-bold text-white shadow-md shadow-cta-900/20 hover:bg-cta-600",
                 )}
               >
-                Expert와 함께 진행하기
+                제작 전문가와 함께 진행하기
               </Link>
             </div>
             <p className="mx-auto mt-6 max-w-lg text-sm leading-relaxed text-slate-500">
@@ -291,21 +291,21 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* Expert 목록 */}
+      {/* 제작 전문가 목록 */}
       <section className={cn("border-b border-slate-200 bg-white", section.y)}>
         <div className={layout.page}>
           <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
             <div>
-              <h2 className={type.sectionTitle}>함께할 Expert (선택)</h2>
+              <h2 className={type.sectionTitle}>함께할 제작 전문가 (선택)</h2>
               <p className={cn("mt-2 max-w-xl", type.sectionLead)}>
-                필요할 때 참고할 Expert 목록입니다.
+                필요할 때 참고할 제작 전문가 목록입니다.
               </p>
             </div>
             <Link
               to="/creators"
               className="inline-flex min-h-11 shrink-0 items-center text-base font-medium text-slate-600 underline-offset-4 hover:text-brand-700 hover:underline"
             >
-              Expert 둘러보기 →
+              제작 전문가 둘러보기 →
             </Link>
           </div>
           <div className="mt-8 grid gap-5 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">
@@ -341,7 +341,7 @@ export function LandingPage() {
                   }),
                 )}
               >
-                Expert로 참여하기
+                제작 전문가로 참여하기
               </Link>
             </div>
             <div className="rounded-2xl border border-white/15 bg-white/10 p-5 backdrop-blur-md sm:p-6">

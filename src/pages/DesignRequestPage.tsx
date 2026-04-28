@@ -123,7 +123,7 @@ export function DesignRequestPage() {
     const result = await createDesignRequest(request);
     upsertDesignRequest(result.request);
     await startDesignPayment(result.request);
-    setCompleteMessage("의뢰가 접수되었습니다. 결제 확인 후 Expert가 시안을 준비합니다.");
+    setCompleteMessage("의뢰가 접수되었습니다. 결제 확인 후 제작 전문가가 시안을 준비합니다.");
     reset({ ...values, request_message: "" });
   });
 
@@ -171,7 +171,7 @@ export function DesignRequestPage() {
           명함 디자인 제작 의뢰
         </h1>
         <p className="mt-2 text-base leading-relaxed text-slate-600">
-          원하는 분위기와 정보를 남겨주시면, Expert가 시안을 제작해 드립니다.
+          원하는 분위기와 정보를 남겨주시면, 제작 전문가가 시안을 제작해 드립니다.
         </p>
       </div>
 

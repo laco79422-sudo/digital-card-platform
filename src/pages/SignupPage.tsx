@@ -256,8 +256,8 @@ export function SignupPage() {
                 유형
               </label>
               <Select id="role" className="mt-1" {...register("role")} disabled={loading}>
-                <option value="client">Creator</option>
-                <option value="creator">Expert</option>
+                <option value="client">명함 사용자</option>
+                <option value="creator">제작 전문가</option>
               </Select>
             </div>
             <div>

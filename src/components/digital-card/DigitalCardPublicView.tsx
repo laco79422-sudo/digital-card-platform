@@ -709,7 +709,7 @@ export function DigitalCardPublicView({
               먼저 명함을 확인하고, 필요할 때만 시작하세요
             </h2>
             <p className="mx-auto mt-3 max-w-md break-keep text-center text-sm leading-relaxed text-slate-600 sm:text-base">
-              가입을 먼저 요구하지 않습니다. 이 명함처럼 나를 소개하고 싶거나, Expert 상담이 필요할 때 다음 단계로
+              가입을 먼저 요구하지 않습니다. 이 명함처럼 나를 소개하고 싶거나, 제작 전문가 상담이 필요할 때 다음 단계로
               이동해 주세요.
             </p>
             <div className="mt-6 grid gap-3 sm:grid-cols-2">
@@ -723,7 +723,7 @@ export function DigitalCardPublicView({
                 to="/signup?intent=expert-structure"
                 className={cn(linkButtonClassName({ variant: "outline", size: "lg" }), "min-h-[52px] justify-center")}
               >
-                Expert에게 상담하기
+                제작 전문가에게 상담하기
               </Link>
             </div>
             <p className="mt-4 text-center text-xs leading-relaxed text-slate-500">

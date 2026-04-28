@@ -41,7 +41,7 @@ export function CardEditorGrowthLadder({
         </li>
         <li className="flex gap-2">
           <span className="mt-0.5 font-bold text-brand-700">②</span>
-          <span>홍보 풀·Partner와 연결되어 노출이 커집니다.</span>
+          <span>홍보 풀·홍보 파트너와 연결되어 노출이 커집니다.</span>
         </li>
         <li className="flex gap-2">
           <span className="mt-0.5 font-bold text-brand-700">③</span>
@@ -74,7 +74,7 @@ export function CardEditorGrowthLadder({
           홍보 요청하기
         </Button>
         <p className="text-center text-[11px] text-slate-500">
-          생성된 명함을 홍보 풀에 올려 Partner에게 노출합니다.
+          생성된 명함을 홍보 풀에 올려 홍보 파트너에게 노출합니다.
         </p>
 
         <Link
@@ -86,7 +86,7 @@ export function CardEditorGrowthLadder({
           })}
         >
           <Users className="h-4 w-4 shrink-0 text-brand-800" aria-hidden />
-          Partner로 참여하기
+          홍보 파트너로 참여하기
         </Link>
         <p className="text-center text-[11px] text-slate-500">
           참여 신청 후 홍보 풀 명함 목록을 보고 공유 활동을 이어갑니다.
@@ -104,7 +104,7 @@ export function CardEditorGrowthLadder({
           홍보 교육 받기
         </Link>
         <p className="text-center text-[11px] text-slate-500">
-          카카오톡 공유, 메시지 템플릿, 전환 구조, Creator·Partner 역할을 정리했어요.
+          카카오톡 공유, 메시지 템플릿, 전환 구조, 명함 사용자·홍보 파트너 역할을 정리했어요.
         </p>
       </div>
 

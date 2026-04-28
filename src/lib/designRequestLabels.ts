@@ -11,7 +11,7 @@ export const DESIGN_REQUEST_STYLE_LABEL: Record<DesignRequestStyle, string> = {
 export const DESIGN_REQUEST_STATUS_LABEL: Record<DesignRequestStatus, string> = {
   pending_payment: "결제 대기",
   paid: "결제 완료",
-  assigned: "Expert 배정",
+  assigned: "제작 전문가 배정",
   draft_submitted: "시안 도착",
   revision_requested: "수정 요청",
   completed: "완료",

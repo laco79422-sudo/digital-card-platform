@@ -12,7 +12,7 @@ const typeLabels: Record<CreatorType, string> = {
 };
 
 export function CreatorCard({ creator }: { creator: CreatorProfile }) {
-  const name = creator.display_name ?? "Expert";
+  const name = creator.display_name ?? "제작 전문가";
   return (
     <Link to={`/creators/${creator.id}`} className="block h-full">
       <Card className="h-full transition hover:border-brand-200 hover:shadow-md">

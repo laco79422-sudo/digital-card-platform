@@ -644,7 +644,7 @@ export function DashboardPage() {
             key="creator-mycards"
             label="내 명함"
             value={String(myCards.length)}
-            sub="Expert 계정으로 만든 명함이에요"
+            sub="제작 전문가 계정으로 만든 명함이에요"
           />
         ) : (
           <StatBlock
@@ -688,8 +688,8 @@ export function DashboardPage() {
               <StatBlock label="총 방문 수" value={String(visitOwnerStats.totalVisits)} />
               <StatBlock label="홍보 링크 방문" value={String(visitOwnerStats.promotionVisits)} />
               <StatBlock label="직접 방문" value={String(visitOwnerStats.directVisits)} />
-              <StatBlock label="참여 Partner 수" value={String(visitOwnerStats.promoterCount)} />
-              <StatBlock label="최고 성과 Partner" value={topPromoterDisplay} />
+              <StatBlock label="참여 홍보 파트너 수" value={String(visitOwnerStats.promoterCount)} />
+              <StatBlock label="최고 성과 홍보 파트너" value={topPromoterDisplay} />
             </div>
           )}
         </section>
@@ -701,7 +701,7 @@ export function DashboardPage() {
             <div>
               <h2 className="text-lg font-semibold text-slate-900 sm:text-xl">진행 중 의뢰</h2>
               <p className="mt-2 text-sm leading-relaxed text-slate-600 sm:text-base">
-                Expert에게 맡긴 디자인 의뢰와 시안 상태를 확인합니다.
+                제작 전문가에게 맡긴 디자인 의뢰와 시안 상태를 확인합니다.
               </p>
             </div>
             <Link
@@ -770,7 +770,7 @@ export function DashboardPage() {
           ) : (
             <div className="mt-6 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-5 py-8 text-center">
               <p className="text-base font-bold text-slate-900">진행 중인 디자인 의뢰가 없습니다.</p>
-              <p className="mt-2 text-sm text-slate-500">필요하면 Expert에게 명함 디자인 제작을 맡길 수 있어요.</p>
+              <p className="mt-2 text-sm text-slate-500">필요하면 제작 전문가에게 명함 디자인 제작을 맡길 수 있어요.</p>
             </div>
           )}
         </section>
@@ -1062,7 +1062,7 @@ export function DashboardPage() {
                   </div>
                   {showPromotionPerf ? (
                     <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-4">
-                      <h3 className="text-sm font-bold text-slate-900">Partner별 성과</h3>
+                      <h3 className="text-sm font-bold text-slate-900">홍보 파트너별 성과</h3>
                       {promotionPerfRows.length === 0 ? (
                         <p className="mt-3 text-sm text-slate-500">
                           아직 홍보 방문 기록이 없어요. 홍보 링크를 승인하고 공유가 시작되면 이곳에 데이터가 쌓입니다.
@@ -1073,7 +1073,7 @@ export function DashboardPage() {
                             <thead>
                               <tr className="border-b border-slate-200 text-xs font-semibold text-slate-500">
                                 <th className="py-2 pr-2">순위</th>
-                                <th className="py-2 pr-2">Partner</th>
+                                <th className="py-2 pr-2">홍보 파트너</th>
                                 <th className="py-2 pr-2">방문 수</th>
                                 <th className="py-2 pr-2">최근 방문일</th>
                                 <th className="py-2">홍보 링크</th>

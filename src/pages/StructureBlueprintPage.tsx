@@ -100,7 +100,7 @@ export function StructureBlueprintPage() {
           명함 미리보기
         </h1>
         <p className="mx-auto mt-4 max-w-2xl text-pretty text-[15px] leading-relaxed text-slate-600 sm:text-lg">
-          내 업종과 목표를 넣으면, 완성된 명함이 어떤 모습일지 먼저 볼 수 있어요. 마음에 들면 Expert와 함께
+          내 업종과 목표를 넣으면, 완성된 명함이 어떤 모습일지 먼저 볼 수 있어요. 마음에 들면 제작 전문가와 함께
           실제 제작까지 이어갑니다.
         </p>
       </div>
@@ -124,7 +124,7 @@ export function StructureBlueprintPage() {
               <Users className="h-5 w-5 shrink-0" aria-hidden />
               <h2 className="text-base font-bold">유료</h2>
             </div>
-            <p className="text-sm font-medium text-slate-800">Expert 연결 · 실행 + 결과</p>
+            <p className="text-sm font-medium text-slate-800">제작 전문가 연결 · 실행 + 결과</p>
           </CardHeader>
           <CardContent className="text-sm leading-relaxed text-slate-700">
             전문 상담가 연결, 1:1 상담, 맞춤 명함 제작, 블로그/영상 홍보, 의뢰가 이어지는 화면까지 함께
@@ -238,7 +238,7 @@ export function StructureBlueprintPage() {
                   to="/signup?intent=expert-structure"
                   className="inline-flex min-h-[52px] w-full max-w-md items-center justify-center rounded-xl bg-cta-500 px-6 text-base font-bold text-white shadow-md shadow-cta-900/20 transition-colors hover:bg-cta-600"
                 >
-                  Expert와 함께 진행하기
+                  제작 전문가와 함께 진행하기
                 </Link>
               </div>
               <p className="text-center text-xs leading-relaxed text-slate-500">
@@ -256,9 +256,9 @@ export function StructureBlueprintPage() {
             </p>
             <p className="text-sm leading-relaxed text-slate-600">무료: 샘플 확인 · 유료: 제작 + 결과</p>
             <p className="border-t border-slate-200 pt-4 text-[15px] font-medium leading-relaxed text-slate-800">
-              Expert와 함께하면, 명함은 홍보가 됩니다.
+              제작 전문가와 함께하면, 명함은 홍보가 됩니다.
               <br />
-              명함 제작부터 블로그·영상 홍보까지 Expert가 함께 설계합니다.
+              명함 제작부터 블로그·영상 홍보까지 제작 전문가가 함께 설계합니다.
             </p>
           </div>
         </div>

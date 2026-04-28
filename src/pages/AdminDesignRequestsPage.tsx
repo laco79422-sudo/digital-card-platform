@@ -29,7 +29,7 @@ export function AdminDesignRequestsPage() {
             디자인 제작 의뢰 관리
           </h1>
           <p className="mt-1 text-base leading-relaxed text-slate-600">
-            Expert에게 맡긴 의뢰를 확인하고 결제·진행 상태를 관리할 수 있는 기본 화면입니다.
+            제작 전문가에게 맡긴 의뢰를 확인하고 결제·진행 상태를 관리할 수 있는 기본 화면입니다.
           </p>
         </div>
         <Badge tone="brand">관리자</Badge>

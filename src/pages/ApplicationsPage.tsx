@@ -72,7 +72,7 @@ export function ApplicationsPage() {
                     </Badge>
                   </div>
                   {user.role === "client" ? (
-                    <p className="text-sm font-medium text-slate-600">Expert: {a.creator_name}</p>
+                    <p className="text-sm font-medium text-slate-600">제작 전문가: {a.creator_name}</p>
                   ) : null}
                   <p className="text-[15px] leading-relaxed text-slate-800 sm:text-base">{a.proposal_text}</p>
                   <div className="flex flex-wrap gap-4 text-sm text-slate-600">

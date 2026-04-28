@@ -17,7 +17,7 @@ export function PromotionGuidePage() {
           명함을 중심으로 사람과 홍보가 연결되는 구조
         </h1>
         <p className="mt-4 text-pretty text-base leading-relaxed text-slate-600 sm:text-lg">
-          Linko는 입력폼에 그치지 않습니다. 명함 제작 → 홍보 요청 → Partner 연결 → 교육으로 확산까지 한 흐름으로
+          Linko는 입력폼에 그치지 않습니다. 명함 제작 → 홍보 요청 → 홍보 파트너 연결 → 교육으로 확산까지 한 흐름으로
           설계했습니다.
         </p>
 
@@ -62,7 +62,7 @@ export function PromotionGuidePage() {
               바로 이어집니다.
             </p>
             <p className="rounded-lg bg-slate-50 px-3 py-2 text-slate-600">
-              Partner는 이 흐름이 끊기지 않게, 짧은 메시지와 함께 링크만 보내는 것이 가장 효과적입니다.
+              홍보 파트너는 이 흐름이 끊기지 않게, 짧은 메시지와 함께 링크만 보내는 것이 가장 효과적입니다.
             </p>
           </div>
         </section>
@@ -73,24 +73,24 @@ export function PromotionGuidePage() {
           </h2>
           <div className="grid gap-px bg-slate-200 md:grid-cols-3">
             <div className="bg-white p-6">
-              <h3 className="font-bold text-brand-900">Creator</h3>
+              <h3 className="font-bold text-brand-900">명함 사용자</h3>
               <p className="mt-1 text-sm font-medium text-slate-600">고객을 만들고 싶은 사람</p>
               <p className="mt-3 text-sm leading-relaxed text-slate-700">
-                명함을 만들고, 홍보 링크를 추가해 고객 연결을 시작합니다.
+                명함을 만들고 공유 링크를 추가하며, 고객 문의와 연결을 관리합니다.
               </p>
             </div>
             <div className="bg-white p-6">
-              <h3 className="font-bold text-brand-900">Partner</h3>
+              <h3 className="font-bold text-brand-900">홍보 파트너</h3>
               <p className="mt-1 text-sm font-medium text-slate-600">홍보로 수익을 만드는 사람</p>
               <p className="mt-3 text-sm leading-relaxed text-slate-700">
-                승인된 홍보 링크를 공유하고, 성과에 따라 보상을 받을 수 있습니다.
+                홍보에 참여하고 승인된 링크를 공유하며, 성과에 따라 보상을 받습니다.
               </p>
             </div>
             <div className="bg-white p-6">
-              <h3 className="font-bold text-brand-900">Expert</h3>
+              <h3 className="font-bold text-brand-900">제작 전문가</h3>
               <p className="mt-1 text-sm font-medium text-slate-600">결과를 만들어주는 전문가</p>
               <p className="mt-3 text-sm leading-relaxed text-slate-700">
-                명함·블로그·영상 제작을 도와 결과물을 완성합니다.
+                명함 제작을 도와주고, 블로그·영상 등 콘텐츠 제작을 지원하며, 고객 연결 구조를 설계합니다.
               </p>
             </div>
           </div>
@@ -107,7 +107,7 @@ export function PromotionGuidePage() {
             to="/promotion/partner"
             className={linkButtonClassName({ variant: "outline", size: "lg", className: "w-full sm:w-auto" })}
           >
-            Partner 화면 보기
+            홍보 파트너 화면 보기
           </Link>
         </div>
       </div>
