@@ -3,6 +3,7 @@ import { ProtectedRoute } from "@/components/layout/ProtectedRoute";
 import { useInactivityLogout } from "@/hooks/useInactivityLogout";
 import { useSupabaseAuthSync } from "@/hooks/useSupabaseAuthSync";
 import { AdminDashboardPage } from "@/pages/AdminDashboardPage";
+import { AdminDesignRequestsPage } from "@/pages/AdminDesignRequestsPage";
 import { ApplicationsPage } from "@/pages/ApplicationsPage";
 import { InstantCardClaimEffect } from "@/components/instant/InstantCardClaimEffect";
 import { AuthCallbackPage } from "@/pages/AuthCallbackPage";
@@ -11,6 +12,8 @@ import { CreateCardForOthersPage } from "@/pages/CreateCardForOthersPage";
 import { CreatorDirectoryPage } from "@/pages/CreatorDirectoryPage";
 import { CreatorProfilePage } from "@/pages/CreatorProfilePage";
 import { DashboardPage } from "@/pages/DashboardPage";
+import { DesignerRequestsPage } from "@/pages/DesignerRequestsPage";
+import { DesignRequestPage } from "@/pages/DesignRequestPage";
 import { EducationPage } from "@/pages/EducationPage";
 import { LandingPage } from "@/pages/LandingPage";
 import { LoginPage } from "@/pages/LoginPage";
@@ -58,6 +61,7 @@ function AppRoutes() {
           <Route path="signup" element={<SignupPage />} />
           <Route path="create-for-others" element={<CreateCardForOthersPage />} />
           <Route path="create-card" element={<CardEditorPage />} />
+          <Route path="request" element={<DesignRequestPage />} />
         <Route path="creators" element={<CreatorDirectoryPage />} />
         <Route path="creators/:id" element={<CreatorProfilePage />} />
         <Route path="requests" element={<RequestListPage />} />
@@ -119,10 +123,26 @@ function AppRoutes() {
           }
         />
         <Route
+          path="designer/requests"
+          element={
+            <ProtectedRoute>
+              <DesignerRequestsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="admin"
           element={
             <ProtectedRoute roles={["admin"]}>
               <AdminDashboardPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="admin/design-requests"
+          element={
+            <ProtectedRoute roles={["admin"]}>
+              <AdminDesignRequestsPage />
             </ProtectedRoute>
           }
         />

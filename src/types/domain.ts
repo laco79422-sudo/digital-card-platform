@@ -202,6 +202,37 @@ export interface Payment {
   card_id?: string | null;
 }
 
+export type DesignRequestStyle = "simple" | "premium" | "emotional" | "business" | "free";
+
+export type DesignRequestStatus =
+  | "pending_payment"
+  | "paid"
+  | "assigned"
+  | "draft_submitted"
+  | "revision_requested"
+  | "completed";
+
+export type DesignRequestPaymentStatus = "unpaid" | "paid" | "failed" | "refunded";
+
+export interface DesignRequest {
+  id: string;
+  user_id: string | null;
+  name: string;
+  phone: string;
+  email: string;
+  business_type: string;
+  style: DesignRequestStyle;
+  reference_url: string | null;
+  request_message: string;
+  status: DesignRequestStatus;
+  payment_status: DesignRequestPaymentStatus;
+  assigned_designer_id: string | null;
+  draft_image_url: string | null;
+  final_card_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface ReferralRecord {
   user_id: string;
   ref_code: string;

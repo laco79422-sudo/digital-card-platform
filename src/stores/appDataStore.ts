@@ -20,6 +20,7 @@ import type {
   CardPromotionLink,
   CardView,
   CreatorProfile,
+  DesignRequest,
   EducationApplication,
   InstructorApplication,
   MainBanner,
@@ -72,6 +73,7 @@ interface AppDataState {
   promotionPool: PromotionPoolEntry[];
   promoterParticipations: PromoterParticipation[];
   referralRecords: ReferralRecord[];
+  designRequests: DesignRequest[];
 
   setBusinessCards: (cards: BusinessCard[]) => void;
   upsertBusinessCard: (card: BusinessCard) => void;
@@ -94,6 +96,9 @@ interface AppDataState {
 
   addPayment: (p: Payment) => void;
   ensureReferralRecord: (userId: string, referredBy?: string | null) => void;
+  upsertDesignRequest: (request: DesignRequest) => void;
+  setDesignRequests: (requests: DesignRequest[]) => void;
+  updateDesignRequest: (id: string, patch: Partial<DesignRequest>) => void;
   addToPromotionPool: (entry: Omit<PromotionPoolEntry, "id" | "registered_at" | "status">) => boolean;
   enrollPromoter: (p: Omit<PromoterParticipation, "id" | "enrolled_at">) => boolean;
 }
@@ -120,6 +125,7 @@ export const useAppDataStore = create<AppDataState>()(
       promotionPool: [],
       promoterParticipations: [],
       referralRecords: [],
+      designRequests: [],
 
       setBusinessCards: (businessCards) => set({ businessCards }),
       upsertBusinessCard: (card) =>
@@ -217,6 +223,22 @@ export const useAppDataStore = create<AppDataState>()(
 
           return { referralRecords: records };
         }),
+      upsertDesignRequest: (request) =>
+        set((s) => ({
+          designRequests: s.designRequests.some((x) => x.id === request.id)
+            ? s.designRequests.map((x) => (x.id === request.id ? request : x))
+            : [...s.designRequests, request],
+        })),
+      setDesignRequests: (requests) =>
+        set((s) => ({
+          designRequests: mergeById(s.designRequests, requests),
+        })),
+      updateDesignRequest: (id, patch) =>
+        set((s) => ({
+          designRequests: s.designRequests.map((x) =>
+            x.id === id ? { ...x, ...patch, updated_at: patch.updated_at ?? new Date().toISOString() } : x,
+          ),
+        })),
       addToPromotionPool: (raw) => {
         let added = false;
         set((s) => {
@@ -271,6 +293,7 @@ export const useAppDataStore = create<AppDataState>()(
         promotionPool: state.promotionPool,
         promoterParticipations: state.promoterParticipations,
         referralRecords: state.referralRecords,
+        designRequests: state.designRequests,
       }),
       merge: (persisted, current) => {
         const p = persisted as Partial<AppDataState> | undefined;
@@ -308,6 +331,7 @@ export const useAppDataStore = create<AppDataState>()(
             p.promoterParticipations,
           ),
           referralRecords: mergeReferralRecords(current.referralRecords ?? [], p.referralRecords),
+          designRequests: mergeById(current.designRequests ?? [], p.designRequests),
         };
       },
     },

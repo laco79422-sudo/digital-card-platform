@@ -112,7 +112,7 @@ export function LandingPage() {
                   </span>
                 </Link>
                 <Link
-                  to="/signup?intent=expert-structure"
+                  to="/request"
                   className="group flex flex-col gap-2.5 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-sky-100"
                 >
                   <span

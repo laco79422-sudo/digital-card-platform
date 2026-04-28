@@ -2,9 +2,15 @@ import { BRAND_DISPLAY_NAME, brandCta } from "@/lib/brand";
 import { buildCardShareUrl, resolveBusinessCardPublicUrl } from "@/lib/cardShareUrl";
 import { shareCardLinkNativeOrder } from "@/lib/kakaoWebShare";
 import { buildReferralCode } from "@/lib/referrals";
+import {
+  DESIGN_REQUEST_PAYMENT_STATUS_LABEL,
+  DESIGN_REQUEST_STATUS_LABEL,
+  DESIGN_REQUEST_STYLE_LABEL,
+} from "@/lib/designRequestLabels";
 import { layout } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
 import { fetchMyCardsForUser, type FetchMyCardsResult } from "@/services/cardsService";
+import { fetchMyDesignRequests, updateDesignRequestRemote } from "@/services/designRequestsService";
 import { useAuthStore } from "@/stores/authStore";
 import { useAppDataStore } from "@/stores/appDataStore";
 import type { BusinessCard, User } from "@/types/domain";
@@ -112,6 +118,7 @@ export function DashboardPage() {
   const cardLinkVisits = useAppDataStore((s) => s.cardLinkVisits);
   const cardPromotionLinks = useAppDataStore((s) => s.cardPromotionLinks);
   const requests = useAppDataStore((s) => s.serviceRequests);
+  const designRequests = useAppDataStore((s) => s.designRequests);
   const applications = useAppDataStore((s) => s.applications);
   const referralRecords = useAppDataStore((s) => s.referralRecords);
   const ensureReferralRecord = useAppDataStore((s) => s.ensureReferralRecord);
@@ -119,6 +126,8 @@ export function DashboardPage() {
   const addPayment = useAppDataStore((s) => s.addPayment);
   const extendCardAccess = useAppDataStore((s) => s.extendCardAccess);
   const addCardPromotionLink = useAppDataStore((s) => s.addCardPromotionLink);
+  const setDesignRequests = useAppDataStore((s) => s.setDesignRequests);
+  const updateDesignRequest = useAppDataStore((s) => s.updateDesignRequest);
   const [referralCopyDone, setReferralCopyDone] = useState(false);
   const [referralShareHint, setReferralShareHint] = useState(false);
   const [cardCopyId, setCardCopyId] = useState<string | null>(null);
@@ -173,6 +182,13 @@ export function DashboardPage() {
     };
   }, [user, upsertBusinessCard]);
 
+  useEffect(() => {
+    if (!user?.id) return;
+    void fetchMyDesignRequests({ id: user.id, email: user.email }).then((rows) => {
+      if (rows) setDesignRequests(rows);
+    });
+  }, [setDesignRequests, user?.email, user?.id]);
+
   const myCards = useMemo(
     () => (uid ? businessCards.filter((card) => cardBelongsToUser(card, user)) : []),
     [businessCards, uid, user],
@@ -186,6 +202,13 @@ export function DashboardPage() {
   const myOpenRequests = uid
     ? requests.filter((r) => r.client_user_id === uid && r.status === "open").length
     : 0;
+  const myDesignRequests = useMemo(() => {
+    if (!uid) return [];
+    const email = user?.email.trim().toLowerCase() ?? "";
+    return designRequests
+      .filter((request) => request.user_id === uid || (email && request.email.trim().toLowerCase() === email))
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  }, [designRequests, uid, user?.email]);
 
   const myApps = uid ? applications.filter((a) => a.creator_user_id === uid) : [];
 
@@ -373,6 +396,12 @@ export function DashboardPage() {
   const cardsLookupFailed = myCards.length === 0 && (cardsFetch.status === "error" || cardsFetch.status === "not_configured");
   const cardsActuallyEmpty = !cardsLoading && !cardsLookupFailed && myCards.length === 0;
 
+  const changeDesignRequestStatus = async (requestId: string, status: "revision_requested" | "completed") => {
+    const patch = { status, updated_at: new Date().toISOString() };
+    updateDesignRequest(requestId, patch);
+    await updateDesignRequestRemote(requestId, patch);
+  };
+
   return (
     <div className={cn(layout.page, "py-10 sm:py-12")}>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -438,9 +467,94 @@ export function DashboardPage() {
             sub="내 명함이 열린 횟수예요"
           />
         ) : (
-          <StatBlock key="client-requests" label="진행 중 의뢰" value={String(myOpenRequests)} />
+          <StatBlock
+            key="client-requests"
+            label="진행 중 의뢰"
+            value={String(myOpenRequests + myDesignRequests.filter((r) => r.status !== "completed").length)}
+          />
         )}
       </div>
+
+      {!isCreator ? (
+        <section className="mt-8 rounded-2xl border border-brand-200/80 bg-white p-4 shadow-sm sm:p-6">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-900 sm:text-xl">진행 중 의뢰</h2>
+              <p className="mt-2 text-sm leading-relaxed text-slate-600 sm:text-base">
+                명함 디자인 전문가에게 맡긴 제작 의뢰와 시안 상태를 확인합니다.
+              </p>
+            </div>
+            <Link
+              to="/request"
+              className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-xl bg-cta-500 px-4 text-sm font-bold text-white shadow-sm shadow-cta-900/20 hover:bg-cta-600"
+            >
+              디자인 제작 의뢰하기
+            </Link>
+          </div>
+
+          {myDesignRequests.length > 0 ? (
+            <ul className="mt-6 grid gap-4 lg:grid-cols-2">
+              {myDesignRequests.map((request) => (
+                <li key={request.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <h3 className="text-base font-bold text-slate-900">명함 디자인 제작 의뢰</h3>
+                      <p className="mt-1 text-sm text-slate-600">
+                        {request.business_type} · {DESIGN_REQUEST_STYLE_LABEL[request.style]}
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-2 text-xs font-semibold">
+                      <span className="rounded-full bg-white px-2.5 py-1 text-slate-700 ring-1 ring-slate-200">
+                        {DESIGN_REQUEST_PAYMENT_STATUS_LABEL[request.payment_status]}
+                      </span>
+                      <span className="rounded-full bg-brand-50 px-2.5 py-1 text-brand-800 ring-1 ring-brand-100">
+                        {DESIGN_REQUEST_STATUS_LABEL[request.status]}
+                      </span>
+                    </div>
+                  </div>
+                  <p className="mt-3 line-clamp-3 text-sm leading-relaxed text-slate-700">{request.request_message}</p>
+                  {request.draft_image_url ? (
+                    <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-3">
+                      <p className="text-sm font-bold text-slate-900">시안 보기</p>
+                      <img
+                        src={request.draft_image_url}
+                        alt="명함 디자인 시안"
+                        className="mt-3 max-h-64 w-full rounded-xl object-contain bg-slate-100"
+                        loading="lazy"
+                      />
+                      <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                        <button
+                          type="button"
+                          className="inline-flex min-h-10 items-center justify-center rounded-xl border border-slate-300 bg-white px-3 text-sm font-bold text-slate-900 hover:bg-slate-50"
+                          onClick={() => void changeDesignRequestStatus(request.id, "revision_requested")}
+                        >
+                          수정 요청
+                        </button>
+                        <button
+                          type="button"
+                          className="inline-flex min-h-10 items-center justify-center rounded-xl bg-slate-900 px-3 text-sm font-bold text-white hover:bg-slate-800"
+                          onClick={() => void changeDesignRequestStatus(request.id, "completed")}
+                        >
+                          이 시안으로 확정
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="mt-4 rounded-xl bg-white px-3 py-3 text-sm font-medium text-slate-600 ring-1 ring-slate-200">
+                      시안이 도착하면 이곳에서 확인할 수 있습니다.
+                    </p>
+                  )}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div className="mt-6 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-5 py-8 text-center">
+              <p className="text-base font-bold text-slate-900">진행 중인 디자인 의뢰가 없습니다.</p>
+              <p className="mt-2 text-sm text-slate-500">필요하면 전문가에게 명함 디자인 제작을 맡길 수 있어요.</p>
+            </div>
+          )}
+        </section>
+      ) : null}
 
       <section className="mt-8 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
