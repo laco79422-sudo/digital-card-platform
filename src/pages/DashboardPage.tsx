@@ -3,7 +3,7 @@ import { BRAND_DISPLAY_NAME } from "@/lib/brand";
 import { buildNfcAcceptUrl, canonicalSiteOrigin } from "@/lib/siteOrigin";
 import { buildCardShareUrl, resolveBusinessCardPublicUrl } from "@/lib/cardShareUrl";
 import { shareCardLinkNativeOrder } from "@/lib/kakaoWebShare";
-import { buildReferralCode } from "@/lib/referrals";
+import { buildReferralCode, buildSignupReferralUrl, rewardMonthsForReferralCount } from "@/lib/referrals";
 import {
   DESIGN_REQUEST_PAYMENT_STATUS_LABEL,
   DESIGN_REQUEST_STATUS_LABEL,
@@ -19,9 +19,17 @@ import {
   handleExtraCardPaymentSuccess,
   startExtraCardPayment,
 } from "@/services/extraCardPaymentService";
+import {
+  fetchCardVisitLogsForOwner,
+  fetchCardVisitLogsForPromoterApplicant,
+} from "@/services/cardVisitLogsService";
 import { fetchMyCardsForUser, type FetchMyCardsResult } from "@/services/cardsService";
 import { fetchMyDesignRequests, updateDesignRequestRemote } from "@/services/designRequestsService";
-import { fetchCardVisitLogsForOwner, fetchCardVisitLogsForPromoterApplicant } from "@/services/cardVisitLogsService";
+import {
+  claimPendingReferral,
+  fetchProfileReferralCode,
+  fetchReferralSignupCount,
+} from "@/services/referralService";
 import {
   buildPromoterCode,
   buildPromotionUrl,
@@ -240,6 +248,8 @@ export function DashboardPage() {
     source: "none",
   });
   const [cardsLoading, setCardsLoading] = useState(false);
+  const [profileReferralCodeDb, setProfileReferralCodeDb] = useState<string | null>(null);
+  const [referralSignupCountDb, setReferralSignupCountDb] = useState<number | null>(null);
 
   const uid = user?.id ?? "";
   useEffect(() => {
@@ -253,6 +263,25 @@ export function DashboardPage() {
   useEffect(() => {
     if (uid) ensureReferralRecord(uid);
   }, [ensureReferralRecord, uid]);
+
+  useEffect(() => {
+    if (!uid) {
+      setProfileReferralCodeDb(null);
+      setReferralSignupCountDb(null);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      await claimPendingReferral();
+      const [code, count] = await Promise.all([fetchProfileReferralCode(uid), fetchReferralSignupCount(uid)]);
+      if (cancelled) return;
+      setProfileReferralCodeDb(code);
+      setReferralSignupCountDb(count);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [uid]);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -420,11 +449,13 @@ export function DashboardPage() {
   );
 
   const myReferral = uid ? referralRecords.find((r) => r.user_id === uid) : null;
-  const refCode = myReferral?.ref_code ?? (uid ? buildReferralCode(uid) : "");
-  const referredCount = myReferral?.referred_count ?? 0;
-  const rewardMonths = myReferral?.reward_months ?? 0;
-  const referralCard = myCards.find((card) => card.is_public && card.slug.trim()) ?? null;
-  const referralLink = refCode && referralCard ? buildPromotionLink(referralCard, shareOrigin, refCode) : "";
+  const refCode =
+    profileReferralCodeDb?.trim() ||
+    myReferral?.ref_code ||
+    (uid ? buildReferralCode(uid) : "");
+  const referredCount = referralSignupCountDb ?? myReferral?.referred_count ?? 0;
+  const rewardMonths = rewardMonthsForReferralCount(referredCount);
+  const referralLink = refCode ? buildSignupReferralUrl(canonicalSiteOrigin(), refCode) : "";
 
   const copyReferralLink = async () => {
     if (!referralLink) return;
@@ -439,8 +470,7 @@ export function DashboardPage() {
 
   const shareReferralLink = async () => {
     if (!refCode || !referralLink) return;
-    const url = `${canonicalSiteOrigin()}/?ref=${encodeURIComponent(refCode)}`;
-    const usedKakaoSdk = await shareReferralToKakao(url);
+    const usedKakaoSdk = await shareReferralToKakao(referralLink);
     if (!usedKakaoSdk) {
       setReferralShareHint(true);
       window.setTimeout(() => setReferralShareHint(false), 4000);
@@ -1342,18 +1372,18 @@ export function DashboardPage() {
               <p className="text-sm font-bold text-brand-800">내 추천 링크</p>
               <h2 className="mt-1 text-lg font-semibold text-slate-900 sm:text-xl">추천하고 이용권 혜택 받기</h2>
               <p className="mt-2 text-sm leading-relaxed text-slate-600 sm:text-base">
-                내 명함 링크로 다른 사람이 가입하면 이용 혜택을 받을 수 있어요.
+                추천 링크로 친구가 회원가입하면 이용 혜택을 받을 수 있어요. 명함 공유 링크와는 별도입니다.
               </p>
             </div>
             <div className="rounded-xl bg-white px-4 py-3 text-sm font-semibold text-slate-900 shadow-sm ring-1 ring-slate-200">
-              추천 가입자 {referredCount}명 / 10명
+              추천 가입자 {referredCount}명 / 5명
             </div>
           </div>
 
           <div className="mt-5">
             <p className="text-sm font-semibold text-slate-800">내 추천 링크 주소</p>
             <p className="mt-2 break-all rounded-xl border border-slate-200 bg-white px-4 py-3 font-mono text-sm font-semibold text-brand-900">
-              {referralLink || "명함을 만든 뒤 추천 링크가 생성됩니다."}
+              {referralLink || "추천 링크를 불러오는 중입니다."}
             </p>
           </div>
 
@@ -1384,8 +1414,8 @@ export function DashboardPage() {
           <div className="mt-5 rounded-xl border border-slate-200 bg-white/80 px-4 py-4">
             <p className="text-sm font-bold text-slate-900">혜택 안내</p>
             <ul className="mt-2 space-y-1.5 text-sm leading-relaxed text-slate-700">
-              <li>10명이 가입하면 14,900원 이용권 1개월 무료</li>
-              <li>20명이 가입하면 14,900원 이용권 2개월 무료</li>
+              <li>5명이 가입하면 14,900원 이용권 1개월 무료</li>
+              <li>10명이 가입하면 14,900원 이용권 2개월 무료</li>
             </ul>
             <p className="mt-3 text-sm font-semibold text-brand-900">
               현재 적용 가능 혜택: 14,900원 이용권 {rewardMonths}개월 무료

@@ -11,6 +11,7 @@ import { layout } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
 import { getLandingEmail, hasPendingCardDraft } from "@/lib/pendingCardStorage";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase/client";
+import { getStoredLinkoReferralCode } from "@/lib/linkoReferralStorage";
 import { getReferralCodeFromSearch } from "@/lib/referrals";
 import { getPromotionReferralCode } from "@/lib/promotionReferralStorage";
 import { useAppDataStore } from "@/stores/appDataStore";
@@ -75,10 +76,13 @@ export function SignupPage() {
 
   const emailValue = watch("email") ?? "";
   const emailFieldStatus = useMemo(() => getSignupEmailFieldStatus(emailValue), [emailValue]);
-  const referralCode = useMemo(
-    () => getReferralCodeFromSearch(location.search) ?? getPromotionReferralCode(),
-    [location.search],
-  );
+  const referralCode = useMemo(() => {
+    const fromUrl = getReferralCodeFromSearch(location.search);
+    if (fromUrl) return fromUrl;
+    const stored = getStoredLinkoReferralCode();
+    if (stored) return stored;
+    return getPromotionReferralCode();
+  }, [location.search]);
 
   /** 이메일 칸 아래: 형식 안내만 (서버 중복 메시지는 errorMessage로만 표시) */
   const emailFormatHint = useMemo(() => {

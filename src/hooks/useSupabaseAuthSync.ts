@@ -10,6 +10,7 @@ import {
 } from "@/lib/auth/inactivityConstants";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase/client";
 import { mapSupabaseUser } from "@/lib/supabase/mapAuthUser";
+import { claimPendingReferral } from "@/services/referralService";
 import { useAuthStore } from "@/stores/authStore";
 import type { Session } from "@supabase/supabase-js";
 import { useEffect } from "react";
@@ -56,6 +57,7 @@ export function useSupabaseAuthSync() {
         setUser(mapSupabaseUser(session.user));
         setSession(session);
         setLastActivityAt(readLastActivityMs());
+        void claimPendingReferral();
       } else {
         setUser(null);
         setSession(null);

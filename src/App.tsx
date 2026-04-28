@@ -30,6 +30,7 @@ import { RequestCreatePage } from "@/pages/RequestCreatePage";
 import { RequestListPage } from "@/pages/RequestListPage";
 import { SignupPage } from "@/pages/SignupPage";
 import { StructureBlueprintPage } from "@/pages/StructureBlueprintPage";
+import { ReferralCaptureEffect } from "@/components/referral/ReferralCaptureEffect";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { useParams } from "react-router-dom";
 
@@ -160,6 +161,7 @@ function AppRoutes() {
 export default function App() {
   return (
     <BrowserRouter>
+      <ReferralCaptureEffect />
       <AppRoutes />
     </BrowserRouter>
   );
