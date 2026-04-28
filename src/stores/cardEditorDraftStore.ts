@@ -4,6 +4,8 @@ import { clampZoom } from "@/lib/brandHeroLayout";
 import type { PreviewCardType } from "@/lib/previewCardType";
 import { create } from "zustand";
 
+export const DEFAULT_CARD_PERSON_NAME = "내 명함 이름";
+
 function clampPan(n: number): number {
   return Math.max(-1, Math.min(1, n));
 }
@@ -135,7 +137,7 @@ export function mergeDraftDefaults(
 export function createEmptyDraft(overrides: Partial<CardEditorDraft> = {}): CardEditorDraft {
   return {
     brand_name: "",
-    person_name: "",
+    person_name: DEFAULT_CARD_PERSON_NAME,
     job_title: "",
     intro: "",
     address: "",

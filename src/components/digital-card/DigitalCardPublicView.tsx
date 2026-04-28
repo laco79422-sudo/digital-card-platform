@@ -36,7 +36,7 @@ import {
   Video,
   Zap,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 
 const themeClass: Record<string, string> = {
@@ -96,6 +96,16 @@ type Props = {
   previewVariant?: PreviewCardType;
   /** 추천 링크로 들어온 방문자에게 가입 전 가치 확인 흐름을 안내 */
   referralLanding?: boolean;
+  /** 편집기 미리보기: 이미지 미등록 영역 클릭 처리 */
+  onEmptyImageClick?: () => void;
+  /** 편집기 미리보기: 업로드 중/실패 안내 */
+  imageHelperText?: string | null;
+  /** 편집기 미리보기: 업로드 중 로컬 미리보기 URL */
+  imageUrlOverride?: string | null;
+  /** 편집기 미리보기: 이름 클릭 수정 */
+  editableName?: boolean;
+  namePlaceholder?: string;
+  onNameChange?: (name: string) => void;
   /** 카카오 공유 직전 — Supabase에 임시 명함 동기화(크롤러 OG와 일치) */
   onBeforeKakaoShare?: () => void | Promise<void>;
 };
@@ -111,17 +121,24 @@ export function DigitalCardPublicView({
   tempPreview,
   previewVariant,
   referralLanding,
+  onEmptyImageClick,
+  imageHelperText,
+  imageUrlOverride,
+  editableName,
+  namePlaceholder = "내 명함 이름",
+  onNameChange,
   onBeforeKakaoShare,
 }: Props) {
   const grad = themeClass[card.theme] ?? themeClass.navy;
   const tagline = effectiveTagline(card);
   const hasPitchHeadline = Boolean(card.tagline?.trim());
-  const name = card.person_name.trim();
+  const rawName = card.person_name.trim();
+  const name = rawName || (editableName ? namePlaceholder : "");
   const position = card.job_title.trim();
   const company = card.brand_name.trim();
   const description = card.intro.trim();
   const title = card.tagline?.trim() ?? "";
-  const imageUrl = card.imageUrl?.trim() || card.brand_image_url?.trim() || "";
+  const imageUrl = imageUrlOverride?.trim() || card.imageUrl?.trim() || card.brand_image_url?.trim() || "";
   const hasPhone = Boolean(card.phone?.replace(/\D/g, ""));
   const showCompany = Boolean(company && company !== title);
   const trustMetric = trustMetricForView(card);
@@ -151,11 +168,22 @@ export function DigitalCardPublicView({
   const [shareOrigin, setShareOrigin] = useState("");
   const [copyDone, setCopyDone] = useState(false);
   const [kakaoHint, setKakaoHint] = useState(false);
+  const [editingName, setEditingName] = useState(false);
+  const [nameDraft, setNameDraft] = useState(name);
+  const nameInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (compact) return;
     setShareOrigin(window.location.origin);
   }, [compact]);
+
+  useEffect(() => {
+    if (!editingName) setNameDraft(name);
+  }, [editingName, name]);
+
+  useEffect(() => {
+    if (editingName) nameInputRef.current?.focus();
+  }, [editingName]);
 
   const cardPublicUrl = useMemo(() => {
     if (shareUrlOverride) return shareUrlOverride;
@@ -215,6 +243,49 @@ export function DigitalCardPublicView({
       ? iconForLinkType(hero.secondaryLinkType)
       : MessageCircle;
 
+  const commitNameEdit = useCallback(() => {
+    const next = nameDraft.trim() || namePlaceholder;
+    onNameChange?.(next);
+    setNameDraft(next);
+    setEditingName(false);
+  }, [nameDraft, namePlaceholder, onNameChange]);
+
+  const renderName = (className: string, as: "h1" | "p" = "p") => {
+    if (!name && !editableName) return null;
+    if (editingName) {
+      return (
+        <input
+          ref={nameInputRef}
+          className={cn(
+            "mt-3 w-full max-w-xs rounded-xl border border-white/35 bg-white/95 px-3 py-2 text-center font-bold text-slate-950 shadow-sm outline-none ring-2 ring-white/40",
+            as === "h1" ? "text-2xl sm:text-3xl" : "text-base sm:text-lg",
+          )}
+          value={nameDraft}
+          placeholder={namePlaceholder}
+          onChange={(e) => setNameDraft(e.target.value)}
+          onBlur={commitNameEdit}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") commitNameEdit();
+            if (e.key === "Escape") {
+              setNameDraft(name);
+              setEditingName(false);
+            }
+          }}
+        />
+      );
+    }
+    const Tag = as;
+    return (
+      <Tag
+        className={cn(className, editableName ? "cursor-text rounded-lg px-2 py-1 hover:bg-white/10" : "")}
+        onClick={editableName ? () => setEditingName(true) : undefined}
+        title={editableName ? "클릭해서 이름 수정" : undefined}
+      >
+        {name}
+      </Tag>
+    );
+  };
+
   return (
     <div
       className={cn(
@@ -246,6 +317,16 @@ export function DigitalCardPublicView({
                     legacyObjectPosition={card.brand_image_object_position}
                     imgLoading="eager"
                   />
+                ) : onEmptyImageClick ? (
+                  <button
+                    type="button"
+                    className="flex h-full min-h-[120px] w-full flex-col items-center justify-center gap-2 px-4 text-white/85 transition hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/60"
+                    onClick={onEmptyImageClick}
+                  >
+                    <ImageIcon className="h-12 w-12 opacity-80 sm:h-14 sm:w-14" aria-hidden />
+                    <span className="text-sm font-medium sm:text-base">이미지를 등록해 주세요</span>
+                    <span className="text-xs font-medium text-white/70">클릭해서 이미지 선택</span>
+                  </button>
                 ) : (
                   <div className="flex h-full min-h-[120px] w-full flex-col items-center justify-center gap-2 px-4 text-white/85">
                     <ImageIcon className="h-12 w-12 opacity-80 sm:h-14 sm:w-14" aria-hidden />
@@ -254,6 +335,7 @@ export function DigitalCardPublicView({
                 )}
               </div>
             </div>
+            {imageHelperText ? <p className="mt-2 text-sm font-medium text-white/85">{imageHelperText}</p> : null}
             {hasPitchHeadline ? (
               <>
                 {tempPreview ? (
@@ -284,7 +366,7 @@ export function DigitalCardPublicView({
                         {title}
                       </h1>
                     ) : null}
-                    {name ? <p className="mt-3 text-base font-semibold text-white/95 sm:text-lg">{name}</p> : null}
+                    {renderName("mt-3 text-base font-semibold text-white/95 sm:text-lg")}
                   </>
                 )}
                 {position ? (
@@ -321,11 +403,10 @@ export function DigitalCardPublicView({
                   </>
                 ) : (
                   <>
-                    {name ? (
-                      <h1 className="mt-5 break-keep text-2xl font-bold leading-tight tracking-tight text-white sm:text-3xl md:text-4xl">
-                        {name}
-                      </h1>
-                    ) : null}
+                    {renderName(
+                      "mt-5 break-keep text-2xl font-bold leading-tight tracking-tight text-white sm:text-3xl md:text-4xl",
+                      "h1",
+                    )}
                     {position ? <p className="mt-2 text-base font-medium text-white/90 sm:text-lg">{position}</p> : null}
                     {showCompany ? (
                       <p className="mt-2 text-sm font-semibold uppercase tracking-[0.18em] text-white/70">

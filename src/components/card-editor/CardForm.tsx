@@ -186,7 +186,7 @@ export function CardForm({
           </label>
           <Input
             className="mt-1"
-            placeholder="예: 송민호"
+            placeholder="예: 내 명함 이름"
             value={draft.person_name}
             onChange={(e) => setDraft({ person_name: e.target.value })}
             autoComplete="name"

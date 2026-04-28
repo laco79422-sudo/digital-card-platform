@@ -18,6 +18,7 @@ import { layout } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/authStore";
 import {
+  DEFAULT_CARD_PERSON_NAME,
   createEmptyDraft,
   draftFromBusinessCard,
   draftToBusinessCard,
@@ -346,7 +347,7 @@ export function CardEditorPage() {
     } else if (isNew && user) {
       replaceDraft(
         createEmptyDraft({
-          person_name: user?.name ?? "",
+          person_name: DEFAULT_CARD_PERSON_NAME,
           email: user?.email ?? "",
         }),
       );
@@ -582,7 +583,7 @@ export function CardEditorPage() {
     replaceDraft(
       createEmptyDraft({
         email: getLandingEmail()?.trim() || user?.email?.trim() || "",
-        person_name: user?.name ?? "",
+        person_name: DEFAULT_CARD_PERSON_NAME,
       }),
     );
     setLinkRows(mapLinksToRows([]));

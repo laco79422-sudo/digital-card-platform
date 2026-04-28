@@ -1,4 +1,4 @@
-import { createEmptyDraft, type CardEditorDraft } from "@/stores/cardEditorDraftStore";
+import { DEFAULT_CARD_PERSON_NAME, createEmptyDraft, type CardEditorDraft } from "@/stores/cardEditorDraftStore";
 import type { CardLinkType } from "@/types/domain";
 
 /** 샘플 대표 이미지(편집·교체 가능한 실제 state 값) */
@@ -18,7 +18,7 @@ const SAMPLE_GALLERY_LINES = [
 export function getSampleCardDraft(overrides: Partial<CardEditorDraft> = {}): CardEditorDraft {
   return createEmptyDraft({
     brand_name: "린코 디지털 명함",
-    person_name: "송민호",
+    person_name: DEFAULT_CARD_PERSON_NAME,
     job_title: "린코 디지털 명함 대표 · 연결을 만드는 사람",
     intro: "홍보가 되는 명함,\n연결이 이어지는 구조까지 함께 설계합니다",
     address: "서울 강남구 테헤란로 123",
