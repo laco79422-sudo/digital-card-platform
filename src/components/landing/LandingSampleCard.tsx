@@ -1,59 +1,173 @@
-import { CardConnectionModesHint } from "@/components/digital-card/CardConnectionModesHint";
-import { ExternalLink, MessageCircle, Phone } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Nfc, QrCode } from "lucide-react";
 
 export type LandingSampleType = "personal" | "business" | "store";
 
 type Props = {
-  /** 히어로에서 더 크게·강조해서 표시 */
   variant?: "default" | "hero";
   sampleType?: LandingSampleType;
   className?: string;
 };
 
-const SAMPLE_CARDS: Record<
-  LandingSampleType,
-  {
-    typeLabel: string;
-    name: string;
-    role: string;
-    tagline: string;
-    description: string;
-    initials: string;
-    accent: string;
-  }
-> = {
+type SampleFeature = { text: string; title?: string };
+
+type SampleConfig = {
+  typeLabel: string;
+  topBadges: string[];
+  heroBrandLine: string;
+  name: string;
+  role: string;
+  tagline: string;
+  description: string;
+  ctaLabel: string;
+  accent: string;
+  accentOverlay: string;
+  bottomFeatures: SampleFeature[];
+};
+
+const SAMPLE_CARDS: Record<LandingSampleType, SampleConfig> = {
   personal: {
     typeLabel: "개인형",
+    topBadges: ["NFC 연결", "QR 공유", "홍보 추적"],
+    heroBrandLine: "LINKO CARD",
     name: "린코",
-    role: "린코 디지털 명함 대표",
-    tagline: "연결을 만드는 사람",
-    description: "홍보가 되는 명함,\n연결이 이어지는 구조까지 설계합니다",
-    initials: "LK",
-    accent: "from-brand-500 via-indigo-500 to-slate-900",
+    role: "디지털 명함 서비스",
+    tagline: "링크 하나로 소개부터 상담까지",
+    description: "QR·NFC·공유 링크로 고객과 바로 연결됩니다.",
+    ctaLabel: "문의하기",
+    accent: "from-violet-600 via-brand-600 to-indigo-950",
+    accentOverlay:
+      "bg-[radial-gradient(ellipse_85%_65%_at_50%_-10%,rgba(255,255,255,0.28),transparent_55%),radial-gradient(ellipse_70%_50%_at_100%_100%,rgba(99,102,241,0.35),transparent)]",
+    bottomFeatures: [
+      { text: "NFC 터치", title: "가까이 대면 바로 명함이 열립니다" },
+      { text: "QR 스캔", title: "카메라로 스캔하면 바로 연결됩니다" },
+      { text: "링크 공유", title: "링크를 받은 사람도 같은 명함으로 연결됩니다" },
+    ],
   },
   business: {
     typeLabel: "사업자형",
-    name: "린코",
-    role: "브랜드 컨설팅 대표",
-    tagline: "고객 문의를 매출로 연결합니다",
-    description: "서비스 소개부터 상담 신청까지,\n사업에 맞는 연결 흐름을 만듭니다",
-    initials: "LK",
-    accent: "from-emerald-500 via-teal-500 to-brand-700",
+    topBadges: ["홍보 페이지", "블로그·영상", "상담 연결"],
+    heroBrandLine: "BUSINESS LINK",
+    name: "린코 비즈니스",
+    role: "브랜드 홍보 명함",
+    tagline: "명함이 곧 홍보 페이지가 됩니다",
+    description: "블로그, 영상, 상담 연결까지 한 번에 담을 수 있어요.",
+    ctaLabel: "상담 연결하기",
+    accent: "from-emerald-600 via-teal-700 to-slate-950",
+    accentOverlay:
+      "bg-[radial-gradient(ellipse_90%_55%_at_30%_0%,rgba(52,211,153,0.35),transparent_50%),radial-gradient(ellipse_60%_45%_at_100%_80%,rgba(15,118,110,0.4),transparent)]",
+    bottomFeatures: [
+      { text: "QR 다운로드", title: "명함 QR을 저장해 오프라인에도 활용할 수 있어요" },
+      { text: "NFC 카드", title: "태그 한 번으로 홍보 페이지로 연결됩니다" },
+      { text: "홍보 링크", title: "추적 가능한 전용 링크로 홍보 성과를 확인합니다" },
+    ],
   },
   store: {
     typeLabel: "매장형",
-    name: "린코",
-    role: "핸드메이드 소품 매장",
-    tagline: "방문 전부터 기억되는 매장",
-    description: "위치, 예약, 이벤트 안내까지,\n손님이 바로 행동하게 설계합니다",
-    initials: "LK",
-    accent: "from-amber-400 via-orange-500 to-rose-500",
+    topBadges: ["매장 연결", "예약·메뉴", "카카오 상담"],
+    heroBrandLine: "STORE CONNECT",
+    name: "린코 스토어",
+    role: "매장 연결 명함",
+    tagline: "스캔하면 바로 매장으로 연결",
+    description: "메뉴, 예약, 위치, 카카오 상담까지 한 화면에서 보여줍니다.",
+    ctaLabel: "매장 보기",
+    accent: "from-amber-500 via-orange-600 to-rose-950",
+    accentOverlay:
+      "bg-[radial-gradient(ellipse_80%_60%_at_50%_-15%,rgba(253,230,138,0.45),transparent_55%),radial-gradient(ellipse_55%_50%_at_0%_100%,rgba(244,63,94,0.25),transparent)]",
+    bottomFeatures: [
+      { text: "QR 안내판", title: "매장 입구·테이블 QR로 바로 연결됩니다" },
+      { text: "NFC 스티커", title: "스티커를 태그하면 같은 명함으로 이동합니다" },
+      { text: "위치 연결", title: "지도·길찾기까지 한 화면에서 안내합니다" },
+    ],
   },
 };
 
+function SampleHeroVisual({
+  heroBrandLine,
+  centerName,
+  accent,
+  accentOverlay,
+  isHero,
+}: {
+  heroBrandLine: string;
+  centerName: string;
+  accent: string;
+  accentOverlay: string;
+  isHero: boolean;
+}) {
+  return (
+    <div
+      className={cn(
+        "relative isolate overflow-hidden rounded-2xl bg-gradient-to-br shadow-inner ring-1 ring-white/15",
+        accent,
+        isHero ? "min-h-[11.5rem] sm:min-h-[13rem]" : "min-h-[10.5rem] sm:min-h-[12rem]",
+      )}
+      role="img"
+      aria-label={`${centerName} 샘플 명함 미리보기`}
+    >
+      <div className={cn("pointer-events-none absolute inset-0 opacity-[0.88]", accentOverlay)} />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-white/[0.07]" />
+      <div className="relative flex h-full min-h-[inherit] flex-col justify-between p-4 sm:p-5">
+        <p className="text-center font-semibold uppercase tracking-[0.35em] text-[10px] text-white/85 drop-shadow-sm sm:text-[11px]">
+          {heroBrandLine}
+        </p>
+        <div className="flex flex-1 flex-col items-center justify-center px-2 pb-1 pt-2">
+          <div className="max-w-[92%] rounded-2xl bg-white/15 px-3 py-2 text-center shadow-lg ring-1 ring-white/25 backdrop-blur-md sm:px-4">
+            <span
+              className={cn(
+                "inline-block font-black tracking-tight text-white drop-shadow-md",
+                centerName.length > 6 ? "text-sm sm:text-base" : "text-lg sm:text-xl",
+              )}
+            >
+              {centerName}
+            </span>
+          </div>
+        </div>
+        <div className="flex items-end justify-between gap-3">
+          <span
+            title="NFC로 빠르게 연결됩니다"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-black/25 px-2 py-1.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-md ring-1 ring-white/25 backdrop-blur-md sm:text-[11px]"
+          >
+            <Nfc className="h-3.5 w-3.5 shrink-0 opacity-95 sm:h-4 sm:w-4" aria-hidden />
+            NFC
+          </span>
+          <span
+            title="QR 코드로 바로 열기"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-white shadow-lg ring-1 ring-black/10 sm:h-12 sm:w-12"
+          >
+            <QrCode className="h-6 w-6 text-slate-800 sm:h-7 sm:w-7" aria-hidden />
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SampleFeatureFooter({ features, className }: { features: SampleFeature[]; className?: string }) {
+  const sepCls = "text-[#888888]";
+  const hintCls =
+    "cursor-help underline decoration-dotted decoration-[#bbbbbb] underline-offset-[3px] text-[#666666] hover:text-slate-700";
+
+  return (
+    <p className={cn("text-center text-[12px] leading-snug sm:text-[13px]", className)} role="note">
+      {features.map((f, i) => (
+        <span key={`${i}-${f.text}`}>
+          {i > 0 ? (
+            <span className={cn("mx-1 select-none", sepCls)} aria-hidden>
+              ·
+            </span>
+          ) : null}
+          <span title={f.title} className={hintCls}>
+            {f.text}
+          </span>
+        </span>
+      ))}
+    </p>
+  );
+}
+
 /**
- * 랜딩용 미리보기 — 실제 샘플 편집 데이터와 같은 홍보·전환형 톤.
+ * 랜딩용 미리보기 — 린코 기능(NFC·QR·공유·홍보)이 한눈에 들어오도록 구성합니다.
  */
 export function LandingSampleCard({ variant = "default", sampleType = "personal", className }: Props) {
   const isHero = variant === "hero";
@@ -70,21 +184,29 @@ export function LandingSampleCard({ variant = "default", sampleType = "personal"
       )}
     >
       <div className={cn(isHero ? "p-5 sm:p-6" : "p-5")}>
-        <div
-          className={cn(
-            "flex min-h-44 items-end overflow-hidden rounded-2xl bg-gradient-to-br p-5 text-white",
-            sample.accent,
-            isHero ? "sm:min-h-52 sm:p-6" : "",
-          )}
-          aria-label={`${sample.name} 프로필 이미지`}
-        >
-          <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-white/20 text-2xl font-black tracking-tight shadow-lg ring-1 ring-white/30 backdrop-blur-sm">
-            {sample.initials}
-          </div>
+        <div className="flex flex-wrap gap-1.5 sm:gap-2">
+          {sample.topBadges.map((b) => (
+            <span
+              key={b}
+              className="inline-flex rounded-full border border-brand-200/90 bg-brand-50/90 px-2.5 py-1 text-[10px] font-semibold text-brand-900 shadow-sm sm:text-[11px]"
+            >
+              {b}
+            </span>
+          ))}
+        </div>
+
+        <div className={cn("mt-3", isHero ? "mt-4" : "")}>
+          <SampleHeroVisual
+            heroBrandLine={sample.heroBrandLine}
+            centerName={sample.name}
+            accent={sample.accent}
+            accentOverlay={sample.accentOverlay}
+            isHero={isHero}
+          />
         </div>
 
         <div className="mt-5">
-          <span className="inline-flex rounded-full bg-brand-50 px-3 py-1 text-xs font-bold text-brand-800">
+          <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700 ring-1 ring-slate-200/80">
             {sample.typeLabel}
           </span>
           <h3 className={cn("mt-3 font-extrabold tracking-tight text-slate-950", isHero ? "text-2xl" : "text-xl")}>
@@ -102,33 +224,17 @@ export function LandingSampleCard({ variant = "default", sampleType = "personal"
           </p>
         </div>
       </div>
+
       <div className={cn("space-y-3", isHero ? "px-6 py-5 sm:px-8" : "px-5 py-4 sm:px-6")}>
         <span
           className={cn(
-            "inline-flex w-full items-center justify-center rounded-xl bg-cta-500 font-bold text-white shadow-lg shadow-cta-900/20 hover:bg-cta-600",
+            "inline-flex w-full items-center justify-center rounded-xl bg-cta-500 font-bold text-white shadow-lg shadow-cta-900/25 ring-1 ring-cta-400/30 hover:bg-cta-600",
             isHero ? "min-h-12 px-4 text-sm sm:text-[15px]" : "min-h-11 px-3 text-sm",
           )}
         >
-          문의하기
+          {sample.ctaLabel}
         </span>
-        <CardConnectionModesHint variant="light" className="mt-3 px-1" />
-        <div className="flex flex-wrap gap-2 pt-0.5">
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-800">
-            <Phone className="h-3.5 w-3.5 shrink-0 text-brand-700" aria-hidden />
-            빠른 문의
-          </span>
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-800">
-            <MessageCircle className="h-3.5 w-3.5 shrink-0 text-brand-700" aria-hidden />
-            카톡 상담
-          </span>
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-800">
-            <ExternalLink className="h-3.5 w-3.5 shrink-0 text-brand-700" aria-hidden />
-            샘플 보기
-          </span>
-        </div>
-        <p className={cn("text-center text-slate-500", isHero ? "text-xs sm:text-sm" : "text-xs")}>
-          빠른 문의, 카톡 상담, 샘플 보기는 명함 안에서 바로 연결됩니다.
-        </p>
+        <SampleFeatureFooter features={sample.bottomFeatures} className="mt-1 px-1 pt-0.5" />
       </div>
     </div>
   );
