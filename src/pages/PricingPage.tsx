@@ -1,5 +1,6 @@
 import { PromotionMarketingPlansSection } from "@/components/pricing/PromotionMarketingPlansSection";
 import { PricingCard } from "@/components/ui/PricingCard";
+import { PRO_PLAN, STARTER_PLAN } from "@/data/businessCardPlans";
 import { layout, type } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
 import { Link } from "react-router-dom";
@@ -46,33 +47,25 @@ export function PricingPage() {
           cta="무료로 시작"
         />
         <PricingCard
-          name="스타터"
-          priceLabel="₩14,900"
-          description="/ 월"
-          tagline="혼자 시작하기"
-          features={[
-            "명함·링크 공유에 맞는 구성",
-            "의뢰·상담을 한곳에서 관리",
-            "클릭 기록으로 반응 확인",
-          ]}
-          recommendFor="프리랜서·1인 사업으로 바로 시작하는 분"
-          href="/signup"
-          cta="스타터 선택"
+          name={STARTER_PLAN.name}
+          priceLabel={STARTER_PLAN.priceLabel}
+          description={STARTER_PLAN.priceSuffix}
+          tagline={STARTER_PLAN.tagline}
+          features={[...STARTER_PLAN.features]}
+          recommendFor={STARTER_PLAN.recommendFor}
+          href={STARTER_PLAN.href}
+          cta={STARTER_PLAN.cta}
         />
         <PricingCard
-          name="프로"
-          priceLabel="₩59,000"
-          description="/ 월"
-          tagline="고객을 만드는 구조"
-          features={[
-            "명함 여러 개·고객 흐름 한눈에",
-            "방문부터 버튼 클릭까지 깊게 확인",
-            "의뢰를 여유 있게 동시에 처리",
-          ]}
-          recommendFor="문의가 늘고 고객 동선을 체계적으로 잡고 싶은 분"
+          name={PRO_PLAN.name}
+          priceLabel={PRO_PLAN.priceLabel}
+          description={PRO_PLAN.priceSuffix}
+          tagline={PRO_PLAN.tagline}
+          features={[...PRO_PLAN.features]}
+          recommendFor={PRO_PLAN.recommendFor}
           highlighted
-          href="/signup"
-          cta="프로 시작하기"
+          href={PRO_PLAN.href}
+          cta={PRO_PLAN.cta}
         />
       </div>
 
