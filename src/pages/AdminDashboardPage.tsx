@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { useAppDataStore } from "@/stores/appDataStore";
 import { CreditCard, ImageIcon, LayoutDashboard, Users } from "lucide-react";
 import { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 
 const ROLE_LABEL: Record<string, string> = {
   client: "명함 사용자",
@@ -87,6 +88,15 @@ export function AdminDashboardPage() {
           icon={ImageIcon}
           hint="샘플 데이터 기준"
         />
+      </div>
+
+      <div className="mt-8 rounded-2xl border border-brand-200 bg-brand-50/60 px-4 py-4">
+        <Link
+          to="/admin/withdrawals"
+          className="text-base font-semibold text-brand-900 underline underline-offset-4 hover:text-brand-950"
+        >
+          출금 신청 · 추천 보상 관리로 이동 →
+        </Link>
       </div>
 
       <div className="mt-10 grid gap-6 lg:grid-cols-2">

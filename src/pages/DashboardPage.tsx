@@ -1,3 +1,4 @@
+import { Input } from "@/components/ui/Input";
 import { CardQrAndExportPanel } from "@/components/card-print/CardQrAndExportPanel";
 import { BRAND_DISPLAY_NAME } from "@/lib/brand";
 import { buildNfcAcceptUrl, canonicalSiteOrigin } from "@/lib/siteOrigin";
@@ -26,6 +27,15 @@ import {
 import { fetchMyCardsForUser, type FetchMyCardsResult } from "@/services/cardsService";
 import { fetchMyDesignRequests, updateDesignRequestRemote } from "@/services/designRequestsService";
 import {
+  aggregateRewardBalances,
+  confirmedAvailableForWithdrawal,
+  createWithdrawalRequestRemote,
+  fetchPendingClawbacksSum,
+  fetchReferralRewardsForReferrer,
+  recordPaymentAndReferralReward,
+  type ReferralRewardRow,
+} from "@/services/referralRewardsService";
+import {
   claimPendingReferral,
   fetchProfileReferralCode,
   fetchReferralSignupCount,
@@ -48,6 +58,7 @@ import { useCallback, useEffect, useMemo, useState, type MouseEvent } from "reac
 import { Link, useLocation, useNavigate } from "react-router-dom";
 
 const CARD_MONTHLY_PRICE = 14900;
+const MIN_WITHDRAWAL_KRW = 10000;
 
 function safeDisplayName(user: User | null): string {
   if (!user) return "사용자";
@@ -250,6 +261,15 @@ export function DashboardPage() {
   const [cardsLoading, setCardsLoading] = useState(false);
   const [profileReferralCodeDb, setProfileReferralCodeDb] = useState<string | null>(null);
   const [referralSignupCountDb, setReferralSignupCountDb] = useState<number | null>(null);
+  const [referralRewardRows, setReferralRewardRows] = useState<ReferralRewardRow[]>([]);
+  const [rewardClawbackPending, setRewardClawbackPending] = useState(0);
+  const [withdrawalModalOpen, setWithdrawalModalOpen] = useState(false);
+  const [withdrawalBankName, setWithdrawalBankName] = useState("");
+  const [withdrawalBankAccount, setWithdrawalBankAccount] = useState("");
+  const [withdrawalAccountHolder, setWithdrawalAccountHolder] = useState("");
+  const [withdrawalSelectedIds, setWithdrawalSelectedIds] = useState<string[]>([]);
+  const [withdrawalBusy, setWithdrawalBusy] = useState(false);
+  const [withdrawalError, setWithdrawalError] = useState<string | null>(null);
 
   const uid = user?.id ?? "";
   useEffect(() => {
@@ -282,6 +302,24 @@ export function DashboardPage() {
       cancelled = true;
     };
   }, [uid]);
+
+  const reloadReferralRewards = useCallback(async () => {
+    if (!uid) {
+      setReferralRewardRows([]);
+      setRewardClawbackPending(0);
+      return;
+    }
+    const [rows, claw] = await Promise.all([
+      fetchReferralRewardsForReferrer(uid),
+      fetchPendingClawbacksSum(uid),
+    ]);
+    setReferralRewardRows(rows);
+    setRewardClawbackPending(claw);
+  }, [uid]);
+
+  useEffect(() => {
+    void reloadReferralRewards();
+  }, [reloadReferralRewards]);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -457,6 +495,21 @@ export function DashboardPage() {
   const rewardMonths = rewardMonthsForReferralCount(referredCount);
   const referralLink = refCode ? buildSignupReferralUrl(canonicalSiteOrigin(), refCode) : "";
 
+  const referralRewardBalances = useMemo(
+    () => aggregateRewardBalances(referralRewardRows, rewardClawbackPending),
+    [referralRewardRows, rewardClawbackPending],
+  );
+
+  const confirmedSelectableRewards = useMemo(
+    () => confirmedAvailableForWithdrawal(referralRewardRows),
+    [referralRewardRows],
+  );
+
+  const withdrawalSelectedSum = useMemo(() => {
+    const sel = new Set(withdrawalSelectedIds);
+    return referralRewardRows.filter((r) => sel.has(r.id)).reduce((s, r) => s + r.reward_amount, 0);
+  }, [referralRewardRows, withdrawalSelectedIds]);
+
   const copyReferralLink = async () => {
     if (!referralLink) return;
     try {
@@ -500,11 +553,15 @@ export function DashboardPage() {
     window.setTimeout(() => setNfcCopyCardId(null), 2200);
   };
 
-  const payForCardExtension = (card: BusinessCard) => {
+  const payForCardExtension = async (card: BusinessCard) => {
     if (!uid) return;
     if (!window.confirm(`${CARD_MONTHLY_PRICE.toLocaleString()}원 결제 후 이 명함을 한 달 연장할까요?`)) {
       return;
     }
+    await recordPaymentAndReferralReward({
+      planType: "card_month_extension",
+      amount: CARD_MONTHLY_PRICE,
+    });
     addPayment({
       id: crypto.randomUUID(),
       user_id: uid,
@@ -515,6 +572,7 @@ export function DashboardPage() {
       created_at: new Date().toISOString(),
     });
     extendCardAccess(card.id, 1);
+    void reloadReferralRewards();
   };
 
   const confirmExtraCardPurchase = async () => {
@@ -531,6 +589,10 @@ export function DashboardPage() {
         upsertBusinessCard,
       });
       await handleExtraCardPaymentSuccess({ userId: uid, cardId: card.id });
+      await recordPaymentAndReferralReward({
+        planType: "extra_card",
+        amount: EXTRA_CARD_PRICE,
+      });
       addPayment({
         id: crypto.randomUUID(),
         user_id: uid,
@@ -540,6 +602,7 @@ export function DashboardPage() {
         status: "completed",
         created_at: new Date().toISOString(),
       });
+      void reloadReferralRewards();
       setExtraCardModalOpen(false);
       navigate(`/cards/${encodeURIComponent(card.id)}/edit`);
     } finally {
@@ -555,6 +618,10 @@ export function DashboardPage() {
     if (!promotionPaymentCard || !uid) return;
     await startPromotionLinkPayment(promotionPaymentCard.id);
     await handlePromotionLinkPaymentSuccess(promotionPaymentCard.id);
+    await recordPaymentAndReferralReward({
+      planType: "promotion_link",
+      amount: PROMOTION_LINK_PRICE,
+    });
     addPayment({
       id: crypto.randomUUID(),
       user_id: uid,
@@ -570,7 +637,52 @@ export function DashboardPage() {
       promotion_payment_status: "paid",
       promotion_price: PROMOTION_LINK_PRICE,
     });
+    void reloadReferralRewards();
     setPromotionPaymentCard(null);
+  };
+
+  const openWithdrawalModal = () => {
+    setWithdrawalSelectedIds(confirmedSelectableRewards.map((r) => r.id));
+    setWithdrawalBankName("");
+    setWithdrawalBankAccount("");
+    setWithdrawalAccountHolder("");
+    setWithdrawalError(null);
+    setWithdrawalModalOpen(true);
+  };
+
+  const toggleWithdrawalReward = (id: string) => {
+    setWithdrawalSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
+  };
+
+  const submitWithdrawalRequest = async () => {
+    setWithdrawalError(null);
+    if (withdrawalSelectedSum < MIN_WITHDRAWAL_KRW) {
+      setWithdrawalError(`최소 ${MIN_WITHDRAWAL_KRW.toLocaleString()}원 이상 선택해 주세요.`);
+      return;
+    }
+    if (!withdrawalBankName.trim() || !withdrawalBankAccount.trim() || !withdrawalAccountHolder.trim()) {
+      setWithdrawalError("은행명·계좌번호·예금주를 모두 입력해 주세요.");
+      return;
+    }
+    setWithdrawalBusy(true);
+    try {
+      const res = await createWithdrawalRequestRemote({
+        rewardIds: withdrawalSelectedIds,
+        bankName: withdrawalBankName.trim(),
+        bankAccount: withdrawalBankAccount.trim(),
+        accountHolder: withdrawalAccountHolder.trim(),
+      });
+      if (!res.ok) {
+        setWithdrawalError(res.message ?? "출금 신청에 실패했습니다.");
+        return;
+      }
+      setWithdrawalModalOpen(false);
+      await reloadReferralRewards();
+    } finally {
+      setWithdrawalBusy(false);
+    }
   };
 
   const applicantLabel = (application: PromotionApplication): { name: string; email: string } => {
@@ -952,7 +1064,7 @@ export function DashboardPage() {
                         <button
                           type="button"
                           className="mt-3 inline-flex min-h-10 items-center justify-center rounded-xl bg-cta-500 px-4 text-sm font-bold text-white hover:bg-cta-600"
-                          onClick={() => payForCardExtension(card)}
+                          onClick={() => void payForCardExtension(card)}
                         >
                           14,900원 결제하고 한 달 연장
                         </button>
@@ -1367,12 +1479,25 @@ export function DashboardPage() {
 
       {!isCreator ? (
         <section className="mt-10 rounded-2xl border border-brand-200/80 bg-gradient-to-br from-brand-50 via-white to-sky-50 p-4 shadow-sm sm:p-6">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="rounded-xl border border-brand-100 bg-white/70 px-4 py-4">
+            <p className="text-sm font-bold text-brand-900">이용 안내</p>
+            <h2 className="mt-1 text-lg font-semibold text-slate-900">추천하고 결제 보상 받기</h2>
+            <p className="mt-2 text-sm leading-relaxed text-slate-600">
+              내 추천 링크로 가입한 사용자가 유료 결제를 하면, 결제 금액의 10%가 추천 보상으로 적립됩니다. 적립된 보상은 출금 신청을 통해 받을 수 있습니다.
+            </p>
+            <p className="mt-3 text-sm font-medium text-slate-800">보상 예시</p>
+            <ul className="mt-1 list-inside list-disc text-sm text-slate-600">
+              <li>14,900원 결제 시 1,490원 적립</li>
+              <li>59,000원 결제 시 5,900원 적립</li>
+            </ul>
+          </div>
+
+          <div className="mt-8 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div>
               <p className="text-sm font-bold text-brand-800">내 추천 링크</p>
-              <h2 className="mt-1 text-lg font-semibold text-slate-900 sm:text-xl">추천하고 이용권 혜택 받기</h2>
+              <h3 className="mt-1 text-lg font-semibold text-slate-900 sm:text-xl">추천하고 결제 보상 받기</h3>
               <p className="mt-2 text-sm leading-relaxed text-slate-600 sm:text-base">
-                추천 링크로 친구가 회원가입하면 이용 혜택을 받을 수 있어요. 명함 공유 링크와는 별도입니다.
+                내 추천 링크로 가입한 사용자가 결제할 때마다 10%가 적립됩니다. 명함 공유 링크와는 별도입니다.
               </p>
             </div>
             <div className="rounded-xl bg-white px-4 py-3 text-sm font-semibold text-slate-900 shadow-sm ring-1 ring-slate-200">
@@ -1412,7 +1537,7 @@ export function DashboardPage() {
           ) : null}
 
           <div className="mt-5 rounded-xl border border-slate-200 bg-white/80 px-4 py-4">
-            <p className="text-sm font-bold text-slate-900">혜택 안내</p>
+            <p className="text-sm font-bold text-slate-900">가입 인원 혜택 안내</p>
             <ul className="mt-2 space-y-1.5 text-sm leading-relaxed text-slate-700">
               <li>5명이 가입하면 14,900원 이용권 1개월 무료</li>
               <li>10명이 가입하면 14,900원 이용권 2개월 무료</li>
@@ -1421,6 +1546,45 @@ export function DashboardPage() {
               현재 적용 가능 혜택: 14,900원 이용권 {rewardMonths}개월 무료
             </p>
           </div>
+
+          <div className="mt-8 rounded-xl border border-brand-200 bg-white px-4 py-5 shadow-sm">
+            <p className="text-sm font-bold text-brand-900">추천 보상</p>
+            <p className="mt-2 text-sm leading-relaxed text-slate-600">
+              내 추천 링크로 가입한 사용자가 결제하면 결제 금액의 10%가 보상으로 적립됩니다. 추천 보상은 실제 결제 완료 건에 대해서만 적립되며, 환불 시 보상은 취소되거나 조정될 수 있습니다. 출금은 관리자 확인 후 지급됩니다.
+            </p>
+            <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <StatBlock label="총 적립 보상" value={`${referralRewardBalances.totalAccrued.toLocaleString()}원`} />
+              <StatBlock label="정산 가능 보상" value={`${referralRewardBalances.confirmedAvailable.toLocaleString()}원`} />
+              <StatBlock label="정산 대기 보상" value={`${referralRewardBalances.pending.toLocaleString()}원`} />
+              <StatBlock label="지급 완료 보상" value={`${referralRewardBalances.paid.toLocaleString()}원`} />
+            </div>
+            {referralRewardBalances.confirmedLocked > 0 ? (
+              <p className="mt-3 text-xs text-slate-600">
+                출금 신청 처리 중(관리자 확인 단계)인 금액 {referralRewardBalances.confirmedLocked.toLocaleString()}원은
+                &quot;정산 가능 보상&quot; 집계에서 빠져 있습니다.
+              </p>
+            ) : null}
+            {referralRewardBalances.pendingClawback > 0 ? (
+              <p className="mt-2 text-xs font-medium text-amber-800">
+                환불 차감 예정 합계 약 {referralRewardBalances.pendingClawback.toLocaleString()}원이 다음 정산에서 반영될 수 있습니다.
+              </p>
+            ) : null}
+            <button
+              type="button"
+              className="mt-5 inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-slate-900 px-4 text-sm font-bold text-white hover:bg-slate-800 sm:w-auto"
+              onClick={() => openWithdrawalModal()}
+              disabled={
+                confirmedSelectableRewards.reduce((s, r) => s + r.reward_amount, 0) < MIN_WITHDRAWAL_KRW
+              }
+            >
+              출금 신청하기
+            </button>
+            {confirmedSelectableRewards.reduce((s, r) => s + r.reward_amount, 0) < MIN_WITHDRAWAL_KRW ? (
+              <p className="mt-2 text-xs text-slate-500">
+                정산 가능 보상이 {MIN_WITHDRAWAL_KRW.toLocaleString()}원 이상일 때 출금 신청할 수 있습니다. 관리자 확인 후 정산 가능 상태로 바뀐 보상만 포함됩니다.
+              </p>
+            ) : null}
+          </div>
         </section>
       ) : null}
 
@@ -1428,6 +1592,95 @@ export function DashboardPage() {
         <div className="mt-10 rounded-2xl border border-slate-200 bg-white p-4 sm:p-6">
           <h2 className="text-lg font-semibold text-slate-900 sm:text-xl">활동 기록</h2>
           <p className="mt-3 text-sm text-slate-600">활동 기록은 준비 중입니다.</p>
+        </div>
+      ) : null}
+
+      {withdrawalModalOpen ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 px-4 py-8"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-5 shadow-xl">
+            <p className="text-lg font-bold text-slate-900">출금 신청</p>
+            <p className="mt-2 text-sm leading-relaxed text-slate-600">
+              출금 신청 후 관리자 확인을 거쳐 지급됩니다. 세금 및 정산 기준에 따라 지급 금액이 조정될 수 있습니다.
+            </p>
+
+            <div className="mt-4 space-y-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
+              <p className="text-sm font-semibold text-slate-800">포함할 정산 가능 보상 선택</p>
+              {confirmedSelectableRewards.length === 0 ? (
+                <p className="text-sm text-slate-500">정산 가능한 보상이 없습니다.</p>
+              ) : (
+                confirmedSelectableRewards.map((r) => (
+                  <label key={r.id} className="flex cursor-pointer items-center gap-3 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={withdrawalSelectedIds.includes(r.id)}
+                      onChange={() => toggleWithdrawalReward(r.id)}
+                      className="h-4 w-4 rounded border-slate-300"
+                    />
+                    <span className="tabular-nums">{r.reward_amount.toLocaleString()}원</span>
+                    <span className="text-xs text-slate-500">
+                      {new Date(r.created_at).toLocaleDateString("ko-KR")}
+                    </span>
+                  </label>
+                ))
+              )}
+              <p className="pt-2 text-sm font-bold text-brand-900">
+                선택 합계 {withdrawalSelectedSum.toLocaleString()}원
+              </p>
+            </div>
+
+            <div className="mt-4 space-y-3">
+              <div>
+                <label className="text-sm font-medium text-slate-700">은행명</label>
+                <Input
+                  className="mt-1"
+                  value={withdrawalBankName}
+                  onChange={(e) => setWithdrawalBankName(e.target.value)}
+                  placeholder="예: 국민은행"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-slate-700">계좌번호</label>
+                <Input
+                  className="mt-1 font-mono"
+                  value={withdrawalBankAccount}
+                  onChange={(e) => setWithdrawalBankAccount(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-slate-700">예금주</label>
+                <Input
+                  className="mt-1"
+                  value={withdrawalAccountHolder}
+                  onChange={(e) => setWithdrawalAccountHolder(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {withdrawalError ? <p className="mt-3 text-sm font-medium text-red-600">{withdrawalError}</p> : null}
+
+            <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                className="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 text-sm font-bold text-slate-900 hover:bg-slate-50"
+                onClick={() => setWithdrawalModalOpen(false)}
+                disabled={withdrawalBusy}
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                className="inline-flex min-h-11 items-center justify-center rounded-xl bg-cta-500 px-4 text-sm font-bold text-white hover:bg-cta-600"
+                onClick={() => void submitWithdrawalRequest()}
+                disabled={withdrawalBusy}
+              >
+                {withdrawalBusy ? "처리 중…" : "신청하기"}
+              </button>
+            </div>
+          </div>
         </div>
       ) : null}
 

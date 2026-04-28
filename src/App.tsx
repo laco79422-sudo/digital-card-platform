@@ -2,6 +2,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { ProtectedRoute } from "@/components/layout/ProtectedRoute";
 import { useInactivityLogout } from "@/hooks/useInactivityLogout";
 import { useSupabaseAuthSync } from "@/hooks/useSupabaseAuthSync";
+import { AdminWithdrawalRequestsPage } from "@/pages/AdminWithdrawalRequestsPage";
 import { AdminDashboardPage } from "@/pages/AdminDashboardPage";
 import { AdminDesignRequestsPage } from "@/pages/AdminDesignRequestsPage";
 import { ApplicationsPage } from "@/pages/ApplicationsPage";
@@ -151,7 +152,15 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
-          <Route path="*" element={<NotFoundPage />} />
+        <Route
+          path="admin/withdrawals"
+          element={
+            <ProtectedRoute roles={["admin"]}>
+              <AdminWithdrawalRequestsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route path="*" element={<NotFoundPage />} />
         </Route>
       </Routes>
     </>

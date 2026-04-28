@@ -43,6 +43,7 @@ import {
   setGuestTempSessionId,
 } from "@/lib/guestTempSession";
 import { INSTANT_GUEST_USER_ID } from "@/lib/instantCardCreate";
+import { recordPaymentAndReferralReward } from "@/services/referralRewardsService";
 import { clearInstantCardId } from "@/lib/instantCardStorage";
 import {
   clearLandingEmail,
@@ -658,7 +659,7 @@ export function CardEditorPage() {
     [businessCards, existing?.id, upsertBusinessCard],
   );
 
-  const runPaidActivation = useCallback(() => {
+  const runPaidActivation = useCallback(async () => {
     if (isGuestRoute && !user) {
       setGrowthFlash("가입 후 명함을 저장하면 프로 기능을 이용할 수 있어요.");
       scrollToId("final-save");
@@ -711,6 +712,9 @@ export function CardEditorPage() {
         status: "completed",
         created_at: new Date().toISOString(),
       });
+      if (uid !== INSTANT_GUEST_USER_ID) {
+        await recordPaymentAndReferralReward({ planType: "linko_card_pro", amount: price });
+      }
       setGrowthFlash("결제(데모) 완료 · 명함 저장 · 공개가 켜졌습니다.");
     } finally {
       setPaidBusy(false);

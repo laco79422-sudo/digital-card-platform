@@ -66,6 +66,9 @@ export function Footer() {
             <p className="text-sm text-slate-500">평일 10:00–18:00 (KST)</p>
           </div>
         </div>
+        <p className="mt-10 max-w-3xl text-xs leading-relaxed text-slate-500">
+          추천 보상은 실제 결제가 완료된 건에 한해 적립됩니다. 환불 또는 부정 이용이 확인되면 보상이 취소될 수 있으며, 출금은 관리자 확인 후 처리됩니다.
+        </p>
         <p className="mt-10 border-t border-slate-200 pt-8 text-center text-xs text-slate-400">
           © {new Date().getFullYear()} {BRAND_DISPLAY_NAME}
         </p>
