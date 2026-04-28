@@ -30,7 +30,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { useAppDataStore } from "@/stores/appDataStore";
 import type { BusinessCard, CardVisitLog, PromotionApplication, User } from "@/types/domain";
 import QRCode from "qrcode";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type MouseEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 const CARD_MONTHLY_PRICE = 14900;
@@ -52,18 +52,32 @@ function StatBlock({
   label,
   value,
   sub,
+  onClick,
 }: {
   label: string;
   value: string;
   sub?: string;
+  onClick?: () => void;
 }) {
-  return (
-    <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm shadow-slate-900/5">
+  const inner = (
+    <>
       <div className="text-sm font-medium text-slate-600">{label}</div>
       <div className="mt-1 text-2xl font-semibold tracking-tight text-slate-900">{value}</div>
       {sub ? <div className="mt-1 text-sm text-slate-500">{sub}</div> : null}
-    </div>
+    </>
   );
+  const cls = cn(
+    "rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm shadow-slate-900/5",
+    onClick && "cursor-pointer text-left transition hover:shadow-md",
+  );
+  if (onClick) {
+    return (
+      <button type="button" className={cls} onClick={onClick}>
+        {inner}
+      </button>
+    );
+  }
+  return <div className={cls}>{inner}</div>;
 }
 
 function cardDisplayName(card: BusinessCard): string {
@@ -72,6 +86,13 @@ function cardDisplayName(card: BusinessCard): string {
 
 function cardSubline(card: BusinessCard): string {
   return [card.job_title.trim(), card.brand_name.trim()].filter(Boolean).join(" · ") || "직업/회사명 미입력";
+}
+
+function cardIntroPreview(card: BusinessCard): string {
+  const t = card.intro?.trim() ?? "";
+  if (!t) return "소개 문구가 아직 없어요.";
+  if (t.length > 140) return `${t.slice(0, 137)}…`;
+  return t;
 }
 
 function cardBelongsToUser(card: BusinessCard, user: User | null): boolean {
@@ -348,6 +369,39 @@ export function DashboardPage() {
 
   const isCreator = user?.role === "creator";
   const displayName = safeDisplayName(user);
+
+  const scrollToMyCardsSection = useCallback(() => {
+    document.getElementById("dashboard-section-my-cards")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, []);
+
+  const onMyCardsStatClick = useCallback(() => {
+    scrollToMyCardsSection();
+    window.setTimeout(() => {
+      if (myCards.length === 1) {
+        document.getElementById(`dashboard-card-${myCards[0].id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+      } else if (myCards.length === 0 && !isCreator) {
+        document.getElementById("dashboard-empty-card-cta")?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    }, 450);
+  }, [myCards, isCreator, scrollToMyCardsSection]);
+
+  const openPublicCardPage = useCallback(
+    (card: BusinessCard) => {
+      const slug = card.slug?.trim();
+      if (!slug || slug.length < 2) return;
+      navigate(`/c/${encodeURIComponent(slug)}`);
+    },
+    [navigate],
+  );
+
+  const handleDashboardCardSurfaceClick = useCallback(
+    (e: MouseEvent<HTMLLIElement>, card: BusinessCard) => {
+      if ((e.target as HTMLElement).closest("[data-dashboard-card-stop]")) return;
+      openPublicCardPage(card);
+    },
+    [openPublicCardPage],
+  );
+
   const myReferral = uid ? referralRecords.find((r) => r.user_id === uid) : null;
   const refCode = myReferral?.ref_code ?? (uid ? buildReferralCode(uid) : "");
   const referredCount = myReferral?.referred_count ?? 0;
@@ -402,22 +456,6 @@ export function DashboardPage() {
     }
     setNfcCopyCardId(card.id);
     window.setTimeout(() => setNfcCopyCardId(null), 2200);
-  };
-
-  const shareCard = async (card: BusinessCard) => {
-    const url = resolveBusinessCardPublicUrl(card, shareOrigin) ?? "";
-    if (!url) return;
-    const r = await shareCardLinkNativeOrder({
-      shareUrl: url,
-      title: `${cardDisplayName(card)} 명함`,
-      shortMessage: "내 디지털 명함 공개 링크예요.",
-      kakaoDescription: card.intro.trim() || cardSubline(card),
-      kakaoImageUrl: getCardHeroImageUrl(card) || undefined,
-    });
-    if (r === "clipboard") {
-      setCardShareHintId(card.id);
-      window.setTimeout(() => setCardShareHintId(null), 3000);
-    }
   };
 
   const payForCardExtension = (card: BusinessCard) => {
@@ -630,7 +668,13 @@ export function DashboardPage() {
             sub="의뢰에 보낸 제안 개수예요"
           />
         ) : (
-          <StatBlock key="client-cards" label="내 명함" value={String(myCards.length)} sub="실제 프로필 페이지예요" />
+          <StatBlock
+            key="client-cards"
+            label="내 명함"
+            value={String(myCards.length)}
+            sub="클릭하면 만든 명함을 확인할 수 있어요"
+            onClick={onMyCardsStatClick}
+          />
         )}
         {isCreator ? (
           <StatBlock
@@ -646,7 +690,8 @@ export function DashboardPage() {
             key="creator-mycards"
             label="내 명함"
             value={String(myCards.length)}
-            sub="제작 전문가 계정으로 만든 명함이에요"
+            sub="클릭하면 만든 명함을 확인할 수 있어요 · 제작 전문가 계정으로 만든 명함이에요"
+            onClick={onMyCardsStatClick}
           />
         ) : (
           <StatBlock
@@ -671,6 +716,355 @@ export function DashboardPage() {
           />
         )}
       </div>
+
+      <section id="dashboard-section-my-cards" className="mt-10 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-900 sm:text-xl">내 명함</h2>
+            <p className="mt-2 text-sm leading-relaxed text-slate-600 sm:text-base">
+              내 명함은 실제 프로필 페이지이고, 공개 링크와 홍보 링크는 이 명함으로 들어오는 공유 경로예요.
+            </p>
+          </div>
+          {!isCreator ? (
+            cardsActuallyEmpty ? (
+              <Link
+                to="/cards/new"
+                className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-xl bg-cta-500 px-4 text-sm font-bold text-white shadow-sm shadow-cta-900/20 hover:bg-cta-600"
+              >
+                {brandCta.createDigitalCard}
+              </Link>
+            ) : myCards.length > 0 ? (
+              <div className="max-w-xs">
+                <button
+                  type="button"
+                  className="inline-flex min-h-11 w-full shrink-0 items-center justify-center rounded-xl bg-cta-500 px-4 text-sm font-bold text-white shadow-sm shadow-cta-900/20 hover:bg-cta-600"
+                  onClick={startAdditionalCard}
+                >
+                  새 명함 만들기
+                </button>
+                <p className="mt-2 text-xs leading-relaxed text-slate-500">
+                  새로운 명함을 추가로 만듭니다. 추가 명함은 유료로 이용할 수 있어요.
+                </p>
+              </div>
+            ) : (
+              <div className="rounded-xl bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-600 ring-1 ring-slate-200">
+                {cardsLoading ? "명함을 불러오는 중..." : "명함 조회 상태를 확인하는 중..."}
+              </div>
+            )
+          ) : null}
+        </div>
+
+        {cardsLoading ? (
+          <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 px-5 py-10 text-center">
+            <p className="text-lg font-bold text-slate-900">명함을 불러오는 중입니다.</p>
+            <p className="mt-2 text-sm leading-relaxed text-slate-600 sm:text-base">
+              로그인 계정과 연결된 기존 명함을 확인하고 있어요.
+            </p>
+          </div>
+        ) : cardsLookupFailed ? (
+          <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-10 text-center">
+            <p className="text-lg font-bold text-amber-950">명함을 불러오지 못했습니다.</p>
+            <p className="mt-2 text-sm leading-relaxed text-amber-900 sm:text-base">
+              Supabase 연결 또는 권한 정책을 확인해 주세요. 콘솔에 조회 실패 원인을 남겼습니다.
+            </p>
+            {cardsFetch.error ? (
+              <p className="mx-auto mt-3 max-w-lg break-all rounded-xl bg-white/70 px-3 py-2 text-xs font-medium text-amber-900">
+                {cardsFetch.error}
+              </p>
+            ) : null}
+          </div>
+        ) : cardsActuallyEmpty ? (
+          <div
+            id="dashboard-empty-card-cta"
+            className="mt-6 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-5 py-10 text-center"
+          >
+            <p className="text-lg font-bold text-slate-900">아직 만든 명함이 없어요.</p>
+            <p className="mt-2 text-sm leading-relaxed text-slate-600 sm:text-base">
+              현재 로그인 계정으로 연결된 명함을 찾지 못했습니다. 이전 계정 이메일로 만든 명함도 함께 확인했습니다.
+            </p>
+            {!isCreator ? (
+              <Link
+                to="/cards/new"
+                className="mt-6 inline-flex min-h-[48px] items-center justify-center rounded-xl bg-cta-500 px-5 text-base font-bold text-white shadow-sm shadow-cta-900/20 hover:bg-cta-600"
+              >
+                {brandCta.createDigitalCard}
+              </Link>
+            ) : null}
+          </div>
+        ) : (
+          <ul className="mt-6 grid gap-4 lg:grid-cols-2">
+            {myCards.map((card) => {
+              const imageUrl = getCardHeroImageUrl(card);
+              const publicUrl = resolveBusinessCardPublicUrl(card, shareOrigin) ?? "";
+              const cardViewCount = cardViews.filter((v) => v.card_id === card.id).length;
+              const cardClickCount = cardClicks.filter((c) => c.card_id === card.id).length;
+              const canEditCard = cardBelongsToUser(card, user);
+              const access = cardAccessInfo(card);
+              const promotionLinks = [
+                { id: `base-${card.id}`, ref_code: refCode, label: "기본 홍보 링크" },
+                ...cardPromotionLinks
+                  .filter((link) => link.card_id === card.id)
+                  .map((link, index) => ({
+                    id: link.id,
+                    ref_code: link.ref_code,
+                    label: `추가 홍보 링크 ${index + 1}`,
+                  })),
+              ].filter((link) => link.ref_code);
+
+              const promotionPerfRows = promoterPerformanceRows(
+                card,
+                visitLogs,
+                ownerPromotionApplications,
+                promoteOrigin,
+                applicantLabel,
+              );
+              const showPromotionPerf =
+                Boolean(card.promotion_enabled) ||
+                ownerPromotionApplications.some((a) => a.card_id === card.id);
+
+              return (
+                <li
+                  key={card.id}
+                  id={`dashboard-card-${card.id}`}
+                  className={cn(
+                    "overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition",
+                    "cursor-pointer hover:border-slate-300 hover:shadow-md",
+                  )}
+                  onClick={(e) => handleDashboardCardSurfaceClick(e, card)}
+                >
+                  <div className="relative">
+                    <div className="aspect-[16/10] w-full overflow-hidden bg-gradient-to-br from-slate-100 to-slate-200">
+                      {imageUrl ? (
+                        <img src={imageUrl} alt="" className="h-full w-full object-cover" loading="lazy" />
+                      ) : (
+                        <div className="flex h-full min-h-[148px] w-full items-center justify-center px-4 text-center text-sm font-semibold text-slate-500">
+                          기본 썸네일
+                        </div>
+                      )}
+                    </div>
+                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/92 via-slate-900/55 to-transparent px-4 pb-4 pt-16">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="max-w-full text-lg font-bold leading-snug text-white drop-shadow">
+                          {cardDisplayName(card)}
+                        </h3>
+                        <span className="rounded-full bg-white/95 px-2 py-0.5 text-xs font-semibold text-slate-700 shadow-sm">
+                          {card.is_public ? "공개" : "비공개"}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-sm font-medium leading-snug text-white/95">{cardSubline(card)}</p>
+                      <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-white/85">{cardIntroPreview(card)}</p>
+                      <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] font-semibold">
+                        <span className="rounded-full bg-white/15 px-2 py-0.5 text-white backdrop-blur-sm ring-1 ring-white/25">
+                          조회 {cardViewCount}
+                        </span>
+                        <span className="rounded-full bg-white/15 px-2 py-0.5 text-white backdrop-blur-sm ring-1 ring-white/25">
+                          클릭 {cardClickCount}
+                        </span>
+                        <span className="rounded-full bg-white/15 px-2 py-0.5 text-white backdrop-blur-sm ring-1 ring-white/25">
+                          QR
+                        </span>
+                        <span className="rounded-full bg-white/15 px-2 py-0.5 text-white backdrop-blur-sm ring-1 ring-white/25">
+                          NFC
+                        </span>
+                        <span
+                          className={cn(
+                            "rounded-full px-2 py-0.5 backdrop-blur-sm ring-1",
+                            access.expired
+                              ? "bg-red-500/35 text-white ring-red-300/40"
+                              : "bg-emerald-500/25 text-emerald-50 ring-emerald-300/35",
+                          )}
+                        >
+                          {access.expired ? "만료 · 결제 필요" : access.statusLabel}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div data-dashboard-card-stop className="space-y-4 border-t border-slate-100 p-4">
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3">
+                      <p className="text-xs font-bold text-slate-700">공개 링크</p>
+                      <p className="mt-1 break-all text-xs font-semibold text-brand-800">
+                        {publicUrl || "/c/ 주소 미설정"}
+                      </p>
+                      <p className="mt-2 text-xs leading-relaxed text-slate-600">
+                        NFC 태그에는 아래 「NFC 링크 복사」로 만든 주소를 저장하면 됩니다.
+                      </p>
+                    </div>
+
+                    <CardQrAndExportPanel card={card} />
+
+                    {access.expired ? (
+                      <div className="rounded-2xl border border-cta-200 bg-cta-50 px-4 py-4">
+                        <p className="text-sm font-bold text-slate-900">
+                          이 명함의 한 달 이용 기간이 끝났어요.
+                        </p>
+                        <p className="mt-1 text-sm text-slate-600">계속 이용하려면 결제가 필요합니다.</p>
+                        <button
+                          type="button"
+                          className="mt-3 inline-flex min-h-10 items-center justify-center rounded-xl bg-cta-500 px-4 text-sm font-bold text-white hover:bg-cta-600"
+                          onClick={() => payForCardExtension(card)}
+                        >
+                          14,900원 결제하고 한 달 연장
+                        </button>
+                      </div>
+                    ) : null}
+
+                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6">
+                      <Link
+                        to={publicUrl || `/c/${encodeURIComponent(card.slug ?? "")}`}
+                        className="inline-flex min-h-10 items-center justify-center rounded-xl bg-slate-900 px-3 text-sm font-bold text-white hover:bg-slate-800"
+                      >
+                        보기
+                      </Link>
+                      {canEditCard ? (
+                        <Link
+                          to={`/cards/${encodeURIComponent(card.id)}/edit`}
+                          className="inline-flex min-h-10 items-center justify-center rounded-xl border border-slate-300 bg-white px-3 text-sm font-bold text-slate-900 hover:bg-slate-50"
+                        >
+                          바로 수정
+                        </Link>
+                      ) : null}
+                      <button
+                        type="button"
+                        className="inline-flex min-h-10 items-center justify-center rounded-xl border border-amber-300 bg-amber-50 px-3 text-sm font-bold text-amber-950 hover:bg-amber-100"
+                        onClick={() => void shareToKakao(card)}
+                      >
+                        카카오톡 보내기
+                      </button>
+                      <button
+                        type="button"
+                        className="inline-flex min-h-10 items-center justify-center rounded-xl border border-slate-300 bg-white px-3 text-sm font-bold text-slate-900 hover:bg-slate-50"
+                        onClick={() => void openQr(card)}
+                      >
+                        QR 보기
+                      </button>
+                      <button
+                        type="button"
+                        className="inline-flex min-h-10 items-center justify-center rounded-xl bg-slate-900 px-3 text-xs font-bold text-white hover:bg-slate-800 sm:text-sm"
+                        onClick={() => void copyNfcLink(card)}
+                      >
+                        {nfcCopyCardId === card.id ? "복사됨" : "NFC 링크 복사"}
+                      </button>
+                      <button
+                        type="button"
+                        className="inline-flex min-h-10 items-center justify-center rounded-xl bg-cta-500 px-3 text-sm font-bold text-white hover:bg-cta-600"
+                        onClick={() => openPromotionPayment(card)}
+                      >
+                        홍보 링크 추가
+                      </button>
+                    </div>
+                  <button
+                    type="button"
+                    className="mt-2 text-xs font-semibold text-slate-500 underline underline-offset-4 hover:text-slate-800"
+                    onClick={() => void copyCardLink(card)}
+                  >
+                    {cardCopyId === card.id ? "공개 링크 복사됨" : "공개 링크 복사"}
+                  </button>
+                  {cardShareHintId === card.id ? (
+                    <p className="mt-2 text-sm font-medium text-brand-800">
+                      카카오톡 공유가 어려워 공개 링크를 복사했어요. 대화방에 붙여넣어 주세요.
+                    </p>
+                  ) : null}
+                  <div className="mt-4 rounded-2xl border border-brand-100 bg-brand-50/50 px-4 py-4">
+                    <p className="text-sm font-bold text-slate-900">내 홍보 링크 (추천용)</p>
+                    <p className="mt-1 text-xs font-medium text-slate-600">
+                      이 링크로 가입하면 혜택을 받을 수 있어요. 명함은 하나이고, 링크만 목적별로 나뉩니다.
+                    </p>
+                    <div className="mt-3 space-y-3">
+                      {promotionLinks.map((link) => {
+                        const linkUrl = buildPromotionLink(card, shareOrigin, link.ref_code);
+                        const visitCount = cardLinkVisits.filter(
+                          (visit) => visit.card_id === card.id && visit.ref_code === link.ref_code,
+                        ).length;
+                        const signupCount = referralRecords.filter((record) => record.referred_by === link.ref_code).length;
+                        return (
+                          <div key={link.id} className="rounded-2xl border border-brand-100 bg-white px-3 py-3">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <p className="text-xs font-bold text-slate-800">{link.label}</p>
+                              <p className="text-xs font-semibold text-slate-500">
+                                조회수 {visitCount} · 가입수 {signupCount}
+                              </p>
+                            </div>
+                            <p className="mt-2 break-all text-xs font-semibold text-brand-900">{linkUrl}</p>
+                            <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                              <button
+                                type="button"
+                                className="inline-flex min-h-10 items-center justify-center rounded-xl bg-slate-50 px-3 text-sm font-bold text-slate-900 ring-1 ring-slate-200 hover:bg-slate-100"
+                                onClick={() => void copyPromotionLink(linkUrl, link.id)}
+                              >
+                                {promoCopyId === link.id ? "복사됨" : "홍보 링크 복사"}
+                              </button>
+                              <button
+                                type="button"
+                                className="inline-flex min-h-10 items-center justify-center rounded-xl bg-slate-50 px-3 text-sm font-bold text-slate-900 ring-1 ring-slate-200 hover:bg-slate-100"
+                                onClick={() => void sharePromotionLink(card, linkUrl)}
+                              >
+                                카카오톡으로 홍보하기
+                              </button>
+                              <button
+                                type="button"
+                                className="inline-flex min-h-10 items-center justify-center rounded-xl bg-slate-50 px-3 text-sm font-bold text-slate-900 ring-1 ring-slate-200 hover:bg-slate-100"
+                                onClick={() => void openQr(card, linkUrl)}
+                              >
+                                QR 보기
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <button
+                      type="button"
+                      className="mt-3 inline-flex min-h-10 items-center justify-center rounded-xl bg-cta-500 px-4 text-sm font-bold text-white shadow-sm shadow-cta-900/20 hover:bg-cta-600"
+                      onClick={() => openPromotionPayment(card)}
+                    >
+                      {card.promotion_enabled ? "홍보 신청 받는 중" : "홍보 링크 추가"}
+                    </button>
+                  </div>
+                  {showPromotionPerf ? (
+                    <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-4">
+                      <h3 className="text-sm font-bold text-slate-900">홍보 파트너별 성과</h3>
+                      {promotionPerfRows.length === 0 ? (
+                        <p className="mt-3 text-sm text-slate-500">
+                          아직 홍보 방문 기록이 없어요. 홍보 링크를 승인하고 공유가 시작되면 이곳에 데이터가 쌓입니다.
+                        </p>
+                      ) : (
+                        <div className="mt-3 overflow-x-auto">
+                          <table className="w-full min-w-[560px] text-left text-sm">
+                            <thead>
+                              <tr className="border-b border-slate-200 text-xs font-semibold text-slate-500">
+                                <th className="py-2 pr-2">순위</th>
+                                <th className="py-2 pr-2">홍보 파트너</th>
+                                <th className="py-2 pr-2">방문 수</th>
+                                <th className="py-2 pr-2">최근 방문일</th>
+                                <th className="py-2">홍보 링크</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {promotionPerfRows.map((row) => (
+                                <tr key={row.promoter_code} className="border-b border-slate-100">
+                                  <td className="py-2 pr-2 font-medium text-slate-800">{row.rank}</td>
+                                  <td className="py-2 pr-2 text-slate-800">{row.label}</td>
+                                  <td className="py-2 pr-2 font-semibold text-slate-900">{row.visits}</td>
+                                  <td className="py-2 pr-2 text-slate-600">{formatPromotionVisitDate(row.lastVisited)}</td>
+                                  <td className="py-2 align-top">
+                                    <p className="break-all text-xs text-brand-800">{row.promotionLink || "—"}</p>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  ) : null}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
 
       {uid && myCards.length > 0 ? (
         <section className="mt-8 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
@@ -777,341 +1171,6 @@ export function DashboardPage() {
           )}
         </section>
       ) : null}
-
-      <section className="mt-8 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <h2 className="text-lg font-semibold text-slate-900 sm:text-xl">내 명함</h2>
-            <p className="mt-2 text-sm leading-relaxed text-slate-600 sm:text-base">
-              내 명함은 실제 프로필 페이지이고, 공개 링크와 홍보 링크는 이 명함으로 들어오는 공유 경로예요.
-            </p>
-          </div>
-          {!isCreator ? (
-            cardsActuallyEmpty ? (
-              <Link
-                to="/cards/new"
-                className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-xl bg-cta-500 px-4 text-sm font-bold text-white shadow-sm shadow-cta-900/20 hover:bg-cta-600"
-              >
-                {brandCta.createDigitalCard}
-              </Link>
-            ) : myCards.length > 0 ? (
-              <div className="max-w-xs">
-                <button
-                  type="button"
-                  className="inline-flex min-h-11 w-full shrink-0 items-center justify-center rounded-xl bg-cta-500 px-4 text-sm font-bold text-white shadow-sm shadow-cta-900/20 hover:bg-cta-600"
-                  onClick={startAdditionalCard}
-                >
-                  새 명함 만들기
-                </button>
-                <p className="mt-2 text-xs leading-relaxed text-slate-500">
-                  새로운 명함을 추가로 만듭니다. 추가 명함은 유료로 이용할 수 있어요.
-                </p>
-              </div>
-            ) : (
-              <div className="rounded-xl bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-600 ring-1 ring-slate-200">
-                {cardsLoading ? "명함을 불러오는 중..." : "명함 조회 상태를 확인하는 중..."}
-              </div>
-            )
-          ) : null}
-        </div>
-
-        {cardsLoading ? (
-          <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 px-5 py-10 text-center">
-            <p className="text-lg font-bold text-slate-900">명함을 불러오는 중입니다.</p>
-            <p className="mt-2 text-sm leading-relaxed text-slate-600 sm:text-base">
-              로그인 계정과 연결된 기존 명함을 확인하고 있어요.
-            </p>
-          </div>
-        ) : cardsLookupFailed ? (
-          <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-10 text-center">
-            <p className="text-lg font-bold text-amber-950">명함을 불러오지 못했습니다.</p>
-            <p className="mt-2 text-sm leading-relaxed text-amber-900 sm:text-base">
-              Supabase 연결 또는 권한 정책을 확인해 주세요. 콘솔에 조회 실패 원인을 남겼습니다.
-            </p>
-            {cardsFetch.error ? (
-              <p className="mx-auto mt-3 max-w-lg break-all rounded-xl bg-white/70 px-3 py-2 text-xs font-medium text-amber-900">
-                {cardsFetch.error}
-              </p>
-            ) : null}
-          </div>
-        ) : cardsActuallyEmpty ? (
-          <div className="mt-6 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-5 py-10 text-center">
-            <p className="text-lg font-bold text-slate-900">아직 만든 명함이 없어요.</p>
-            <p className="mt-2 text-sm leading-relaxed text-slate-600 sm:text-base">
-              현재 로그인 계정으로 연결된 명함을 찾지 못했습니다. 이전 계정 이메일로 만든 명함도 함께 확인했습니다.
-            </p>
-            {!isCreator ? (
-              <Link
-                to="/cards/new"
-                className="mt-6 inline-flex min-h-[48px] items-center justify-center rounded-xl bg-cta-500 px-5 text-base font-bold text-white shadow-sm shadow-cta-900/20 hover:bg-cta-600"
-              >
-                {brandCta.createDigitalCard}
-              </Link>
-            ) : null}
-          </div>
-        ) : (
-          <ul className="mt-6 grid gap-4 lg:grid-cols-2">
-            {myCards.map((card) => {
-              const imageUrl = getCardHeroImageUrl(card);
-              const publicUrl = resolveBusinessCardPublicUrl(card, shareOrigin) ?? "";
-              const cardViewCount = cardViews.filter((v) => v.card_id === card.id).length;
-              const cardClickCount = cardClicks.filter((c) => c.card_id === card.id).length;
-              const canEditCard = cardBelongsToUser(card, user);
-              const access = cardAccessInfo(card);
-              const promotionLinks = [
-                { id: `base-${card.id}`, ref_code: refCode, label: "기본 홍보 링크" },
-                ...cardPromotionLinks
-                  .filter((link) => link.card_id === card.id)
-                  .map((link, index) => ({
-                    id: link.id,
-                    ref_code: link.ref_code,
-                    label: `추가 홍보 링크 ${index + 1}`,
-                  })),
-              ].filter((link) => link.ref_code);
-
-              const promotionPerfRows = promoterPerformanceRows(
-                card,
-                visitLogs,
-                ownerPromotionApplications,
-                promoteOrigin,
-                applicantLabel,
-              );
-              const showPromotionPerf =
-                Boolean(card.promotion_enabled) ||
-                ownerPromotionApplications.some((a) => a.card_id === card.id);
-
-              return (
-                <li key={card.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                  <div className="flex gap-4">
-                    <div className="h-20 w-28 shrink-0 overflow-hidden rounded-xl bg-gradient-to-br from-slate-100 to-slate-200 ring-1 ring-slate-200">
-                      {imageUrl ? (
-                        <img src={imageUrl} alt="" className="h-full w-full object-cover" loading="lazy" />
-                      ) : (
-                        <div className="flex h-full w-full items-center justify-center px-3 text-center text-xs font-semibold text-slate-500">
-                          기본 썸네일
-                        </div>
-                      )}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <h3 className="truncate text-base font-bold text-slate-900">{cardDisplayName(card)}</h3>
-                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">
-                          {card.is_public ? "공개" : "비공개"}
-                        </span>
-                        <span
-                          className={cn(
-                            "rounded-full px-2 py-0.5 text-xs font-semibold",
-                            access.expired ? "bg-red-50 text-red-700" : "bg-emerald-50 text-emerald-700",
-                          )}
-                        >
-                          {access.statusLabel}
-                        </span>
-                      </div>
-                      <p className="mt-1 truncate text-sm text-slate-600">{cardSubline(card)}</p>
-                      <div className="mt-3 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3">
-                        <p className="text-xs font-bold text-slate-700">공개 링크 (일반 공유)</p>
-                        <p className="mt-1 break-all text-xs font-semibold text-brand-800">
-                          {publicUrl || "/c/ 주소 미설정"}
-                        </p>
-                      </div>
-                      <div className="mt-3 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3">
-                        <p className="text-xs font-bold text-slate-700">NFC 태그용 링크</p>
-                        <p className="mt-1 text-xs leading-relaxed text-slate-600">
-                          이 링크를 NFC 태그에 저장하면, 상대방이 태그했을 때 수락 후 명함을 볼 수 있습니다.
-                        </p>
-                        <button
-                          type="button"
-                          className="mt-3 inline-flex min-h-9 items-center justify-center rounded-xl bg-slate-900 px-3 text-xs font-bold text-white hover:bg-slate-800"
-                          onClick={() => void copyNfcLink(card)}
-                        >
-                          {nfcCopyCardId === card.id ? "복사됨" : "NFC 링크 복사"}
-                        </button>
-                      </div>
-                      <div className="mt-3 flex flex-wrap gap-2 text-xs font-semibold text-slate-600">
-                        <span className="rounded-full bg-slate-100 px-2.5 py-1">총 조회 {cardViewCount}</span>
-                        <span className="rounded-full bg-slate-100 px-2.5 py-1">클릭 수 {cardClickCount}</span>
-                        <span className="rounded-full bg-slate-100 px-2.5 py-1">
-                          만료일 {new Date(access.expireAt).toLocaleDateString("ko-KR")}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-4">
-                    <CardQrAndExportPanel card={card} />
-                  </div>
-
-                  {access.expired ? (
-                    <div className="mt-4 rounded-2xl border border-cta-200 bg-cta-50 px-4 py-4">
-                      <p className="text-sm font-bold text-slate-900">
-                        이 명함의 한 달 이용 기간이 끝났어요.
-                      </p>
-                      <p className="mt-1 text-sm text-slate-600">계속 이용하려면 결제가 필요합니다.</p>
-                      <button
-                        type="button"
-                        className="mt-3 inline-flex min-h-10 items-center justify-center rounded-xl bg-cta-500 px-4 text-sm font-bold text-white hover:bg-cta-600"
-                        onClick={() => payForCardExtension(card)}
-                      >
-                        14,900원 결제하고 한 달 연장
-                      </button>
-                    </div>
-                  ) : null}
-
-                  <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6">
-                    <Link
-                      to={publicUrl || `/c/${encodeURIComponent(card.slug)}`}
-                      className="inline-flex min-h-10 items-center justify-center rounded-xl bg-slate-900 px-3 text-sm font-bold text-white hover:bg-slate-800"
-                    >
-                      보기
-                    </Link>
-                    {canEditCard ? (
-                      <Link
-                        to={`/cards/${encodeURIComponent(card.id)}/edit`}
-                        className="inline-flex min-h-10 items-center justify-center rounded-xl border border-slate-300 bg-white px-3 text-sm font-bold text-slate-900 hover:bg-slate-50"
-                      >
-                        수정
-                      </Link>
-                    ) : null}
-                    <button
-                      type="button"
-                      className="inline-flex min-h-10 items-center justify-center rounded-xl border border-cta-200 bg-cta-50 px-3 text-sm font-bold text-cta-700 hover:bg-cta-100"
-                      onClick={() => void shareCard(card)}
-                    >
-                      공유
-                    </button>
-                    <button
-                      type="button"
-                      className="inline-flex min-h-10 items-center justify-center rounded-xl border border-amber-300 bg-amber-50 px-3 text-sm font-bold text-amber-950 hover:bg-amber-100"
-                      onClick={() => void shareToKakao(card)}
-                    >
-                      카카오톡 보내기
-                    </button>
-                    <button
-                      type="button"
-                      className="inline-flex min-h-10 items-center justify-center rounded-xl border border-slate-300 bg-white px-3 text-sm font-bold text-slate-900 hover:bg-slate-50"
-                      onClick={() => void openQr(card)}
-                    >
-                      QR 보기
-                    </button>
-                    <button
-                      type="button"
-                      className="inline-flex min-h-10 items-center justify-center rounded-xl bg-cta-500 px-3 text-sm font-bold text-white hover:bg-cta-600"
-                      onClick={() => openPromotionPayment(card)}
-                    >
-                      홍보 링크 추가
-                    </button>
-                  </div>
-                  <button
-                    type="button"
-                    className="mt-2 text-xs font-semibold text-slate-500 underline underline-offset-4 hover:text-slate-800"
-                    onClick={() => void copyCardLink(card)}
-                  >
-                    {cardCopyId === card.id ? "공개 링크 복사됨" : "공개 링크 복사"}
-                  </button>
-                  {cardShareHintId === card.id ? (
-                    <p className="mt-2 text-sm font-medium text-brand-800">
-                      카카오톡 공유가 어려워 공개 링크를 복사했어요. 대화방에 붙여넣어 주세요.
-                    </p>
-                  ) : null}
-                  <div className="mt-4 rounded-2xl border border-brand-100 bg-brand-50/50 px-4 py-4">
-                    <p className="text-sm font-bold text-slate-900">내 홍보 링크 (추천용)</p>
-                    <p className="mt-1 text-xs font-medium text-slate-600">
-                      이 링크로 가입하면 혜택을 받을 수 있어요. 명함은 하나이고, 링크만 목적별로 나뉩니다.
-                    </p>
-                    <div className="mt-3 space-y-3">
-                      {promotionLinks.map((link) => {
-                        const linkUrl = buildPromotionLink(card, shareOrigin, link.ref_code);
-                        const visitCount = cardLinkVisits.filter(
-                          (visit) => visit.card_id === card.id && visit.ref_code === link.ref_code,
-                        ).length;
-                        const signupCount = referralRecords.filter((record) => record.referred_by === link.ref_code).length;
-                        return (
-                          <div key={link.id} className="rounded-2xl border border-brand-100 bg-white px-3 py-3">
-                            <div className="flex flex-wrap items-center justify-between gap-2">
-                              <p className="text-xs font-bold text-slate-800">{link.label}</p>
-                              <p className="text-xs font-semibold text-slate-500">
-                                조회수 {visitCount} · 가입수 {signupCount}
-                              </p>
-                            </div>
-                            <p className="mt-2 break-all text-xs font-semibold text-brand-900">{linkUrl}</p>
-                            <div className="mt-3 grid gap-2 sm:grid-cols-3">
-                              <button
-                                type="button"
-                                className="inline-flex min-h-10 items-center justify-center rounded-xl bg-slate-50 px-3 text-sm font-bold text-slate-900 ring-1 ring-slate-200 hover:bg-slate-100"
-                                onClick={() => void copyPromotionLink(linkUrl, link.id)}
-                              >
-                                {promoCopyId === link.id ? "복사됨" : "홍보 링크 복사"}
-                              </button>
-                              <button
-                                type="button"
-                                className="inline-flex min-h-10 items-center justify-center rounded-xl bg-slate-50 px-3 text-sm font-bold text-slate-900 ring-1 ring-slate-200 hover:bg-slate-100"
-                                onClick={() => void sharePromotionLink(card, linkUrl)}
-                              >
-                                카카오톡으로 홍보하기
-                              </button>
-                              <button
-                                type="button"
-                                className="inline-flex min-h-10 items-center justify-center rounded-xl bg-slate-50 px-3 text-sm font-bold text-slate-900 ring-1 ring-slate-200 hover:bg-slate-100"
-                                onClick={() => void openQr(card, linkUrl)}
-                              >
-                                QR 보기
-                              </button>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                    <button
-                      type="button"
-                      className="mt-3 inline-flex min-h-10 items-center justify-center rounded-xl bg-cta-500 px-4 text-sm font-bold text-white shadow-sm shadow-cta-900/20 hover:bg-cta-600"
-                      onClick={() => openPromotionPayment(card)}
-                    >
-                      {card.promotion_enabled ? "홍보 신청 받는 중" : "홍보 링크 추가"}
-                    </button>
-                  </div>
-                  {showPromotionPerf ? (
-                    <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-4">
-                      <h3 className="text-sm font-bold text-slate-900">홍보 파트너별 성과</h3>
-                      {promotionPerfRows.length === 0 ? (
-                        <p className="mt-3 text-sm text-slate-500">
-                          아직 홍보 방문 기록이 없어요. 홍보 링크를 승인하고 공유가 시작되면 이곳에 데이터가 쌓입니다.
-                        </p>
-                      ) : (
-                        <div className="mt-3 overflow-x-auto">
-                          <table className="w-full min-w-[560px] text-left text-sm">
-                            <thead>
-                              <tr className="border-b border-slate-200 text-xs font-semibold text-slate-500">
-                                <th className="py-2 pr-2">순위</th>
-                                <th className="py-2 pr-2">홍보 파트너</th>
-                                <th className="py-2 pr-2">방문 수</th>
-                                <th className="py-2 pr-2">최근 방문일</th>
-                                <th className="py-2">홍보 링크</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {promotionPerfRows.map((row) => (
-                                <tr key={row.promoter_code} className="border-b border-slate-100">
-                                  <td className="py-2 pr-2 font-medium text-slate-800">{row.rank}</td>
-                                  <td className="py-2 pr-2 text-slate-800">{row.label}</td>
-                                  <td className="py-2 pr-2 font-semibold text-slate-900">{row.visits}</td>
-                                  <td className="py-2 pr-2 text-slate-600">{formatPromotionVisitDate(row.lastVisited)}</td>
-                                  <td className="py-2 align-top">
-                                    <p className="break-all text-xs text-brand-800">{row.promotionLink || "—"}</p>
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      )}
-                    </div>
-                  ) : null}
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </section>
 
       {!isCreator ? (
         <section className="mt-10 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
