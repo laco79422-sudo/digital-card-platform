@@ -66,12 +66,6 @@ export function LandingPage() {
     [featuredCreatorIds, creators],
   );
 
-  const painItems = [
-    "고객이 나를 기억하지 못합니다",
-    "설명을 계속 반복해야 합니다",
-    "연결이 이어지지 않습니다",
-  ] as const;
-
   const expertItems = ["명함 제작", "블로그 홍보", "영상 콘텐츠 제작", "상담 구조 설계"] as const;
 
   return (
@@ -143,17 +137,14 @@ export function LandingPage() {
       <section className={cn("border-b border-slate-200 bg-white", section.y)}>
         <div className={layout.page}>
           <div className="mx-auto max-w-2xl text-center">
-            <h2 className={cn(type.sectionTitleCenter, "text-slate-900")}>왜 필요한가</h2>
-            <ul className="mx-auto mt-8 max-w-lg space-y-3 text-left">
-              {painItems.map((line) => (
-                <li key={line} className="flex gap-3 text-[15px] leading-relaxed text-slate-800 sm:text-base">
-                  <Check className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" aria-hidden />
-                  <span>{line}</span>
-                </li>
-              ))}
-            </ul>
+            <h2 className={cn(type.sectionTitleCenter, "text-slate-900")}>명함을 만들면 자동으로 홍보됩니다</h2>
+            <div className="mx-auto mt-8 max-w-lg space-y-3 text-[15px] leading-relaxed text-slate-800 sm:text-base">
+              <p>명함을 만들면 린코 가입자들이 함께 공유합니다</p>
+              <p>당신의 명함은 다른 사람의 링크 속에서 자연스럽게 퍼집니다</p>
+              <p>별도로 홍보하지 않아도 연결이 계속 만들어집니다</p>
+            </div>
             <p className="mx-auto mt-8 max-w-xl rounded-2xl border border-brand-200/80 bg-brand-50/80 px-5 py-4 text-base font-bold text-brand-950 sm:text-lg">
-              이제는 링크 하나로 연결됩니다
+              명함 하나가 자동으로 퍼지고, 고객 연결로 이어집니다
             </p>
           </div>
           <div className="mt-10 flex justify-center sm:mt-12">
