@@ -13,7 +13,6 @@ import { BRAND_DISPLAY_NAME } from "@/lib/brand";
 import { layout } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
 import { clearInstantCardId, peekInstantCardId } from "@/lib/instantCardStorage";
-import { hasPendingCardDraft } from "@/lib/pendingCardStorage";
 import { getSupabaseConfigErrorMessage, isSupabaseConfigured } from "@/lib/supabase/client";
 import { mapSupabaseUser } from "@/lib/supabase/mapAuthUser";
 import { useDevMountLog } from "@/dev/renderDiagnostics";
@@ -27,7 +26,6 @@ export function LoginPage() {
   useDevMountLog("LoginPage");
   const navigate = useNavigate();
   const location = useLocation();
-  const from = (location.state as { from?: string } | null)?.from ?? "/dashboard";
   const signupNotice = (location.state as { signupNotice?: string } | null)?.signupNotice;
   const user = useAuthStore((s) => s.user);
   const authReady = useAuthReady();
@@ -84,15 +82,10 @@ export function LoginPage() {
       useAppDataStore.getState().claimInstantGuestCard(u.id, instantId);
       clearInstantCardId();
     }
-    if (hasPendingCardDraft()) {
-      navigate("/cards/new", { replace: true });
-      return;
-    }
-    if (instantId) {
-      navigate(`/cards/${instantId}/edit`, { replace: true });
-      return;
-    }
-    navigate(from, { replace: true });
+    navigate("/", {
+      replace: true,
+      state: { loginNotice: "로그인되었습니다. 이제 메인화면에서 명함 만들기와 내 공간을 이용할 수 있어요." },
+    });
   };
 
   const resendVerification = async () => {
@@ -132,7 +125,7 @@ export function LoginPage() {
   }
 
   if (user) {
-    return <Navigate to={hasPendingCardDraft() ? "/cards/new" : "/dashboard"} replace />;
+    return <Navigate to="/" replace />;
   }
 
   return (

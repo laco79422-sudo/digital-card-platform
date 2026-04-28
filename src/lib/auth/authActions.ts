@@ -7,7 +7,7 @@ export const GOOGLE_AUTH_PROVIDER = "google" as const;
 
 export function getOAuthRedirectToDashboard(): string {
   if (typeof window === "undefined") return "";
-  return `${window.location.origin}/dashboard`;
+  return `${window.location.origin}/?login=success`;
 }
 
 export function getEmailAuthRedirectTo(): string {

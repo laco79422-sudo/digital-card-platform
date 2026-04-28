@@ -175,7 +175,7 @@ export function SignupPage() {
   }
 
   if (user) {
-    return <Navigate to={hasPendingCardDraft() ? "/cards/new" : "/dashboard"} replace />;
+    return <Navigate to={hasPendingCardDraft() ? "/cards/new" : "/"} replace />;
   }
 
   const signupNoticeFromNav = (location.state as { signupNotice?: string } | null)?.signupNotice;

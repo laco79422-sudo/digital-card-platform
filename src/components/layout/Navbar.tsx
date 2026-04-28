@@ -90,7 +90,7 @@ export function Navbar() {
             ) : null}
             {user ? (
               <>
-                <Link to="/dashboard" className={linkButtonClassName({ size: "sm" })}>
+                <Link to="/space" className={linkButtonClassName({ size: "sm" })}>
                   내 공간
                 </Link>
                 <Button
@@ -167,7 +167,7 @@ export function Navbar() {
               {user ? (
                 <div className="mt-3 flex flex-col gap-0">
                   <Link
-                    to="/dashboard"
+                    to="/space"
                     className={linkButtonClassName({ size: "lg", className: "w-full" })}
                     onClick={() => setOpen(false)}
                   >

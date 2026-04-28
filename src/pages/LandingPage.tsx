@@ -10,10 +10,11 @@ import { cn } from "@/lib/utils";
 import { useAppDataStore } from "@/stores/appDataStore";
 import { ArrowRight, Check, Video } from "lucide-react";
 import { useMemo, useState, type ReactNode } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 
 const CREATE_CARD_HREF = "/create-card";
 const CREATE_SAMPLE_HREF = "/create-card?sample=true";
+const LOGIN_SUCCESS_NOTICE = "로그인되었습니다. 이제 메인화면에서 명함 만들기와 내 공간을 이용할 수 있어요.";
 const LANDING_SAMPLE_TYPES: Array<{ id: LandingSampleType; label: string }> = [
   { id: "personal", label: "개인형" },
   { id: "business", label: "사업자형" },
@@ -50,6 +51,10 @@ function FlowCtaLink({
 
 export function LandingPage() {
   useDevMountLog("LandingPage");
+  const location = useLocation();
+  const loginNotice =
+    (location.state as { loginNotice?: string } | null)?.loginNotice ??
+    (new URLSearchParams(location.search).get("login") === "success" ? LOGIN_SUCCESS_NOTICE : null);
   const [sampleType, setSampleType] = useState<LandingSampleType>("personal");
   const featuredCreatorIds = useAppDataStore((s) => s.featuredCreatorIds);
   const creators = useAppDataStore((s) => s.creators);
@@ -72,6 +77,15 @@ export function LandingPage() {
   return (
     <>
       <SiteLinkPreviewSeo />
+      {loginNotice ? (
+        <div className="border-b border-emerald-100 bg-emerald-50">
+          <div className={cn(layout.page, "py-3")}>
+            <p className="rounded-xl border border-emerald-200 bg-white/75 px-4 py-3 text-sm font-semibold text-emerald-900">
+              {loginNotice}
+            </p>
+          </div>
+        </div>
+      ) : null}
 
       {/* 1. 강한 결과 + 메인 CTA */}
       <section className="hero-section">

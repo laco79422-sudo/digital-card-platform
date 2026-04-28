@@ -31,9 +31,9 @@ export function AuthCallbackPage() {
         return;
       }
       if (!session?.user) {
-        navigate("/login", {
+        navigate("/", {
           replace: true,
-          state: { signupNotice: "이메일 인증이 완료되었습니다. 로그인해 주세요." },
+          state: { loginNotice: "이메일 인증이 완료되었습니다. 로그인 후 메인화면에서 명함 만들기와 내 공간을 이용할 수 있어요." },
         });
         return;
       }
@@ -41,9 +41,12 @@ export function AuthCallbackPage() {
       setSession(session);
       setUser(mapSupabaseUser(session.user));
       if (isEmailConfirmed(session.user)) {
-        navigate("/dashboard", { replace: true });
+        navigate("/", {
+          replace: true,
+          state: { loginNotice: "로그인되었습니다. 이제 메인화면에서 명함 만들기와 내 공간을 이용할 수 있어요." },
+        });
       } else {
-        navigate("/dashboard", { replace: true });
+        navigate("/", { replace: true });
       }
     })();
 
@@ -57,7 +60,7 @@ export function AuthCallbackPage() {
       <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white px-5 py-6 text-center shadow-sm">
         <p className="text-lg font-bold text-slate-900">이메일 인증을 확인하고 있습니다.</p>
         <p className="mt-2 text-sm leading-relaxed text-slate-600">
-          잠시 후 내 공간으로 이동합니다.
+          잠시 후 메인화면으로 이동합니다.
         </p>
         {errorMessage ? (
           <>
