@@ -1,5 +1,5 @@
 import { buildPreviewMeta } from "@/lib/previewCardType";
-import { SITE_OG_IMAGE_URL } from "@/lib/siteLinkPreview";
+import { SITE_OG_CARD_FALLBACK_URL, SITE_OG_IMAGE_URL } from "@/lib/siteLinkPreview";
 import type { BusinessCard } from "@/types/domain";
 import type { CardEditorDraft } from "@/stores/cardEditorDraftStore";
 
@@ -38,6 +38,22 @@ export function previewOgImageUrlFromDraft(
   const g = firstHttpsUrlFromGalleryRaw(draft.gallery_urls_raw);
   if (g) return g;
   return fallbackHttps;
+}
+
+/** 공개 명함 페이지 OG — og_image_url 우선, 없으면 대표 이미지·갤러리, 마지막으로 명함 전용 폴백 PNG */
+export function cardOgImageHttps(card: BusinessCard): string {
+  const og = card.og_image_url?.trim();
+  if (og?.startsWith("https://")) return og;
+  return previewOgImageUrlFromDraft(
+    {
+      image_url: card.image_url ?? null,
+      profile_image_url: card.profile_image_url ?? null,
+      imageUrl: card.imageUrl ?? null,
+      brand_image_url: card.brand_image_url ?? null,
+      gallery_urls_raw: card.gallery_urls?.join("\n") ?? "",
+    },
+    SITE_OG_CARD_FALLBACK_URL,
+  );
 }
 
 export function previewOgTitleFromDraft(draft: Pick<CardEditorDraft, "person_name" | "brand_name">): string {

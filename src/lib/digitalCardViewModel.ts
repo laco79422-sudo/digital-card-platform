@@ -181,8 +181,23 @@ export function resolveStickyCtas(card: BusinessCard, links: CardLink[]): CtaAct
   return out.slice(0, 3);
 }
 
+/** 레거시 검색 스니펫용 (OG 제목과 다를 수 있음) */
 export function seoTitle(card: BusinessCard): string {
   return `${card.person_name} · ${card.brand_name} | ${card.job_title} 디지털 명함`;
+}
+
+/** Kakao·OG 스크래퍼용 — Netlify Edge `inject-preview-og` 와 동일 문구 */
+export function seoOgCardTitle(card: BusinessCard): string {
+  const name = card.person_name?.trim() || card.brand_name?.trim() || "이름";
+  return `${name}님의 디지털 명함`;
+}
+
+export function seoOgCardDescription(card: BusinessCard): string {
+  const job = card.job_title?.trim();
+  const tag = effectiveTagline(card);
+  const intro = card.intro?.trim().slice(0, 200);
+  const line = job || tag || intro;
+  return (line || "링크 하나로 소개부터 상담까지 연결됩니다.").slice(0, 300);
 }
 
 export function seoDescription(card: BusinessCard): string {

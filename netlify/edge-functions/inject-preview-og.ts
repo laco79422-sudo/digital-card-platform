@@ -33,16 +33,21 @@ type CardLike = {
   brand_name?: string;
   job_title?: string;
   tagline?: string | null;
-  intro?: string;
+  intro?: string | null;
+  og_image_url?: string | null;
+  image_url?: string | null;
+  profile_image_url?: string | null;
   imageUrl?: string | null;
   brand_image_url?: string | null;
-  gallery_urls?: string[] | null;
+  gallery_urls?: unknown;
 };
 
 const COMPANY_OG_TITLE = "린코 디지털 명함";
 const COMPANY_OG_DESCRIPTION = "명함 하나로 고객이 먼저 찾아옵니다";
 const COMPANY_BASE_URL = "https://linkoapp.kr";
-const COMPANY_OG_IMAGE_URL = `${COMPANY_BASE_URL}/og/linko-main.png`;
+const OG_DEFAULT = `${COMPANY_BASE_URL}/og-default.png`;
+const OG_CARD_DEFAULT = `${COMPANY_BASE_URL}/og-card-default.png`;
+const OG_REFERRAL = `${COMPANY_BASE_URL}/og-referral.png`;
 
 function esc(s: string): string {
   return s
@@ -61,8 +66,14 @@ function firstGalleryHttps(raw: string | undefined): string {
   return "";
 }
 
-function firstGalleryHttpsFromList(urls: string[] | null | undefined): string {
-  for (const u of urls ?? []) {
+function galleryUrlsArray(card: CardLike): string[] {
+  const g = card.gallery_urls;
+  if (Array.isArray(g)) return g.filter((x): x is string => typeof x === "string");
+  return [];
+}
+
+function firstGalleryHttpsFromList(urls: string[]): string {
+  for (const u of urls) {
     const clean = u.trim();
     if (clean.startsWith("https://")) return clean;
   }
@@ -107,7 +118,7 @@ function buildSeoBlock(tempId: string, d: DraftLike, queryType?: string | null):
   const t = (queryType || d.card_type || "").trim();
   const canonicalBase = `${base}/preview/${encodeURIComponent(tempId)}`;
   const canonical = t ? `${canonicalBase}?type=${encodeURIComponent(t)}` : canonicalBase;
-  const fallbackImage = COMPANY_OG_IMAGE_URL;
+  const fallbackImage = OG_DEFAULT;
   const { title, desc, siteName } = ogFromDraft(d, fallbackImage, t);
   /** 카카오·크롤러가 동일 URL로 썸네일을 조회하도록 preview 전용 엔드포인트(302 → 실제 이미지) */
   const image = `${base}/.netlify/functions/preview-og-image?tempId=${encodeURIComponent(tempId)}`;
@@ -172,19 +183,31 @@ function buildCompanySeoBlock(): string {
     canonical: COMPANY_BASE_URL,
     title: COMPANY_OG_TITLE,
     desc: COMPANY_OG_DESCRIPTION,
-    image: COMPANY_OG_IMAGE_URL,
+    image: OG_DEFAULT,
   });
 }
 
 function ogFromCard(card: CardLike, fallbackImage: string): { title: string; desc: string; image: string; siteName: string } {
-  const name = (card.person_name || card.brand_name || "디지털 명함").trim().slice(0, 80);
-  const titleText = (card.job_title || "디지털 명함").trim().slice(0, 80);
-  const title = `${name} | ${titleText}`.slice(0, 160);
-  const desc = ((card.tagline || card.intro || "명함 하나로 고객이 먼저 찾아옵니다").trim()).slice(0, 300);
-  let image = card.imageUrl?.trim() || card.brand_image_url?.trim() || "";
-  if (!image.startsWith("https://")) image = firstGalleryHttpsFromList(card.gallery_urls);
+  const displayName = (card.person_name || card.brand_name || "이름").trim().slice(0, 80);
+  const title = `${displayName}님의 디지털 명함`.slice(0, 200);
+  const desc = (
+    (card.job_title || "").trim() ||
+    (card.tagline || "").trim() ||
+    (card.intro || "").trim() ||
+    "링크 하나로 소개부터 상담까지 연결됩니다."
+  ).slice(0, 300);
+
+  let image =
+    (card.og_image_url || "").trim() ||
+    (card.image_url || "").trim() ||
+    (card.profile_image_url || "").trim() ||
+    (card.imageUrl || "").trim() ||
+    (card.brand_image_url || "").trim();
+  if (!image.startsWith("https://")) image = firstGalleryHttpsFromList(galleryUrlsArray(card));
   if (!image.startsWith("https://")) image = fallbackImage;
-  return { title, desc, image, siteName: (card.brand_name || COMPANY_OG_TITLE).trim() };
+
+  const siteName = (card.brand_name || COMPANY_OG_TITLE).trim();
+  return { title, desc, image, siteName };
 }
 
 async function fetchPublicCardBySlug(
@@ -192,7 +215,11 @@ async function fetchPublicCardBySlug(
   supabaseKey: string,
   slug: string,
 ): Promise<{ card: CardLike | null; status: number }> {
-  const rest = `${supabaseUrl.replace(/\/$/, "")}/rest/v1/business_cards?slug=eq.${encodeURIComponent(slug)}&is_public=eq.true&select=slug,person_name,brand_name,job_title,tagline,intro,imageUrl,brand_image_url,gallery_urls&limit=1`;
+  const cols =
+    "slug,person_name,brand_name,job_title,tagline,intro,og_image_url,image_url,profile_image_url,imageUrl,brand_image_url,gallery_urls";
+  const rest = `${supabaseUrl.replace(/\/$/, "")}/rest/v1/business_cards?slug=eq.${encodeURIComponent(
+    slug,
+  )}&is_public=eq.true&select=${cols}&limit=1`;
   const r = await fetch(rest, {
     headers: {
       Accept: "application/json",
@@ -234,8 +261,29 @@ export default async (request: Request, context: Context) => {
   }
 
   const url = new URL(request.url);
+
   if (url.pathname === "/" || url.pathname === "") {
     return injectSeo(context, buildCompanySeoBlock(), "injected-company");
+  }
+
+  /** 회원가입·추천 링크 — 린코 홍보 이미지 */
+  if (url.pathname === "/signup" || url.pathname === "/signup/") {
+    const canonical = `${COMPANY_BASE_URL}/signup${url.search}`;
+    const ref = url.searchParams.get("ref")?.trim();
+    const title = "린코 디지털 명함 — 회원가입";
+    const desc = ref
+      ? "추천 링크로 린코에 가입하고 디지털 명함을 시작해 보세요."
+      : COMPANY_OG_DESCRIPTION;
+    return injectSeo(
+      context,
+      buildCommonSeoBlock({
+        canonical,
+        title,
+        desc,
+        image: OG_REFERRAL,
+      }),
+      "injected-signup",
+    );
   }
 
   const cardMatch = url.pathname.match(/^\/c\/([^/]+)\/?$/);
@@ -259,10 +307,10 @@ export default async (request: Request, context: Context) => {
     }
 
     const canonical = `${COMPANY_BASE_URL}/c/${encodeURIComponent(slug)}`;
-    const { title, desc, image, siteName } = ogFromCard(card, COMPANY_OG_IMAGE_URL);
+    const { title, desc, image, siteName } = ogFromCard(card, OG_CARD_DEFAULT);
     return injectSeo(
       context,
-      buildCommonSeoBlock({ canonical, title, desc, image, siteName, type: "profile" }),
+      buildCommonSeoBlock({ canonical, title, desc, image, siteName, type: "website" }),
       "injected-card",
     );
   }
@@ -315,4 +363,4 @@ export default async (request: Request, context: Context) => {
   return injectSeo(context, block, "injected-preview");
 };
 
-export const config = { path: ["/", "/c/*", "/preview/*"] };
+export const config = { path: ["/", "/signup", "/c/*", "/preview/*"] };

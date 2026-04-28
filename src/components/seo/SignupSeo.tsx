@@ -1,8 +1,11 @@
-import { seoOgCardDescription, seoOgCardTitle } from "@/lib/digitalCardViewModel";
-import { cardOgImageHttps } from "@/lib/previewShareMeta";
-import { SITE_CANONICAL_URL, SITE_OG_TITLE } from "@/lib/siteLinkPreview";
-import type { BusinessCard } from "@/types/domain";
+import { canonicalSiteOrigin } from "@/lib/siteOrigin";
+import {
+  SITE_OG_DESCRIPTION,
+  SITE_OG_REFERRAL_IMAGE_URL,
+  SITE_OG_TITLE,
+} from "@/lib/siteLinkPreview";
 import { useEffect } from "react";
+import { useLocation } from "react-router-dom";
 
 function patchMetaName(name: string, content: string) {
   const el = document.head.querySelector<HTMLMetaElement>(`meta[name="${name}"]`);
@@ -14,12 +17,22 @@ function patchMetaProperty(property: string, content: string) {
   if (el) el.setAttribute("content", content);
 }
 
-export function DigitalCardSeo({ card }: { card: BusinessCard }) {
+/**
+ * SPA `/signup` 진입 시 클라이언트 메타 보강 (크롤러는 Netlify Edge에서 처리).
+ */
+export function SignupSeo() {
+  const location = useLocation();
+
   useEffect(() => {
-    const title = seoOgCardTitle(card);
-    const desc = seoOgCardDescription(card);
-    const imageUrl = cardOgImageHttps(card);
-    const url = `${SITE_CANONICAL_URL}/c/${encodeURIComponent(card.slug)}`;
+    const origin = canonicalSiteOrigin();
+    const url = `${origin}/signup${location.search}`;
+    const ref = new URLSearchParams(location.search).get("ref")?.trim();
+    const title = "린코 디지털 명함 — 회원가입";
+    const desc = ref
+      ? "추천 링크로 린코에 가입하고 디지털 명함을 시작해 보세요."
+      : SITE_OG_DESCRIPTION;
+    const image = SITE_OG_REFERRAL_IMAGE_URL;
+
     document.title = title;
 
     let meta = document.querySelector('meta[name="description"]');
@@ -32,16 +45,16 @@ export function DigitalCardSeo({ card }: { card: BusinessCard }) {
 
     patchMetaProperty("og:type", "website");
     patchMetaProperty("og:url", url);
-    patchMetaProperty("og:site_name", card.brand_name?.trim() || SITE_OG_TITLE);
+    patchMetaProperty("og:site_name", SITE_OG_TITLE);
     patchMetaProperty("og:title", title);
     patchMetaProperty("og:description", desc);
-    patchMetaProperty("og:image", imageUrl);
-    patchMetaProperty("og:image:secure_url", imageUrl);
+    patchMetaProperty("og:image", image);
+    patchMetaProperty("og:image:secure_url", image);
     patchMetaProperty("og:image:alt", title);
     patchMetaName("twitter:card", "summary_large_image");
     patchMetaName("twitter:title", title);
     patchMetaName("twitter:description", desc);
-    patchMetaName("twitter:image", imageUrl);
+    patchMetaName("twitter:image", image);
 
     const canonical = document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]');
     if (canonical) canonical.href = url;
@@ -49,7 +62,7 @@ export function DigitalCardSeo({ card }: { card: BusinessCard }) {
     return () => {
       document.title = SITE_OG_TITLE;
     };
-  }, [card]);
+  }, [location.search]);
 
   return null;
 }

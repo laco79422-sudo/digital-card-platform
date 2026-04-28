@@ -5,11 +5,15 @@
 [build.environment]
   NODE_VERSION = "20"
 
-# /, /c/*, /preview/*: Edge inject-preview-og rewrites <!--LINKO_SEO_*--> in index.html from Supabase.
+# `/`, `/signup`, `/c/*`, `/preview/*`: Edge inject-preview-og rewrites index.html SEO 블록.
 # Set SUPABASE_URL + SUPABASE_ANON_KEY in Netlify UI with scope that includes Edge/Functions
 # ([build.environment] is build-only; Edge runtime needs dashboard env with Functions scope).
 [[edge_functions]]
   path = "/"
+  function = "inject-preview-og"
+
+[[edge_functions]]
+  path = "/signup"
   function = "inject-preview-og"
 
 [[edge_functions]]
@@ -19,6 +23,24 @@
 [[edge_functions]]
   path = "/preview/*"
   function = "inject-preview-og"
+
+[[headers]]
+  for = "/og-default.png"
+  [headers.values]
+    Content-Type = "image/png"
+    Cache-Control = "public, max-age=604800"
+
+[[headers]]
+  for = "/og-card-default.png"
+  [headers.values]
+    Content-Type = "image/png"
+    Cache-Control = "public, max-age=604800"
+
+[[headers]]
+  for = "/og-referral.png"
+  [headers.values]
+    Content-Type = "image/png"
+    Cache-Control = "public, max-age=604800"
 
 # OG image: stable Content-Type for scrapers
 [[headers]]

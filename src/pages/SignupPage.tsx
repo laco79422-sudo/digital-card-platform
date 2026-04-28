@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { InactivityToast } from "@/components/auth/InactivityToast";
+import { SignupSeo } from "@/components/seo/SignupSeo";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { DUPLICATE_EMAIL_MESSAGE } from "@/lib/auth/authErrorMessage";
 import { signInWithGoogle, signUpWithEmail } from "@/lib/auth/authActions";
@@ -186,6 +187,7 @@ export function SignupPage() {
 
   return (
     <div className={cn(layout.pageAuth, "py-12 sm:py-20 lg:py-24")}>
+      <SignupSeo />
       {verificationSentEmail ? (
         <Card>
           <CardHeader>
