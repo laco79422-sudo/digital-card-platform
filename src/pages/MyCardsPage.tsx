@@ -14,10 +14,16 @@ export function MyCardsPage() {
   const user = useAuthStore((s) => s.user);
   const businessCards = useAppDataStore((s) => s.businessCards);
 
-  const mine = useMemo(
-    () => businessCards.filter((c) => c.user_id === user?.id),
-    [businessCards, user?.id],
-  );
+  const mine = useMemo(() => {
+    if (!user?.id) return [];
+    const email = user.email.trim().toLowerCase();
+    return businessCards.filter(
+      (c) =>
+        c.user_id === user.id ||
+        c.owner_id === user.id ||
+        Boolean(email && (c.owner_email?.trim().toLowerCase() === email || c.email?.trim().toLowerCase() === email)),
+    );
+  }, [businessCards, user]);
 
   return (
     <div className={cn(layout.page, "py-10 sm:py-12")}>
@@ -41,13 +47,14 @@ export function MyCardsPage() {
             명함 대신 만들어주기
           </Link>
           <Link
-            to="/cards/new"
+            to={mine.length >= 1 ? "/dashboard" : "/cards/new"}
+            state={mine.length >= 1 ? { openExtraCardModal: true } : undefined}
             className={cn(
               "w-full sm:w-auto",
               linkButtonClassName({ size: "lg", className: "w-full sm:w-auto" }),
             )}
           >
-            {brandCta.createDigitalCard}
+            {mine.length >= 1 ? "명함 추가하기" : "내 명함 만들기"}
           </Link>
         </div>
       </div>

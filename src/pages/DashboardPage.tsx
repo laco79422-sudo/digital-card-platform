@@ -1,5 +1,5 @@
 import { CardQrAndExportPanel } from "@/components/card-print/CardQrAndExportPanel";
-import { BRAND_DISPLAY_NAME, brandCta } from "@/lib/brand";
+import { BRAND_DISPLAY_NAME } from "@/lib/brand";
 import { buildNfcAcceptUrl, canonicalSiteOrigin } from "@/lib/siteOrigin";
 import { buildCardShareUrl, resolveBusinessCardPublicUrl } from "@/lib/cardShareUrl";
 import { shareCardLinkNativeOrder } from "@/lib/kakaoWebShare";
@@ -13,6 +13,12 @@ import { layout } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
 import { getCardHeroImageUrl } from "@/lib/businessCardHeroImage";
 import { shareToKakao } from "@/lib/shareToKakao";
+import {
+  createAdditionalCard,
+  EXTRA_CARD_PRICE,
+  handleExtraCardPaymentSuccess,
+  startExtraCardPayment,
+} from "@/services/extraCardPaymentService";
 import { fetchMyCardsForUser, type FetchMyCardsResult } from "@/services/cardsService";
 import { fetchMyDesignRequests, updateDesignRequestRemote } from "@/services/designRequestsService";
 import { fetchCardVisitLogsForOwner, fetchCardVisitLogsForPromoterApplicant } from "@/services/cardVisitLogsService";
@@ -31,7 +37,7 @@ import { useAppDataStore } from "@/stores/appDataStore";
 import type { BusinessCard, CardVisitLog, PromotionApplication, User } from "@/types/domain";
 import QRCode from "qrcode";
 import { useCallback, useEffect, useMemo, useState, type MouseEvent } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 
 const CARD_MONTHLY_PRICE = 14900;
 
@@ -193,6 +199,7 @@ function promoterPerformanceRows(
 
 export function DashboardPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const user = useAuthStore((s) => s.user);
   const businessCards = useAppDataStore((s) => s.businessCards);
   const cardViews = useAppDataStore((s) => s.cardViews);
@@ -223,6 +230,8 @@ export function DashboardPage() {
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [qrLink, setQrLink] = useState("");
   const [promotionPaymentCard, setPromotionPaymentCard] = useState<BusinessCard | null>(null);
+  const [extraCardModalOpen, setExtraCardModalOpen] = useState(false);
+  const [extraCardBusy, setExtraCardBusy] = useState(false);
   const [visitLogs, setVisitLogs] = useState<CardVisitLog[]>([]);
   const [promoterVisitLogs, setPromoterVisitLogs] = useState<CardVisitLog[]>([]);
   const [cardsFetch, setCardsFetch] = useState<FetchMyCardsResult>({
@@ -233,6 +242,14 @@ export function DashboardPage() {
   const [cardsLoading, setCardsLoading] = useState(false);
 
   const uid = user?.id ?? "";
+  useEffect(() => {
+    const st = location.state as { openExtraCardModal?: boolean } | null | undefined;
+    if (st?.openExtraCardModal) {
+      setExtraCardModalOpen(true);
+      navigate("/dashboard", { replace: true, state: {} });
+    }
+  }, [location.state, navigate]);
+
   useEffect(() => {
     if (uid) ensureReferralRecord(uid);
   }, [ensureReferralRecord, uid]);
@@ -475,27 +492,34 @@ export function DashboardPage() {
     extendCardAccess(card.id, 1);
   };
 
-  const startAdditionalCard = () => {
-    if (myCards.length >= 1) {
-      if (
-        !window.confirm(
-          `무료 명함은 1개까지 이용할 수 있어요. ${CARD_MONTHLY_PRICE.toLocaleString()}원 결제 후 새 명함을 만들까요?`,
-        )
-      ) {
-        return;
-      }
-      if (uid) {
-        addPayment({
-          id: crypto.randomUUID(),
-          user_id: uid,
-          amount: CARD_MONTHLY_PRICE,
-          payment_type: "additional_card_create",
-          status: "completed",
-          created_at: new Date().toISOString(),
-        });
-      }
+  const confirmExtraCardPurchase = async () => {
+    if (!uid || !user) return;
+    setExtraCardBusy(true);
+    try {
+      const paid = await startExtraCardPayment();
+      if (!paid) return;
+      const card = await createAdditionalCard({
+        userId: uid,
+        userEmail: user.email,
+        userName: user.name,
+        existingCards: myCards,
+        upsertBusinessCard,
+      });
+      await handleExtraCardPaymentSuccess({ userId: uid, cardId: card.id });
+      addPayment({
+        id: crypto.randomUUID(),
+        user_id: uid,
+        card_id: card.id,
+        amount: EXTRA_CARD_PRICE,
+        payment_type: "extra_card",
+        status: "completed",
+        created_at: new Date().toISOString(),
+      });
+      setExtraCardModalOpen(false);
+      navigate(`/cards/${encodeURIComponent(card.id)}/edit`);
+    } finally {
+      setExtraCardBusy(false);
     }
-    navigate("/cards/new");
   };
 
   const openPromotionPayment = (card: BusinessCard) => {
@@ -722,7 +746,9 @@ export function DashboardPage() {
           <div>
             <h2 className="text-lg font-semibold text-slate-900 sm:text-xl">내 명함</h2>
             <p className="mt-2 text-sm leading-relaxed text-slate-600 sm:text-base">
-              내 명함은 실제 프로필 페이지이고, 공개 링크와 홍보 링크는 이 명함으로 들어오는 공유 경로예요.
+              {myCards.length >= 1
+                ? "추가 명함은 1개당 10,900원 결제 후 만들 수 있습니다."
+                : "내 명함은 실제 프로필 페이지이고, 공개 링크와 홍보 링크는 이 명함으로 들어오는 공유 경로예요."}
             </p>
           </div>
           {!isCreator ? (
@@ -731,20 +757,18 @@ export function DashboardPage() {
                 to="/cards/new"
                 className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-xl bg-cta-500 px-4 text-sm font-bold text-white shadow-sm shadow-cta-900/20 hover:bg-cta-600"
               >
-                {brandCta.createDigitalCard}
+                내 명함 만들기
               </Link>
             ) : myCards.length > 0 ? (
               <div className="max-w-xs">
                 <button
                   type="button"
-                  className="inline-flex min-h-11 w-full shrink-0 items-center justify-center rounded-xl bg-cta-500 px-4 text-sm font-bold text-white shadow-sm shadow-cta-900/20 hover:bg-cta-600"
-                  onClick={startAdditionalCard}
+                  className="inline-flex min-h-11 w-full shrink-0 items-center justify-center rounded-xl bg-cta-500 px-4 text-sm font-bold text-white shadow-sm shadow-cta-900/20 hover:bg-cta-600 disabled:opacity-60"
+                  disabled={extraCardBusy}
+                  onClick={() => setExtraCardModalOpen(true)}
                 >
-                  새 명함 만들기
+                  명함 추가하기
                 </button>
-                <p className="mt-2 text-xs leading-relaxed text-slate-500">
-                  새로운 명함을 추가로 만듭니다. 추가 명함은 유료로 이용할 수 있어요.
-                </p>
               </div>
             ) : (
               <div className="rounded-xl bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-600 ring-1 ring-slate-200">
@@ -780,14 +804,14 @@ export function DashboardPage() {
           >
             <p className="text-lg font-bold text-slate-900">아직 만든 명함이 없어요.</p>
             <p className="mt-2 text-sm leading-relaxed text-slate-600 sm:text-base">
-              현재 로그인 계정으로 연결된 명함을 찾지 못했습니다. 이전 계정 이메일로 만든 명함도 함께 확인했습니다.
+              먼저 내 명함을 만들고 링크·QR·NFC로 공유해 보세요.
             </p>
             {!isCreator ? (
               <Link
                 to="/cards/new"
                 className="mt-6 inline-flex min-h-[48px] items-center justify-center rounded-xl bg-cta-500 px-5 text-base font-bold text-white shadow-sm shadow-cta-900/20 hover:bg-cta-600"
               >
-                {brandCta.createDigitalCard}
+                내 명함 만들기
               </Link>
             ) : null}
           </div>
@@ -1402,6 +1426,39 @@ export function DashboardPage() {
             >
               닫기
             </button>
+          </div>
+        </div>
+      ) : null}
+
+      {extraCardModalOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 px-4" role="dialog" aria-modal="true">
+          <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-xl">
+            <p className="text-lg font-bold text-slate-900">명함을 추가하시겠어요?</p>
+            <p className="mt-2 text-sm leading-relaxed text-slate-600">
+              새로운 명함 1개를 추가하려면 {EXTRA_CARD_PRICE.toLocaleString()}원 결제가 필요합니다. 결제 후 바로 명함을 만들 수 있어요.
+            </p>
+            <div className="mt-4 rounded-2xl border border-cta-200 bg-cta-50 px-4 py-4">
+              <p className="text-sm font-bold text-slate-900">결제 금액</p>
+              <p className="mt-1 text-2xl font-extrabold text-cta-700">{EXTRA_CARD_PRICE.toLocaleString()}원</p>
+            </div>
+            <div className="mt-5 grid gap-2">
+              <button
+                type="button"
+                className="inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-cta-500 px-4 text-sm font-bold text-white hover:bg-cta-600 disabled:opacity-60"
+                disabled={extraCardBusy}
+                onClick={() => void confirmExtraCardPurchase()}
+              >
+                {EXTRA_CARD_PRICE.toLocaleString()}원 결제하고 명함 추가하기
+              </button>
+              <button
+                type="button"
+                className="inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-slate-300 bg-white px-4 text-sm font-bold text-slate-900 hover:bg-slate-50"
+                disabled={extraCardBusy}
+                onClick={() => setExtraCardModalOpen(false)}
+              >
+                취소
+              </button>
+            </div>
           </div>
         </div>
       ) : null}

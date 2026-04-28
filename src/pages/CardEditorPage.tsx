@@ -29,7 +29,7 @@ import {
   type CardEditorDraft,
 } from "@/stores/cardEditorDraftStore";
 import { getLinksForCard, useAppDataStore } from "@/stores/appDataStore";
-import type { CardLink, CardLinkType } from "@/types/domain";
+import type { BusinessCard, CardLink, CardLinkType, User } from "@/types/domain";
 import {
   getSampleCardDraft,
   getSampleLinkRows,
@@ -68,6 +68,15 @@ import {
 
 function scrollToId(id: string) {
   document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function cardBelongsToUser(card: BusinessCard, user: User): boolean {
+  const email = user.email.trim().toLowerCase();
+  return (
+    card.user_id === user.id ||
+    card.owner_id === user.id ||
+    Boolean(email && (card.owner_email?.trim().toLowerCase() === email || card.email?.trim().toLowerCase() === email))
+  );
 }
 
 function EditorFlowHint({
@@ -892,8 +901,17 @@ export function CardEditorPage() {
     }
   };
 
+  const ownedCardsCount = useMemo(
+    () => (user ? businessCards.filter((c) => cardBelongsToUser(c, user)).length : 0),
+    [businessCards, user],
+  );
+
   if (user && isGuestRoute) {
     return <Navigate to={{ pathname: "/cards/new", search: location.search }} replace />;
+  }
+
+  if (!isGuestRoute && user && location.pathname === "/cards/new" && isNew && ownedCardsCount >= 1) {
+    return <Navigate to="/dashboard" replace />;
   }
 
   return (
