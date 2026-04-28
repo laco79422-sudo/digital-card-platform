@@ -141,7 +141,10 @@ export function LandingPage() {
             <div className="mx-auto mt-8 max-w-lg space-y-3 text-[15px] leading-relaxed text-slate-800 sm:text-base">
               <p>명함을 만든 뒤 홍보 링크를 추가하면, 가입자들이 홍보 신청을 할 수 있습니다.</p>
               <p>이용자가 승인한 가입자는 전용 링크를 받아 명함을 공유할 수 있습니다.</p>
-              <p>공유된 링크로 들어온 방문은 홍보 활동으로 기록됩니다.</p>
+              <p>
+                가입자들의 홍보 활동은 실시간으로 집계되며, 누가 더 많은 고객을 연결하고 있는지 한눈에 확인할 수
+                있습니다.
+              </p>
             </div>
             <p className="mx-auto mt-8 max-w-xl rounded-2xl border border-brand-200/80 bg-brand-50/80 px-5 py-4 text-base font-bold text-brand-950 sm:text-lg">
               내 명함을 만들고, 승인된 가입자들과 함께 공유하세요

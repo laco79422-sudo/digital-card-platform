@@ -2,6 +2,7 @@ import { DigitalCardPublicView } from "@/components/digital-card/DigitalCardPubl
 import { DigitalCardSeo } from "@/components/digital-card/DigitalCardSeo";
 import { resolveBusinessCardPublicUrl } from "@/lib/cardShareUrl";
 import { savePromotionReferralCode } from "@/lib/promotionReferralStorage";
+import { insertCardVisitLog } from "@/services/cardVisitLogsService";
 import { insertCardViewRemote } from "@/services/cardViewsRemote";
 import { fetchCardBySlug, updateCardNameRemote } from "@/services/cardsService";
 import { getLinksForCard, useAppDataStore } from "@/stores/appDataStore";
@@ -97,6 +98,29 @@ export function PublicCardPage() {
       .then(setQr)
       .catch(() => setQr(null));
   }, [card]);
+
+  useEffect(() => {
+    if (!card?.user_id || !card.slug?.trim()) return;
+    const refRaw = new URLSearchParams(window.location.search).get("ref")?.trim() ?? "";
+    const refNorm = refRaw.toUpperCase();
+    const source: "direct" | "promotion" = refNorm ? "promotion" : "direct";
+    const slugKey = card.slug.trim();
+    const storageKey = `visitLogged:${slugKey}:${refNorm || "direct"}`;
+    try {
+      if (sessionStorage.getItem(storageKey)) return;
+      sessionStorage.setItem(storageKey, "1");
+    } catch {
+      /* ignore storage failures */
+    }
+    void insertCardVisitLog({
+      card_id: card.id,
+      card_slug: slugKey,
+      owner_user_id: card.user_id,
+      promoter_code: refNorm || null,
+      source,
+      visitor_user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
+    });
+  }, [card?.id, card?.slug, card?.user_id, location.search]);
 
   useEffect(() => {
     if (!card) return;

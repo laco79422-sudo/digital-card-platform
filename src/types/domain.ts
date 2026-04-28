@@ -156,6 +156,18 @@ export interface PromotionApplication {
   card_slug?: string | null;
 }
 
+/** 공개 명함 /c/{slug} 방문 로그 (홍보 ref 추적) */
+export interface CardVisitLog {
+  id: string;
+  card_id: string;
+  card_slug: string;
+  owner_user_id: string;
+  promoter_code: string | null;
+  source: "direct" | "promotion";
+  visitor_user_agent: string | null;
+  visited_at: string;
+}
+
 export type CreatorType =
   | "blog_writer"
   | "youtube_producer"

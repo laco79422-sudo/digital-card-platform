@@ -58,7 +58,7 @@ export async function createPromotionApplicationRemote(
   application: PromotionApplication,
 ): Promise<PromotionApplication | null> {
   if (!isSupabaseConfigured || !supabase) return null;
-  const { applicant_name: _name, applicant_email: _email, card_name: _cardName, card_slug: _cardSlug, ...remote } = application;
+  const { card_name: _cardName, card_slug: _cardSlug, ...remote } = application;
   const { data, error } = await supabase.from(TABLE_PROMOTION_APPLICATIONS).insert(remote).select("*").single();
   if (error) {
     console.warn("[promotionService] createPromotionApplicationRemote", error.message);
@@ -100,7 +100,7 @@ export async function updatePromotionApplicationRemote(
   patch: Partial<PromotionApplication>,
 ): Promise<boolean> {
   if (!isSupabaseConfigured || !supabase) return false;
-  const { applicant_name: _name, applicant_email: _email, card_name: _cardName, card_slug: _cardSlug, ...remote } = patch;
+  const { card_name: _cardName, card_slug: _cardSlug, ...remote } = patch;
   const { error } = await supabase.from(TABLE_PROMOTION_APPLICATIONS).update(remote).eq("id", id);
   if (error) {
     console.warn("[promotionService] updatePromotionApplicationRemote", error.message);

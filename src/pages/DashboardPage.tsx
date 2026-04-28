@@ -1,6 +1,6 @@
 import { CardQrAndExportPanel } from "@/components/card-print/CardQrAndExportPanel";
 import { BRAND_DISPLAY_NAME, brandCta } from "@/lib/brand";
-import { buildNfcAcceptUrl } from "@/lib/siteOrigin";
+import { buildNfcAcceptUrl, canonicalSiteOrigin } from "@/lib/siteOrigin";
 import { buildCardShareUrl, resolveBusinessCardPublicUrl } from "@/lib/cardShareUrl";
 import { shareCardLinkNativeOrder } from "@/lib/kakaoWebShare";
 import { buildReferralCode } from "@/lib/referrals";
@@ -13,6 +13,7 @@ import { layout } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
 import { fetchMyCardsForUser, type FetchMyCardsResult } from "@/services/cardsService";
 import { fetchMyDesignRequests, updateDesignRequestRemote } from "@/services/designRequestsService";
+import { fetchCardVisitLogsForOwner, fetchCardVisitLogsForPromoterApplicant } from "@/services/cardVisitLogsService";
 import {
   buildPromoterCode,
   buildPromotionUrl,
@@ -25,7 +26,7 @@ import {
 } from "@/services/promotionService";
 import { useAuthStore } from "@/stores/authStore";
 import { useAppDataStore } from "@/stores/appDataStore";
-import type { BusinessCard, PromotionApplication, User } from "@/types/domain";
+import type { BusinessCard, CardVisitLog, PromotionApplication, User } from "@/types/domain";
 import QRCode from "qrcode";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -112,6 +113,61 @@ function buildPromotionLink(card: BusinessCard, origin: string, refCode: string)
   }
 }
 
+function formatPromotionVisitDate(iso: string | null): string {
+  if (!iso) return "—";
+  try {
+    return new Date(iso).toLocaleString("ko-KR", { dateStyle: "medium", timeStyle: "short" });
+  } catch {
+    return "—";
+  }
+}
+
+function promoterPerformanceRows(
+  card: BusinessCard,
+  logs: CardVisitLog[],
+  applications: PromotionApplication[],
+  origin: string,
+  labelFor: (a: PromotionApplication) => { name: string; email: string },
+): Array<{
+  rank: number;
+  promoter_code: string;
+  label: string;
+  visits: number;
+  lastVisited: string | null;
+  promotionLink: string;
+}> {
+  const approved = applications.filter((a) => a.card_id === card.id && a.status === "approved" && a.promoter_code);
+  const slug = card.slug?.trim() ?? "";
+  const grouped = new Map<string, { visits: number; last: string | null }>();
+  for (const l of logs) {
+    if (l.card_id !== card.id || !l.promoter_code) continue;
+    const code = l.promoter_code;
+    const g = grouped.get(code) ?? { visits: 0, last: null };
+    g.visits += 1;
+    const t = l.visited_at;
+    if (!g.last || new Date(t) > new Date(g.last)) g.last = t;
+    grouped.set(code, g);
+  }
+  const rows = approved.map((app) => {
+    const code = app.promoter_code!;
+    const g = grouped.get(code);
+    const lbl = labelFor(app);
+    const label = [lbl.name, lbl.email].filter(Boolean).join(" · ") || app.applicant_user_id;
+    return {
+      promoter_code: code,
+      label,
+      visits: g?.visits ?? 0,
+      lastVisited: g?.last ?? null,
+      promotionLink: slug ? buildPromotionUrl(origin, slug, code) : "",
+    };
+  });
+  rows.sort((a, b) => b.visits - a.visits);
+  return rows.map((r, i) => ({
+    rank: i + 1,
+    ...r,
+  }));
+}
+
 export function DashboardPage() {
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
@@ -144,6 +200,8 @@ export function DashboardPage() {
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [qrLink, setQrLink] = useState("");
   const [promotionPaymentCard, setPromotionPaymentCard] = useState<BusinessCard | null>(null);
+  const [visitLogs, setVisitLogs] = useState<CardVisitLog[]>([]);
+  const [promoterVisitLogs, setPromoterVisitLogs] = useState<CardVisitLog[]>([]);
   const [cardsFetch, setCardsFetch] = useState<FetchMyCardsResult>({
     status: "ok",
     cards: [],
@@ -208,11 +266,27 @@ export function DashboardPage() {
     });
   }, [setPromotionApplications, user?.id]);
 
+  useEffect(() => {
+    if (!uid) {
+      setVisitLogs([]);
+      return;
+    }
+    let cancelled = false;
+    void fetchCardVisitLogsForOwner(uid).then((logs) => {
+      if (cancelled) return;
+      setVisitLogs(logs ?? []);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [uid]);
+
   const myCards = useMemo(
     () => (uid ? businessCards.filter((card) => cardBelongsToUser(card, user)) : []),
     [businessCards, uid, user],
   );
   const shareOrigin = typeof window !== "undefined" ? window.location.origin : "";
+  const promoteOrigin = canonicalSiteOrigin();
   const myCardIds = useMemo(() => new Set(myCards.map((c) => c.id)), [myCards]);
 
   const viewsCount = cardViews.filter((v) => myCardIds.has(v.card_id)).length;
@@ -238,11 +312,37 @@ export function DashboardPage() {
     () =>
       uid
         ? promotionApplications.filter(
-            (application) => application.applicant_user_id === uid && application.status === "approved" && application.promotion_url,
+            (application) =>
+              application.applicant_user_id === uid && application.status === "approved" && application.promoter_code,
           )
         : [],
     [promotionApplications, uid],
   );
+
+  const promoterCodesForMe = useMemo(
+    () =>
+      approvedPromotions
+        .map((a) => a.promoter_code)
+        .filter((c): c is string => Boolean(c)),
+    [approvedPromotions],
+  );
+
+  const promoterCodesKey = promoterCodesForMe.join("|");
+
+  useEffect(() => {
+    if (!uid || promoterCodesForMe.length === 0) {
+      setPromoterVisitLogs([]);
+      return;
+    }
+    let cancelled = false;
+    void fetchCardVisitLogsForPromoterApplicant(uid, promoterCodesForMe).then((logs) => {
+      if (cancelled) return;
+      setPromoterVisitLogs(logs ?? []);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [uid, promoterCodesKey]);
 
   const isCreator = user?.role === "creator";
   const displayName = safeDisplayName(user);
@@ -392,16 +492,51 @@ export function DashboardPage() {
     };
   };
 
+  const visitOwnerStats = useMemo(() => {
+    const totalVisits = visitLogs.length;
+    const promotionVisits = visitLogs.filter((l) => l.source === "promotion").length;
+    const directVisits = visitLogs.filter((l) => l.source === "direct").length;
+    const codes = new Set(visitLogs.map((l) => l.promoter_code).filter(Boolean));
+    const promoterCount = codes.size;
+    const byCode = new Map<string, number>();
+    for (const l of visitLogs) {
+      if (!l.promoter_code) continue;
+      byCode.set(l.promoter_code, (byCode.get(l.promoter_code) ?? 0) + 1);
+    }
+    let topCode: string | null = null;
+    let topCount = 0;
+    for (const [code, count] of byCode) {
+      if (count > topCount) {
+        topCount = count;
+        topCode = code;
+      }
+    }
+    return { totalVisits, promotionVisits, directVisits, promoterCount, topCode, topCount };
+  }, [visitLogs]);
+
+  const topPromoterDisplay = useMemo(() => {
+    const code = visitOwnerStats.topCode;
+    if (!code || visitOwnerStats.topCount === 0) return "—";
+    const app = ownerPromotionApplications.find((a) => a.promoter_code === code);
+    if (!app) return `${code} (${visitOwnerStats.topCount}회)`;
+    const platformUser = platformUsers.find((u) => u.id === app.applicant_user_id);
+    const name = app.applicant_name ?? platformUser?.name ?? "홍보 신청자";
+    return `${name} (${visitOwnerStats.topCount}회)`;
+  }, [visitOwnerStats, ownerPromotionApplications, platformUsers]);
+
   const decidePromotionApplication = async (application: PromotionApplication, status: "approved" | "rejected") => {
     const card = businessCards.find((c) => c.id === application.card_id);
     const promoterCode = status === "approved" ? application.promoter_code ?? buildPromoterCode(application.card_id, application.applicant_user_id) : application.promoter_code;
     const promotionUrl =
-      status === "approved" && card?.slug ? buildPromotionUrl(shareOrigin, card.slug, promoterCode ?? "") : application.promotion_url;
+      status === "approved" && card?.slug ? buildPromotionUrl(promoteOrigin, card.slug, promoterCode ?? "") : application.promotion_url;
+    const lbl = applicantLabel(application);
     const patch: Partial<PromotionApplication> = {
       status,
       promoter_code: promoterCode ?? null,
       promotion_url: promotionUrl ?? null,
       approved_at: status === "approved" ? new Date().toISOString() : application.approved_at,
+      applicant_name: lbl.name,
+      applicant_email: lbl.email.includes("@") ? lbl.email : application.applicant_email ?? null,
     };
     updatePromotionApplication(application.id, patch);
     await updatePromotionApplicationRemote(application.id, patch);
@@ -534,6 +669,31 @@ export function DashboardPage() {
           />
         )}
       </div>
+
+      {uid && myCards.length > 0 ? (
+        <section className="mt-8 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+          <h2 className="text-lg font-semibold text-slate-900 sm:text-xl">홍보 현황</h2>
+          <p className="mt-2 text-sm leading-relaxed text-slate-600 sm:text-base">
+            가입자들의 홍보 활동은 실시간으로 집계되며, 누가 더 많은 고객을 연결하고 있는지 한눈에 확인할 수 있습니다.
+          </p>
+          {visitOwnerStats.totalVisits === 0 ? (
+            <div className="mt-5 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center">
+              <p className="text-base font-medium text-slate-700">아직 홍보 방문 기록이 없어요.</p>
+              <p className="mt-2 text-sm text-slate-500">
+                홍보 링크를 승인하고 공유가 시작되면 이곳에 데이터가 쌓입니다.
+              </p>
+            </div>
+          ) : (
+            <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+              <StatBlock label="총 방문 수" value={String(visitOwnerStats.totalVisits)} />
+              <StatBlock label="홍보 링크 방문" value={String(visitOwnerStats.promotionVisits)} />
+              <StatBlock label="직접 방문" value={String(visitOwnerStats.directVisits)} />
+              <StatBlock label="참여 홍보자 수" value={String(visitOwnerStats.promoterCount)} />
+              <StatBlock label="최고 성과 홍보자" value={topPromoterDisplay} />
+            </div>
+          )}
+        </section>
+      ) : null}
 
       {!isCreator ? (
         <section className="mt-8 rounded-2xl border border-brand-200/80 bg-white p-4 shadow-sm sm:p-6">
@@ -706,6 +866,17 @@ export function DashboardPage() {
                     label: `추가 홍보 링크 ${index + 1}`,
                   })),
               ].filter((link) => link.ref_code);
+
+              const promotionPerfRows = promoterPerformanceRows(
+                card,
+                visitLogs,
+                ownerPromotionApplications,
+                promoteOrigin,
+                applicantLabel,
+              );
+              const showPromotionPerf =
+                Boolean(card.promotion_enabled) ||
+                ownerPromotionApplications.some((a) => a.card_id === card.id);
 
               return (
                 <li key={card.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -889,6 +1060,43 @@ export function DashboardPage() {
                       {card.promotion_enabled ? "홍보 신청 받는 중" : "홍보 링크 추가"}
                     </button>
                   </div>
+                  {showPromotionPerf ? (
+                    <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-4">
+                      <h3 className="text-sm font-bold text-slate-900">홍보자별 성과</h3>
+                      {promotionPerfRows.length === 0 ? (
+                        <p className="mt-3 text-sm text-slate-500">
+                          아직 홍보 방문 기록이 없어요. 홍보 링크를 승인하고 공유가 시작되면 이곳에 데이터가 쌓입니다.
+                        </p>
+                      ) : (
+                        <div className="mt-3 overflow-x-auto">
+                          <table className="w-full min-w-[560px] text-left text-sm">
+                            <thead>
+                              <tr className="border-b border-slate-200 text-xs font-semibold text-slate-500">
+                                <th className="py-2 pr-2">순위</th>
+                                <th className="py-2 pr-2">홍보자</th>
+                                <th className="py-2 pr-2">방문 수</th>
+                                <th className="py-2 pr-2">최근 방문일</th>
+                                <th className="py-2">홍보 링크</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {promotionPerfRows.map((row) => (
+                                <tr key={row.promoter_code} className="border-b border-slate-100">
+                                  <td className="py-2 pr-2 font-medium text-slate-800">{row.rank}</td>
+                                  <td className="py-2 pr-2 text-slate-800">{row.label}</td>
+                                  <td className="py-2 pr-2 font-semibold text-slate-900">{row.visits}</td>
+                                  <td className="py-2 pr-2 text-slate-600">{formatPromotionVisitDate(row.lastVisited)}</td>
+                                  <td className="py-2 align-top">
+                                    <p className="break-all text-xs text-brand-800">{row.promotionLink || "—"}</p>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  ) : null}
                 </li>
               );
             })}
@@ -960,31 +1168,50 @@ export function DashboardPage() {
         </section>
       ) : null}
 
-      {!isCreator ? (
+      {uid ? (
         <section className="mt-10 rounded-2xl border border-brand-200/80 bg-gradient-to-br from-brand-50 via-white to-sky-50 p-4 shadow-sm sm:p-6">
           <div>
-            <h2 className="text-lg font-semibold text-slate-900 sm:text-xl">내 홍보 링크</h2>
+            <h2 className="text-lg font-semibold text-slate-900 sm:text-xl">내 홍보 성과</h2>
             <p className="mt-2 text-sm leading-relaxed text-slate-600 sm:text-base">
-              승인된 홍보 링크입니다. 이 링크로 공유하면 내 홍보 활동으로 기록됩니다.
+              승인된 홍보 링크로 유입된 방문 수와 최근 활동을 확인할 수 있습니다. 이 링크로 공유하면 내 홍보 활동으로 기록됩니다.
             </p>
           </div>
           {approvedPromotions.length > 0 ? (
             <ul className="mt-5 grid gap-4 lg:grid-cols-2">
               {approvedPromotions.map((application) => {
                 const card = businessCards.find((c) => c.id === application.card_id);
-                const promotionUrl = application.promotion_url ?? "";
+                const slug = card?.slug?.trim() ?? application.card_slug ?? "";
+                const code = application.promoter_code ?? "";
+                const promotionUrl =
+                  slug && code ? buildPromotionUrl(promoteOrigin, slug, code) : application.promotion_url ?? "";
+                const logsForPromo = promoterVisitLogs.filter(
+                  (l) => l.card_id === application.card_id && l.promoter_code === application.promoter_code,
+                );
+                const visitCount = logsForPromo.length;
+                const lastVisited =
+                  logsForPromo.length === 0
+                    ? null
+                    : [...logsForPromo].sort(
+                        (a, b) => new Date(b.visited_at).getTime() - new Date(a.visited_at).getTime(),
+                      )[0]?.visited_at ?? null;
                 return (
                   <li key={application.id} className="rounded-2xl border border-brand-100 bg-white px-4 py-4">
-                    <p className="text-sm font-bold text-slate-900">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">내가 홍보 중인 명함</p>
+                    <p className="mt-1 text-sm font-bold text-slate-900">
                       {card ? cardDisplayName(card) : application.card_name ?? "홍보 중인 명함"}
                     </p>
-                    <p className="mt-2 break-all rounded-xl bg-brand-50 px-3 py-3 text-xs font-semibold text-brand-900">
+                    <div className="mt-3 flex flex-wrap gap-3 text-sm font-semibold text-slate-700">
+                      <span>방문 {visitCount}회</span>
+                      <span className="text-slate-500">최근 방문 {formatPromotionVisitDate(lastVisited)}</span>
+                    </div>
+                    <p className="mt-3 text-xs font-bold text-slate-600">내 홍보 링크</p>
+                    <p className="mt-1 break-all rounded-xl bg-brand-50 px-3 py-3 text-xs font-semibold text-brand-900">
                       {promotionUrl}
                     </p>
-                    <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                    <div className="mt-3 flex flex-wrap gap-2">
                       <button
                         type="button"
-                        className="inline-flex min-h-10 items-center justify-center rounded-xl bg-slate-50 px-3 text-sm font-bold text-slate-900 ring-1 ring-slate-200 hover:bg-slate-100"
+                        className="inline-flex min-h-10 flex-1 items-center justify-center rounded-xl bg-slate-50 px-3 text-sm font-bold text-slate-900 ring-1 ring-slate-200 hover:bg-slate-100 sm:min-w-[120px] sm:flex-none"
                         onClick={() => void copyPromotionLink(promotionUrl, application.id)}
                       >
                         {promoCopyId === application.id ? "복사됨" : "링크 복사"}
@@ -992,7 +1219,7 @@ export function DashboardPage() {
                       {card ? (
                         <button
                           type="button"
-                          className="inline-flex min-h-10 items-center justify-center rounded-xl bg-slate-50 px-3 text-sm font-bold text-slate-900 ring-1 ring-slate-200 hover:bg-slate-100"
+                          className="inline-flex min-h-10 flex-1 items-center justify-center rounded-xl bg-slate-50 px-3 text-sm font-bold text-slate-900 ring-1 ring-slate-200 hover:bg-slate-100 sm:min-w-[120px] sm:flex-none"
                           onClick={() => void sharePromotionLink(card, promotionUrl)}
                         >
                           카카오톡 공유
@@ -1001,7 +1228,7 @@ export function DashboardPage() {
                       {card ? (
                         <button
                           type="button"
-                          className="inline-flex min-h-10 items-center justify-center rounded-xl bg-slate-50 px-3 text-sm font-bold text-slate-900 ring-1 ring-slate-200 hover:bg-slate-100"
+                          className="inline-flex min-h-10 flex-1 items-center justify-center rounded-xl bg-slate-50 px-3 text-sm font-bold text-slate-900 ring-1 ring-slate-200 hover:bg-slate-100 sm:min-w-[120px] sm:flex-none"
                           onClick={() => void openQr(card, promotionUrl)}
                         >
                           QR 보기
