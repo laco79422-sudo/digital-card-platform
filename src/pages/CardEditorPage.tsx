@@ -726,7 +726,7 @@ export function CardEditorPage() {
       person_name: d.person_name.trim() || d.brand_name.trim() || "",
     });
     setGrowthFlash(
-      added ? "홍보 풀에 등록되었습니다. 홍보자 화면에 노출돼요." : "이미 홍보 풀에 등록된 명함이에요.",
+      added ? "홍보 풀에 등록되었습니다. Partner 화면에 노출돼요." : "이미 홍보 풀에 등록된 명함이에요.",
     );
   }, [addToPromotionPool, existing?.id, isGuestRoute, user]);
 
@@ -736,9 +736,9 @@ export function CardEditorPage() {
       setJourneyStep("promotion");
       setGrowthFlash(
         track === "blog"
-          ? "블로그 확장 흐름을 열었어요. 필요한 수준에 맞춰 교육 또는 전문가 위임을 선택해 보세요."
+          ? "블로그 확장 흐름을 열었어요. 필요한 수준에 맞춰 교육 또는 Expert 위임을 선택해 보세요."
           : track === "video"
-            ? "영상 확장 흐름을 열었어요. 혼자 진행이 어렵다면 교육/전문가 위임으로 이어집니다."
+            ? "영상 확장 흐름을 열었어요. 혼자 진행이 어렵다면 교육/Expert 위임으로 이어집니다."
             : "자동화 시스템 흐름을 열었어요. 학습 또는 위임으로 빠르게 구축할 수 있어요.",
       );
     },
@@ -1146,7 +1146,7 @@ export function CardEditorPage() {
                           교육으로 배우기
                         </Button>
                         <Button type="button" variant="outline" onClick={() => navigate("/promotion/partner")}>
-                          전문가에게 맡기기
+                          Expert에게 맡기기
                         </Button>
                       </div>
                     ) : (

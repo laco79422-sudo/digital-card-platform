@@ -80,7 +80,7 @@ export function RequestCreatePage() {
         <CardHeader>
           <h2 className="text-lg font-semibold text-slate-900">의뢰 내용</h2>
           <p className="mt-1 text-base leading-relaxed text-slate-600">
-            제작자가 이해하기 쉽게, 원하는 결과와 일정을 적어 주세요.
+            Expert가 이해하기 쉽게, 원하는 결과와 일정을 적어 주세요.
           </p>
         </CardHeader>
         <CardContent>

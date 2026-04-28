@@ -37,7 +37,7 @@ export async function startDesignPayment(request: DesignRequest): Promise<{ ok: 
   // Toss Payments 연결 시 이 함수에서 결제 위젯/결제창을 시작합니다.
   return {
     ok: true,
-    message: `제작 의뢰가 접수되었습니다. 결제 시스템 연결 후 전문가 배정이 시작됩니다. (${request.id})`,
+    message: `제작 의뢰가 접수되었습니다. 결제 시스템 연결 후 Expert 배정이 시작됩니다. (${request.id})`,
   };
 }
 

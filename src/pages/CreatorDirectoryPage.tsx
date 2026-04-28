@@ -49,10 +49,10 @@ export function CreatorDirectoryPage() {
   return (
     <div className={cn(layout.page, "py-10 sm:py-12")}>
       <h1 className="break-keep text-2xl font-bold leading-snug tracking-tight text-slate-900 md:text-3xl">
-        제작자 둘러보기
+        Expert 둘러보기
       </h1>
       <p className="mt-2 text-base leading-relaxed text-slate-600">
-        블로그와 유튜브 제작자를 한곳에서 찾고, 프로필에서 바로 지원하세요.
+        블로그·영상 Expert를 한곳에서 찾고, 프로필에서 바로 지원하세요.
       </p>
 
       <section className="mt-10 rounded-3xl border border-brand-100 bg-gradient-to-br from-brand-50 via-white to-slate-50 p-5 shadow-sm sm:p-7 lg:p-8">
@@ -107,7 +107,7 @@ export function CreatorDirectoryPage() {
           <h3 className="text-lg font-bold text-slate-950">운영 역할</h3>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             <div className="rounded-xl bg-slate-50 p-4">
-              <p className="font-bold text-slate-900">제작자</p>
+              <p className="font-bold text-slate-900">Expert</p>
               <p className="mt-1 text-sm leading-relaxed text-slate-600">시각 디자인과 완성도를 담당합니다.</p>
             </div>
             <div className="rounded-xl bg-brand-50 p-4">

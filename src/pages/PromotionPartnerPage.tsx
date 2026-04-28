@@ -40,7 +40,7 @@ export function PromotionPartnerPage() {
       user_name: user.name,
       user_email: user.email,
     });
-    setEnrollFlash(ok ? "홍보 파트너 참여가 등록되었습니다." : "이미 참여 중이에요.");
+    setEnrollFlash(ok ? "Partner 참여가 등록되었습니다." : "이미 참여 중이에요.");
   };
 
   const shareOne = async (slug: string) => {
@@ -60,12 +60,12 @@ export function PromotionPartnerPage() {
   return (
     <div className={cn(layout.page, "py-10 sm:py-14")}>
       <div className="mx-auto max-w-3xl">
-        <p className="text-xs font-bold uppercase tracking-widest text-brand-800">홍보자 · 파트너</p>
+        <p className="text-xs font-bold uppercase tracking-widest text-brand-800">Partner</p>
         <h1 className="mt-2 text-balance text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl">
-          홍보자로 참여하기
+          Partner로 참여하기
         </h1>
         <p className="mt-4 text-pretty text-base leading-relaxed text-slate-600">
-          홍보 풀에 올라온 명함을 보고, 링크와 메시지로 가볍게 공유 활동을 이어갈 수 있어요. 명함 생성자와 홍보자가 같은
+          홍보 풀에 올라온 명함을 보고, 링크와 메시지로 가볍게 공유 활동을 이어갈 수 있어요. Creator와 Partner가 같은
           구조 안에서 연결됩니다.
         </p>
 
@@ -137,7 +137,7 @@ export function PromotionPartnerPage() {
         <section className="mt-10">
           <h2 className="text-lg font-bold text-slate-900">홍보 풀 명함</h2>
           <p className="mt-1 text-sm text-slate-600">
-            생성자가 「홍보 요청하기」로 등록한 명함이에요. 열기·공유로 활동을 이어가 보세요.
+            Creator가 「홍보 요청하기」로 등록한 명함이에요. 열기·공유로 활동을 이어가 보세요.
           </p>
 
           {activePool.length === 0 ? (

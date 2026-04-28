@@ -31,7 +31,7 @@ const SAMPLE_CARDS: Record<LandingSampleType, SampleConfig> = {
     topBadges: ["현장 상담", "도면 제안", "직영 시공"],
     heroBrandLine: "INTERIOR STUDIO",
     name: "김민수",
-    role: "인테리어 전문가",
+    role: "인테리어 디렉터",
     tagline: "공간을 바꾸면 삶이 바뀝니다",
     description: "상담부터 시공까지 직접 연결해드립니다.",
     ctaLabel: "문의하기",

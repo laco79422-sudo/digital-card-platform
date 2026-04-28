@@ -35,7 +35,7 @@ export function Footer() {
               </li>
               <li>
                 <Link to="/creators" className="hover:text-brand-800">
-                  제작자 둘러보기
+                  Expert 둘러보기
                 </Link>
               </li>
               <li>

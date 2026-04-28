@@ -17,7 +17,7 @@ export function PromotionGuidePage() {
           명함을 중심으로 사람과 홍보가 연결되는 구조
         </h1>
         <p className="mt-4 text-pretty text-base leading-relaxed text-slate-600 sm:text-lg">
-          Linko는 입력폼에 그치지 않습니다. 명함 제작 → 홍보 요청 → 홍보자 연결 → 교육으로 확산까지 한 흐름으로
+          Linko는 입력폼에 그치지 않습니다. 명함 제작 → 홍보 요청 → Partner 연결 → 교육으로 확산까지 한 흐름으로
           설계했습니다.
         </p>
 
@@ -62,31 +62,36 @@ export function PromotionGuidePage() {
               바로 이어집니다.
             </p>
             <p className="rounded-lg bg-slate-50 px-3 py-2 text-slate-600">
-              홍보자는 이 흐름이 끊기지 않게, 짧은 메시지와 함께 링크만 보내는 것이 가장 효과적입니다.
+              Partner는 이 흐름이 끊기지 않게, 짧은 메시지와 함께 링크만 보내는 것이 가장 효과적입니다.
             </p>
           </div>
         </section>
 
         <section className="mt-8 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
           <h2 className="border-b border-slate-100 bg-slate-50/80 px-6 py-4 text-xl font-bold text-slate-900">
-            역할 정리
+            역할 안내
           </h2>
-          <div className="grid gap-px bg-slate-200 sm:grid-cols-2">
+          <div className="grid gap-px bg-slate-200 md:grid-cols-3">
             <div className="bg-white p-6">
-              <h3 className="font-bold text-brand-900">명함 생성자 (고객)</h3>
-              <ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-slate-700">
-                <li>명함을 만들고 공개·저장합니다.</li>
-                <li>필요 시 유료로 실사용을 활성화합니다.</li>
-                <li>「홍보 요청하기」로 홍보 풀에 올려 노출을 늘립니다.</li>
-              </ul>
+              <h3 className="font-bold text-brand-900">Creator</h3>
+              <p className="mt-1 text-sm font-medium text-slate-600">고객을 만들고 싶은 사람</p>
+              <p className="mt-3 text-sm leading-relaxed text-slate-700">
+                명함을 만들고, 홍보 링크를 추가해 고객 연결을 시작합니다.
+              </p>
             </div>
             <div className="bg-white p-6">
-              <h3 className="font-bold text-brand-900">홍보자 (파트너)</h3>
-              <ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-slate-700">
-                <li>「홍보자로 참여하기」로 신청하고 풀 목록을 봅니다.</li>
-                <li>카카오·SNS에 링크와 메시지를 공유합니다.</li>
-                <li>가벼운 확산 활동으로 여러 명함과 연결됩니다.</li>
-              </ul>
+              <h3 className="font-bold text-brand-900">Partner</h3>
+              <p className="mt-1 text-sm font-medium text-slate-600">홍보로 수익을 만드는 사람</p>
+              <p className="mt-3 text-sm leading-relaxed text-slate-700">
+                승인된 홍보 링크를 공유하고, 성과에 따라 보상을 받을 수 있습니다.
+              </p>
+            </div>
+            <div className="bg-white p-6">
+              <h3 className="font-bold text-brand-900">Expert</h3>
+              <p className="mt-1 text-sm font-medium text-slate-600">결과를 만들어주는 전문가</p>
+              <p className="mt-3 text-sm leading-relaxed text-slate-700">
+                명함·블로그·영상 제작을 도와 결과물을 완성합니다.
+              </p>
             </div>
           </div>
         </section>
@@ -102,7 +107,7 @@ export function PromotionGuidePage() {
             to="/promotion/partner"
             className={linkButtonClassName({ variant: "outline", size: "lg", className: "w-full sm:w-auto" })}
           >
-            홍보자 화면 보기
+            Partner 화면 보기
           </Link>
         </div>
       </div>

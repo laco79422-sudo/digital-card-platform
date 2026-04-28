@@ -32,7 +32,7 @@ export function PricingPage() {
         </p>
       </div>
 
-      <h2 className="mt-12 text-lg font-semibold text-slate-900 sm:mt-16 sm:text-xl">사업자 · 명함</h2>
+      <h2 className="mt-12 text-lg font-semibold text-slate-900 sm:mt-16 sm:text-xl">Creator · 명함</h2>
       <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-600 sm:text-[15px]">
         비교표보다는 지금 단계에 맞는 하나만 고르면 됩니다.
       </p>
@@ -82,9 +82,9 @@ export function PricingPage() {
 
       <PromotionMarketingPlansSection className="mt-16 sm:mt-24" />
 
-      <h2 className="mt-14 text-lg font-semibold text-slate-900 sm:mt-20 sm:text-xl">제작자</h2>
+      <h2 className="mt-14 text-lg font-semibold text-slate-900 sm:mt-20 sm:text-xl">Expert</h2>
       <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-600 sm:text-[15px]">
-        의뢰를 받아 수익을 내는 제작자는 플러스로{" "}
+        의뢰를 받아 수익을 내는 Expert는 플러스로{" "}
         <span className="font-medium text-slate-700">새 의뢰 알림·제안서</span> 흐름을 빠르게 잡을 수 있어요.
       </p>
       <div className="mt-8 grid gap-6 lg:grid-cols-3">
@@ -98,8 +98,8 @@ export function PricingPage() {
           cta="가입하기"
         />
         <PricingCard
-          name="제작자 플러스"
-          audience="제작자용"
+          name="Expert 플러스"
+          audience="Expert용"
           priceLabel="₩19,000"
           description="월"
           features={["새 의뢰 알림", "제안서 양식"]}

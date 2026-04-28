@@ -19,7 +19,7 @@ export function PostSaveGrowthPanel({ className }: Props) {
     >
       <h3 className="text-center text-lg font-bold text-slate-900 sm:text-xl">이제 더 멀리 퍼지게 할 수 있습니다</h3>
       <p className="mx-auto mt-3 max-w-lg text-center text-sm leading-relaxed text-slate-600 sm:text-base">
-        저장한 명함을 블로그, 영상, 공유 구조까지 확장할 수 있습니다. 전문가와 함께하면 더 빠르게 고객 연결 구조를 만들 수
+        저장한 명함을 블로그, 영상, 공유 구조까지 확장할 수 있습니다. Expert와 함께하면 더 빠르게 고객 연결 구조를 만들 수
         있습니다.
       </p>
       <div className="mx-auto mt-6 grid max-w-2xl gap-3 sm:grid-cols-2">

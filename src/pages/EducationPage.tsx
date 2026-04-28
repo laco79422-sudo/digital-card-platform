@@ -21,7 +21,7 @@ export function EducationPage() {
         <section className="border-b border-slate-200 bg-white py-6 sm:py-8">
           <div className={layout.page}>
             <p className="mx-auto max-w-3xl text-center text-sm leading-relaxed text-slate-600 sm:text-base">
-              사례와 수익 흐름을 확인한 뒤, 교육 참여 또는 강사 파트너로 참여할 수 있습니다. 스크롤하여
+              사례와 수익 흐름을 확인한 뒤, 교육 참여 또는 강사 Partner로 참여할 수 있습니다. 스크롤하여
               신청서까지 이어지는 구조입니다.
             </p>
           </div>

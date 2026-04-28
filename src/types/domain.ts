@@ -325,7 +325,7 @@ export interface InstructorApplication {
   created_at: string;
 }
 
-/** 홍보 풀에 올라간 명함 — 홍보자에게 노출 */
+/** 홍보 풀에 올라간 명함 — Partner에게 노출 */
 export interface PromotionPoolEntry {
   id: string;
   card_id: string;
@@ -336,7 +336,7 @@ export interface PromotionPoolEntry {
   status: "active" | "paused";
 }
 
-/** 홍보 파트너(홍보자) 참여 등록 */
+/** 홍보 Partner 참여 등록 */
 export interface PromoterParticipation {
   id: string;
   user_id: string;

@@ -56,7 +56,7 @@ export function ServiceRequestCard({ request }: { request: ServiceRequest }) {
             to="/creators"
             className="min-h-11 text-base font-medium text-brand-700 hover:text-brand-900"
           >
-            제작자 찾기
+            Expert 찾기
           </Link>
           <span className="text-slate-300">|</span>
           <Link

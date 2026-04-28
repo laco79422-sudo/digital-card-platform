@@ -16,7 +16,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 
 const typeLabels = {
   blog_writer: "블로그 작가",
-  youtube_producer: "유튜브 영상 제작자",
+  youtube_producer: "유튜브 영상",
   shortform_editor: "숏폼 편집자",
   thumbnail_designer: "썸네일 디자이너",
 } as const;
@@ -57,13 +57,13 @@ export function CreatorProfilePage() {
           to="/creators"
           className="mt-6 inline-flex min-h-[52px] items-center justify-center text-base font-semibold text-brand-700"
         >
-          제작자 목록으로
+          Expert 목록으로
         </Link>
       </div>
     );
   }
 
-  const name = creator.display_name ?? "제작자";
+  const name = creator.display_name ?? "Expert";
 
   const submitApply = () => {
     if (!user || user.role !== "creator") {
@@ -95,7 +95,7 @@ export function CreatorProfilePage() {
         to="/creators"
         className="inline-flex min-h-11 items-center text-base font-medium text-brand-700"
       >
-        ← 제작자 목록
+        ← Expert 목록
       </Link>
       <Card className="mt-6">
         <CardContent className="space-y-6 p-6 sm:p-8">

@@ -123,7 +123,7 @@ export const SAMPLE_CARDS: BusinessCard[] = [
     brand_name: "스튜디오 버텍스",
     person_name: "박지훈",
     job_title: "크리에이티브 디렉터",
-    intro: "브랜드 필름, 숏폼, 썸네일 아트 디렉션까지. 팀 단위 제작 파트너를 찾고 계신가요?",
+    intro: "브랜드 필름, 숏폼, 썸네일 아트 디렉션까지. 팀 단위 영상·디자인 협업을 찾고 계신가요?",
     phone: "02-555-0101",
     email: "hello@vertex.studio",
     website_url: "https://vertex.studio",
@@ -329,7 +329,7 @@ export const SAMPLE_BANNERS: MainBanner[] = [
   {
     id: "bnr-1",
     title: "Linko 디지털 명함 — 연결되는 나의 시작",
-    subtitle: "이름으로 열리는 소개, 블로그·영상·디자인 파트너까지 한곳에서 만나 보세요.",
+    subtitle: "이름으로 열리는 소개, 블로그·영상·디자인까지 Expert를 한곳에서 만나 보세요.",
     cta_label: "무료로 시작하기",
     cta_href: "/signup",
     sort_order: 0,
@@ -345,12 +345,12 @@ export const LANDING_TESTIMONIALS = [
     role: "스타트업 CMO",
   },
   {
-    quote: "제작자 분들이 많아서 요구만 정리하면 금방 맞는 분을 만났어요. 비용도 알기 쉬웠습니다.",
+    quote: "Expert 분들이 많아서 요구만 정리하면 금방 맞는 분을 만났어요. 비용도 알기 쉬웠습니다.",
     name: "오현석",
     role: "에이전시 대표",
   },
   {
-    quote: "제작자 플러스 쓰고 나서 새 의뢰 알림이 빠짐없이 오고, 제안서 양식 덕에 제안도 훨씬 빨라졌어요.",
+    quote: "Expert 플러스 쓰고 나서 새 의뢰 알림이 빠짐없이 오고, 제안서 양식 덕에 제안도 훨씬 빨라졌어요.",
     name: "이서연",
     role: "블로그 작가",
   },
@@ -363,7 +363,7 @@ export const LANDING_FAQ = [
   },
   {
     q: "의뢰가 연결된 뒤 결제는 어떻게 하나요?",
-    a: "제작자를 정하면 안전하게 결제하는 흐름으로 안내할 예정이에요. (지금 데모에서는 화면만 보여 드려요.)",
+    a: "Expert를 정하면 안전하게 결제하는 흐름으로 안내할 예정이에요. (지금 데모에서는 화면만 보여 드려요.)",
   },
   {
     q: "백엔드를 연결하면 실제 데이터로 바뀌나요?",
