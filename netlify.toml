@@ -22,7 +22,7 @@
 
 # OG image: stable Content-Type for scrapers
 [[headers]]
-  for = "/og-default.png"
+  for = "/og/linko-main.png"
   [headers.values]
     Content-Type = "image/png"
     Cache-Control = "public, max-age=604800"

@@ -1,6 +1,6 @@
 import { seoDescription, seoTitle } from "@/lib/digitalCardViewModel";
 import { previewOgImageUrlFromDraft } from "@/lib/previewShareMeta";
-import { SITE_OG_TITLE } from "@/lib/siteLinkPreview";
+import { SITE_CANONICAL_URL, SITE_OG_TITLE } from "@/lib/siteLinkPreview";
 import type { BusinessCard } from "@/types/domain";
 import { useEffect } from "react";
 
@@ -23,7 +23,7 @@ export function DigitalCardSeo({ card }: { card: BusinessCard }) {
       brand_image_url: card.brand_image_url ?? null,
       gallery_urls_raw: card.gallery_urls?.join("\n") ?? "",
     });
-    const url = `${window.location.origin}/c/${encodeURIComponent(card.slug)}`;
+    const url = `${SITE_CANONICAL_URL}/c/${encodeURIComponent(card.slug)}`;
     document.title = title;
 
     let meta = document.querySelector('meta[name="description"]');

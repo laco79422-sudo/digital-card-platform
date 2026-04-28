@@ -41,7 +41,8 @@ type CardLike = {
 
 const COMPANY_OG_TITLE = "린코 디지털 명함";
 const COMPANY_OG_DESCRIPTION = "명함 하나로 고객이 먼저 찾아옵니다";
-const COMPANY_OG_IMAGE_PATH = "/og-default.png";
+const COMPANY_BASE_URL = "https://linkoapp.kr";
+const COMPANY_OG_IMAGE_URL = `${COMPANY_BASE_URL}/og/linko-main.png`;
 
 function esc(s: string): string {
   return s
@@ -66,11 +67,6 @@ function firstGalleryHttpsFromList(urls: string[] | null | undefined): string {
     if (clean.startsWith("https://")) return clean;
   }
   return "";
-}
-
-function absoluteImage(base: string, pathOrUrl: string): string {
-  if (pathOrUrl.startsWith("https://")) return pathOrUrl;
-  return `${base}${pathOrUrl.startsWith("/") ? pathOrUrl : `/${pathOrUrl}`}`;
 }
 
 function ogFromDraft(
@@ -106,12 +102,12 @@ function ogFromDraft(
   return { title, desc, image, siteName: brand };
 }
 
-function buildSeoBlock(origin: string, tempId: string, d: DraftLike, queryType?: string | null): string {
-  const base = origin.replace(/\/$/, "");
+function buildSeoBlock(tempId: string, d: DraftLike, queryType?: string | null): string {
+  const base = COMPANY_BASE_URL;
   const t = (queryType || d.card_type || "").trim();
   const canonicalBase = `${base}/preview/${encodeURIComponent(tempId)}`;
   const canonical = t ? `${canonicalBase}?type=${encodeURIComponent(t)}` : canonicalBase;
-  const fallbackImage = `${base}${COMPANY_OG_IMAGE_PATH}`;
+  const fallbackImage = COMPANY_OG_IMAGE_URL;
   const { title, desc, siteName } = ogFromDraft(d, fallbackImage, t);
   /** 카카오·크롤러가 동일 URL로 썸네일을 조회하도록 preview 전용 엔드포인트(302 → 실제 이미지) */
   const image = `${base}/.netlify/functions/preview-og-image?tempId=${encodeURIComponent(tempId)}`;
@@ -171,13 +167,12 @@ function buildCommonSeoBlock(params: {
 <!--LINKO_SEO_END-->`;
 }
 
-function buildCompanySeoBlock(origin: string): string {
-  const base = origin.replace(/\/$/, "");
+function buildCompanySeoBlock(): string {
   return buildCommonSeoBlock({
-    canonical: `${base}/`,
+    canonical: COMPANY_BASE_URL,
     title: COMPANY_OG_TITLE,
     desc: COMPANY_OG_DESCRIPTION,
-    image: absoluteImage(base, COMPANY_OG_IMAGE_PATH),
+    image: COMPANY_OG_IMAGE_URL,
   });
 }
 
@@ -240,7 +235,7 @@ export default async (request: Request, context: Context) => {
 
   const url = new URL(request.url);
   if (url.pathname === "/" || url.pathname === "") {
-    return injectSeo(context, buildCompanySeoBlock(url.origin), "injected-company");
+    return injectSeo(context, buildCompanySeoBlock(), "injected-company");
   }
 
   const cardMatch = url.pathname.match(/^\/c\/([^/]+)\/?$/);
@@ -263,9 +258,8 @@ export default async (request: Request, context: Context) => {
       return new Response(await res.text(), { status: res.status, headers });
     }
 
-    const base = url.origin.replace(/\/$/, "");
-    const canonical = `${base}/c/${encodeURIComponent(slug)}`;
-    const { title, desc, image, siteName } = ogFromCard(card, absoluteImage(base, COMPANY_OG_IMAGE_PATH));
+    const canonical = `${COMPANY_BASE_URL}/c/${encodeURIComponent(slug)}`;
+    const { title, desc, image, siteName } = ogFromCard(card, COMPANY_OG_IMAGE_URL);
     return injectSeo(
       context,
       buildCommonSeoBlock({ canonical, title, desc, image, siteName, type: "profile" }),
@@ -317,7 +311,7 @@ export default async (request: Request, context: Context) => {
     return new Response(await res.text(), { status: res.status, headers });
   }
 
-  const block = buildSeoBlock(url.origin, tempId, draft, url.searchParams.get("type"));
+  const block = buildSeoBlock(tempId, draft, url.searchParams.get("type"));
   return injectSeo(context, block, "injected-preview");
 };
 

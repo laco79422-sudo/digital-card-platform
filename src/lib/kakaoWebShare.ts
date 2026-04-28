@@ -1,5 +1,5 @@
-/** \uae30\ubcf8 OG \uc774\ubbf8\uc9c0 \u2014 \uce74\uce74\uc624 feed \uc378\ub124\uc77c\uc6a9 */
-export const KAKAO_FEED_DEFAULT_IMAGE = "https://mycardlab.netlify.app/og-default.png";
+/** Default OG image for Kakao feed thumbnails. */
+export const KAKAO_FEED_DEFAULT_IMAGE = "https://linkoapp.kr/og/linko-main.png";
 
 declare global {
   interface Window {

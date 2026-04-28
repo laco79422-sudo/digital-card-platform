@@ -2,13 +2,8 @@ import { createClient } from "@supabase/supabase-js";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
-function requestOrigin(event) {
-  const h = event.headers || {};
-  const proto = (h["x-forwarded-proto"] || "https").split(",")[0].trim();
-  const host = (h["x-forwarded-host"] || h.host || "mycardlab.netlify.app").split(",")[0].trim();
-  return `${proto}://${host}`;
-}
+const SITE_ORIGIN = "https://linkoapp.kr";
+const SITE_OG_IMAGE_URL = `${SITE_ORIGIN}/og/linko-main.png`;
 
 function firstGalleryHttps(raw) {
   if (!raw || typeof raw !== "string") return "";
@@ -19,12 +14,11 @@ function firstGalleryHttps(raw) {
   return "";
 }
 
-function resolveImageFromDraft(d, origin) {
-  const base = origin.replace(/\/$/, "");
+function resolveImageFromDraft(d) {
   let image = typeof d?.imageUrl === "string" ? d.imageUrl.trim() : "";
   if (!image) image = typeof d?.brand_image_url === "string" ? d.brand_image_url.trim() : "";
   if (!image.startsWith("https://")) image = firstGalleryHttps(d?.gallery_urls_raw);
-  if (!image.startsWith("https://")) image = `${base}/og-default.png`;
+  if (!image.startsWith("https://")) image = SITE_OG_IMAGE_URL;
   return image;
 }
 
@@ -33,8 +27,7 @@ export const handler = async (event) => {
     return { statusCode: 405, body: "Method Not Allowed" };
   }
 
-  const origin = requestOrigin(event);
-  const fallback = `${origin}/og-default.png`;
+  const fallback = SITE_OG_IMAGE_URL;
 
   const tempId = typeof event.queryStringParameters?.tempId === "string" ? event.queryStringParameters.tempId.trim() : "";
   if (!tempId || !UUID_RE.test(tempId)) {
@@ -66,7 +59,7 @@ export const handler = async (event) => {
     };
   }
 
-  const image = resolveImageFromDraft(data.payload.draft, origin);
+  const image = resolveImageFromDraft(data.payload.draft);
   return {
     statusCode: 302,
     headers: {
