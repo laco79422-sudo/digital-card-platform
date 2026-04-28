@@ -229,23 +229,6 @@ export function LandingPage() {
               가입 후 상담·맞춤 실행 단계로 이어집니다. (데모에서는 가입 화면으로 연결됩니다.)
             </p>
           </div>
-
-          <div className="mx-auto mt-12 max-w-2xl rounded-2xl border border-slate-200 bg-slate-50/90 px-5 py-6 text-center sm:px-8 sm:py-8">
-            <p className="text-base font-semibold leading-relaxed text-slate-900 sm:text-lg">
-              구조는 잡았습니다
-              <br />
-              이제 실행만 남았습니다
-            </p>
-            <p className="mt-4 text-sm font-medium text-brand-800 sm:text-base">
-              명함 하나로 고객이 먼저 찾아옵니다
-            </p>
-          </div>
-
-          <div className="mt-10 flex justify-center sm:mt-12">
-            <FlowCtaLink to={CREATE_SAMPLE_HREF} variant="outline" className="sm:max-w-lg">
-              샘플로 바로 만들어보기
-            </FlowCtaLink>
-          </div>
         </div>
       </section>
 
