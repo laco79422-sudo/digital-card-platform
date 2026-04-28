@@ -105,7 +105,7 @@ type Props = {
   /** 편집기 미리보기: 이름 클릭 수정 */
   editableName?: boolean;
   namePlaceholder?: string;
-  onNameChange?: (name: string) => void;
+  onNameChange?: (name: string) => void | Promise<void>;
   /** 카카오 공유 직전 — Supabase에 임시 명함 동기화(크롤러 OG와 일치) */
   onBeforeKakaoShare?: () => void | Promise<void>;
 };
@@ -125,7 +125,7 @@ export function DigitalCardPublicView({
   imageHelperText,
   imageUrlOverride,
   editableName,
-  namePlaceholder = "내 명함 이름",
+  namePlaceholder = "이름을 입력하세요",
   onNameChange,
   onBeforeKakaoShare,
 }: Props) {
@@ -245,7 +245,7 @@ export function DigitalCardPublicView({
 
   const commitNameEdit = useCallback(() => {
     const next = nameDraft.trim() || namePlaceholder;
-    onNameChange?.(next);
+    void onNameChange?.(next);
     setNameDraft(next);
     setEditingName(false);
   }, [nameDraft, namePlaceholder, onNameChange]);
@@ -261,7 +261,7 @@ export function DigitalCardPublicView({
             as === "h1" ? "text-2xl sm:text-3xl" : "text-base sm:text-lg",
           )}
           value={nameDraft}
-          placeholder={namePlaceholder}
+          placeholder="이름을 입력하세요"
           onChange={(e) => setNameDraft(e.target.value)}
           onBlur={commitNameEdit}
           onKeyDown={(e) => {
@@ -279,7 +279,7 @@ export function DigitalCardPublicView({
       <Tag
         className={cn(className, editableName ? "cursor-text rounded-lg px-2 py-1 hover:bg-white/10" : "")}
         onClick={editableName ? () => setEditingName(true) : undefined}
-        title={editableName ? "클릭해서 이름 수정" : undefined}
+        title={editableName ? "클릭해서 수정" : undefined}
       >
         {name}
       </Tag>

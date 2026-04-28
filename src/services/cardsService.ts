@@ -226,6 +226,36 @@ export async function fetchCardBySlug(slug: string): Promise<BusinessCard | null
   return data as BusinessCard | null;
 }
 
+export async function updateCardNameRemote(cardId: string, name: string): Promise<boolean> {
+  if (!isSupabaseConfigured || !supabase) return false;
+
+  let updated = false;
+  const { error } = await supabase
+    .from(TABLE_CARDS)
+    .update({ person_name: name, name })
+    .eq("id", cardId);
+  if (!error) {
+    updated = true;
+  } else if (error.message.toLowerCase().includes("name")) {
+    const retry = await supabase.from(TABLE_CARDS).update({ person_name: name }).eq("id", cardId);
+    if (!retry.error) {
+      updated = true;
+    } else {
+      console.warn("[cardsService] updateCardNameRemote retry", retry.error.message);
+    }
+  } else {
+    console.warn("[cardsService] updateCardNameRemote", error.message);
+  }
+
+  const legacy = await supabase.from("cards").update({ name }).eq("id", cardId);
+  if (!legacy.error) {
+    updated = true;
+  } else {
+    console.warn("[cardsService] updateCardNameRemote legacy cards", legacy.error.message);
+  }
+  return updated;
+}
+
 export async function fetchCardLinks(cardId: string): Promise<CardLink[] | null> {
   if (!isSupabaseConfigured || !supabase) return null;
   const { data, error } = await supabase

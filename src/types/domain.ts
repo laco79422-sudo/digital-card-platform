@@ -32,6 +32,8 @@ export interface BusinessCard {
   /** Optional owner email for older email-keyed card rows. */
   owner_email?: string | null;
   slug: string;
+  /** Legacy/alternate display-name column used by some card tables. */
+  name?: string | null;
   brand_name: string;
   person_name: string;
   job_title: string;

@@ -347,7 +347,7 @@ export function CardEditorPage() {
     } else if (isNew && user) {
       replaceDraft(
         createEmptyDraft({
-          person_name: DEFAULT_CARD_PERSON_NAME,
+          person_name: user.name?.trim() || DEFAULT_CARD_PERSON_NAME,
           email: user?.email ?? "",
         }),
       );
@@ -583,7 +583,7 @@ export function CardEditorPage() {
     replaceDraft(
       createEmptyDraft({
         email: getLandingEmail()?.trim() || user?.email?.trim() || "",
-        person_name: DEFAULT_CARD_PERSON_NAME,
+        person_name: user?.name?.trim() || DEFAULT_CARD_PERSON_NAME,
       }),
     );
     setLinkRows(mapLinksToRows([]));

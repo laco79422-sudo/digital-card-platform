@@ -2,8 +2,10 @@ import { DigitalCardPublicView } from "@/components/digital-card/DigitalCardPubl
 import { DigitalCardSeo } from "@/components/digital-card/DigitalCardSeo";
 import { resolveBusinessCardPublicUrl } from "@/lib/cardShareUrl";
 import { savePromotionReferralCode } from "@/lib/promotionReferralStorage";
+import { updateCardNameRemote } from "@/services/cardsService";
 import { getLinksForCard, useAppDataStore } from "@/stores/appDataStore";
-import type { CardLink } from "@/types/domain";
+import { useAuthStore } from "@/stores/authStore";
+import type { BusinessCard, CardLink, User } from "@/types/domain";
 import QRCode from "qrcode";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
@@ -11,8 +13,10 @@ import { Link, useLocation, useParams } from "react-router-dom";
 export function PublicCardPage() {
   const { slug } = useParams();
   const location = useLocation();
+  const user = useAuthStore((s) => s.user);
   const businessCards = useAppDataStore((s) => s.businessCards);
   const cardLinks = useAppDataStore((s) => s.cardLinks);
+  const upsertBusinessCard = useAppDataStore((s) => s.upsertBusinessCard);
   const addCardView = useAppDataStore((s) => s.addCardView);
   const addCardClick = useAppDataStore((s) => s.addCardClick);
   const addCardLinkVisit = useAppDataStore((s) => s.addCardLinkVisit);
@@ -30,6 +34,15 @@ export function PublicCardPage() {
     [location.search],
   );
   const [qr, setQr] = useState<string | null>(null);
+
+  const canEditName = Boolean(card && cardBelongsToUser(card, user));
+
+  const saveCardName = async (name: string) => {
+    if (!card || !canEditName) return;
+    const nextName = name.trim() || "이름을 입력하세요";
+    upsertBusinessCard({ ...card, person_name: nextName, name: nextName });
+    await updateCardNameRemote(card.id, nextName);
+  };
 
   useEffect(() => {
     if (!card) return;
@@ -108,7 +121,20 @@ export function PublicCardPage() {
         onLinkClick={handleLink}
         qrDataUrl={qr}
         referralLanding={Boolean(referralCode)}
+        editableName={canEditName}
+        namePlaceholder="이름을 입력하세요"
+        onNameChange={(name) => void saveCardName(name)}
       />
     </>
+  );
+}
+
+function cardBelongsToUser(card: BusinessCard, user: User | null): boolean {
+  if (!user) return false;
+  const email = user.email.trim().toLowerCase();
+  return (
+    card.user_id === user.id ||
+    card.owner_id === user.id ||
+    Boolean(email && (card.owner_email?.trim().toLowerCase() === email || card.email?.trim().toLowerCase() === email))
   );
 }
