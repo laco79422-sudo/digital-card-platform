@@ -7,12 +7,15 @@ declare global {
       isInitialized?: () => boolean;
       init?: (key: string) => void;
       Link?: { sendDefault: (opts: unknown) => void };
+      Share?: { sendDefault: (opts: unknown) => void };
     };
   }
 }
 
 export function initKakaoJsSdkFromEnv(): void {
-  const key = import.meta.env.VITE_KAKAO_JS_KEY;
+  const key =
+    import.meta.env.VITE_KAKAO_JAVASCRIPT_KEY?.trim() ||
+    import.meta.env.VITE_KAKAO_JS_KEY?.trim();
   if (!key || typeof window === "undefined" || !window.Kakao?.init) return;
   try {
     if (!window.Kakao.isInitialized?.()) window.Kakao.init(key);

@@ -12,6 +12,7 @@ import {
 import { layout } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
 import { getCardHeroImageUrl } from "@/lib/businessCardHeroImage";
+import { shareToKakao } from "@/lib/shareToKakao";
 import { fetchMyCardsForUser, type FetchMyCardsResult } from "@/services/cardsService";
 import { fetchMyDesignRequests, updateDesignRequestRemote } from "@/services/designRequestsService";
 import { fetchCardVisitLogsForOwner, fetchCardVisitLogsForPromoterApplicant } from "@/services/cardVisitLogsService";
@@ -956,7 +957,7 @@ export function DashboardPage() {
                     </div>
                   ) : null}
 
-                  <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-5">
+                  <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6">
                     <Link
                       to={publicUrl || `/c/${encodeURIComponent(card.slug)}`}
                       className="inline-flex min-h-10 items-center justify-center rounded-xl bg-slate-900 px-3 text-sm font-bold text-white hover:bg-slate-800"
@@ -977,6 +978,13 @@ export function DashboardPage() {
                       onClick={() => void shareCard(card)}
                     >
                       공유
+                    </button>
+                    <button
+                      type="button"
+                      className="inline-flex min-h-10 items-center justify-center rounded-xl border border-amber-300 bg-amber-50 px-3 text-sm font-bold text-amber-950 hover:bg-amber-100"
+                      onClick={() => void shareToKakao(card)}
+                    >
+                      카카오톡 보내기
                     </button>
                     <button
                       type="button"
