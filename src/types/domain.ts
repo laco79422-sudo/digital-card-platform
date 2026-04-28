@@ -220,6 +220,10 @@ export interface DesignRequest {
   name: string;
   phone: string;
   email: string;
+  verified_name: string;
+  verified_phone: string;
+  verified_email: string;
+  email_verified: boolean;
   business_type: string;
   style: DesignRequestStyle;
   reference_url: string | null;
