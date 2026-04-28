@@ -73,7 +73,7 @@ export function LoginPage() {
       if (sess) setSession(sess);
       setUser(mapSupabaseUser(u));
       setUnverifiedEmail(u.email ?? email);
-      setRemoteError("이메일 인증이 아직 완료되지 않았어요. 가입하신 이메일함에서 인증 메일을 확인해 주세요.");
+      setRemoteError("이메일 인증이 필요해요. 기존에 가입하신 계정도 안전한 이용을 위해 이메일 인증을 완료해야 합니다.");
       return;
     }
     if (sess) setSession(sess);
@@ -178,8 +178,10 @@ export function LoginPage() {
           />
           {unverifiedEmail ? (
             <div className="mb-5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-950">
-              <p className="font-bold">이메일 인증이 아직 완료되지 않았어요.</p>
-              <p className="mt-1 leading-relaxed">가입하신 이메일함에서 인증 메일을 확인해 주세요.</p>
+              <p className="font-bold">이메일 인증이 필요해요.</p>
+              <p className="mt-1 leading-relaxed">
+                기존에 가입하신 계정도 안전한 이용을 위해 이메일 인증을 완료해야 합니다.
+              </p>
               <button
                 type="button"
                 className="mt-3 inline-flex min-h-10 w-full items-center justify-center rounded-xl bg-cta-500 px-4 font-bold text-white hover:bg-cta-600 disabled:cursor-not-allowed disabled:opacity-70"
@@ -189,6 +191,9 @@ export function LoginPage() {
                 {resending ? "인증 메일 보내는 중..." : "인증 메일 다시 보내기"}
               </button>
               {resendMessage ? <p className="mt-2 font-medium text-emerald-700">{resendMessage}</p> : null}
+              <p className="mt-2 text-xs leading-relaxed text-amber-800">
+                기존 계정과 명함 데이터는 그대로 유지됩니다. 인증만 완료해 주세요.
+              </p>
             </div>
           ) : null}
           <p className="mt-4 text-center text-xs leading-relaxed text-slate-500">

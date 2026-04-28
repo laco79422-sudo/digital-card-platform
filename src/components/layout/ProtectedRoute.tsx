@@ -51,9 +51,9 @@ export function ProtectedRoute({
     return (
       <div className="flex min-h-[50vh] items-center justify-center px-4 py-16">
         <div className="w-full max-w-md rounded-2xl border border-amber-200 bg-amber-50 px-5 py-6 text-center shadow-sm">
-          <p className="text-lg font-bold text-amber-950">이메일 인증이 아직 완료되지 않았어요.</p>
+          <p className="text-lg font-bold text-amber-950">이메일 인증이 필요해요.</p>
           <p className="mt-2 text-sm leading-relaxed text-amber-900">
-            가입하신 이메일함에서 인증 메일을 확인해 주세요.
+            기존에 가입하신 계정도 안전한 이용을 위해 이메일 인증을 완료해야 합니다.
           </p>
           <p className="mt-3 break-all rounded-xl bg-white/70 px-3 py-2 text-sm font-semibold text-amber-950">
             {user.email}
@@ -66,6 +66,9 @@ export function ProtectedRoute({
           >
             {resending ? "인증 메일 보내는 중..." : "인증 메일 다시 보내기"}
           </button>
+          <p className="mt-3 text-xs leading-relaxed text-amber-800">
+            기존 계정과 명함 데이터는 그대로 유지됩니다. 인증만 완료해 주세요.
+          </p>
           {resendMessage ? <p className="mt-3 text-sm font-medium text-emerald-700">{resendMessage}</p> : null}
           {resendError ? <p className="mt-3 text-sm font-medium text-red-600">{resendError}</p> : null}
         </div>
