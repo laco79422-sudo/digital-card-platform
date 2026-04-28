@@ -28,12 +28,12 @@ type SampleConfig = {
 const SAMPLE_CARDS: Record<LandingSampleType, SampleConfig> = {
   personal: {
     typeLabel: "개인형",
-    topBadges: ["NFC 연결", "QR 공유", "홍보 추적"],
-    heroBrandLine: "LINKO CARD",
-    name: "린코",
-    role: "디지털 명함 서비스",
-    tagline: "링크 하나로 소개부터 상담까지",
-    description: "QR·NFC·공유 링크로 고객과 바로 연결됩니다.",
+    topBadges: ["현장 상담", "도면 제안", "직영 시공"],
+    heroBrandLine: "INTERIOR STUDIO",
+    name: "김민수",
+    role: "인테리어 전문가",
+    tagline: "공간을 바꾸면 삶이 바뀝니다",
+    description: "상담부터 시공까지 직접 연결해드립니다.",
     ctaLabel: "문의하기",
     accent: "from-violet-600 via-brand-600 to-indigo-950",
     accentOverlay:
@@ -46,12 +46,12 @@ const SAMPLE_CARDS: Record<LandingSampleType, SampleConfig> = {
   },
   business: {
     typeLabel: "사업자형",
-    topBadges: ["홍보 페이지", "블로그·영상", "상담 연결"],
-    heroBrandLine: "BUSINESS LINK",
-    name: "린코 비즈니스",
-    role: "브랜드 홍보 명함",
-    tagline: "명함이 곧 홍보 페이지가 됩니다",
-    description: "블로그, 영상, 상담 연결까지 한 번에 담을 수 있어요.",
+    topBadges: ["퍼포먼스", "콘텐츠 기획", "상담 예약"],
+    heroBrandLine: "BRAND MARKETER",
+    name: "최유진",
+    role: "프리랜서 마케터",
+    tagline: "고객이 먼저 찾아오게 만듭니다",
+    description: "블로그·영상 제안부터 문의 버튼까지 한 명함에서 마무리합니다.",
     ctaLabel: "상담 연결하기",
     accent: "from-emerald-600 via-teal-700 to-slate-950",
     accentOverlay:
@@ -64,12 +64,12 @@ const SAMPLE_CARDS: Record<LandingSampleType, SampleConfig> = {
   },
   store: {
     typeLabel: "매장형",
-    topBadges: ["매장 연결", "예약·메뉴", "카카오 상담"],
-    heroBrandLine: "STORE CONNECT",
-    name: "린코 스토어",
-    role: "매장 연결 명함",
-    tagline: "스캔하면 바로 매장으로 연결",
-    description: "메뉴, 예약, 위치, 카카오 상담까지 한 화면에서 보여줍니다.",
+    topBadges: ["예약 안내", "시즌 메뉴", "포장 가능"],
+    heroBrandLine: "LOCAL CAFE",
+    name: "박도현",
+    role: "카페 운영자",
+    tagline: "방문 전 메뉴와 위치를 한 번에 확인하세요",
+    description: "오시는 길, 단체 예약, 포장 문의도 여기서 바로 받습니다.",
     ctaLabel: "매장 보기",
     accent: "from-amber-500 via-orange-600 to-rose-950",
     accentOverlay:
@@ -167,7 +167,7 @@ function SampleFeatureFooter({ features, className }: { features: SampleFeature[
 }
 
 /**
- * 랜딩용 미리보기 — 린코 기능(NFC·QR·공유·홍보)이 한눈에 들어오도록 구성합니다.
+ * 랜딩용 미리보기 — 실제 사람·직업 중심 카피로 “나도 저런 명함” 감각을 줍니다. (하단 NFC·QR 안내는 유지)
  */
 export function LandingSampleCard({ variant = "default", sampleType = "personal", className }: Props) {
   const isHero = variant === "hero";
