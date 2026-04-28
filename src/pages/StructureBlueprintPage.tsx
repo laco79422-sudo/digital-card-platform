@@ -256,9 +256,9 @@ export function StructureBlueprintPage() {
             </p>
             <p className="text-sm leading-relaxed text-slate-600">무료: 샘플 확인 · 유료: 제작 + 결과</p>
             <p className="border-t border-slate-200 pt-4 text-[15px] font-medium leading-relaxed text-slate-800">
-              혼자 만들면 오래 걸립니다.
+              전문가와 함께하면, 명함은 홍보가 됩니다.
               <br />
-              전문가와 함께하면 바로 연결됩니다.
+              명함 제작부터 블로그, 영상 홍보까지 전문가가 함께 설계합니다.
             </p>
           </div>
         </div>

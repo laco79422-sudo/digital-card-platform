@@ -203,8 +203,10 @@ export function LandingPage() {
       <section className={cn("border-y border-slate-200 bg-white", section.y)}>
         <div className={layout.page}>
           <div className="mx-auto max-w-2xl text-center">
-            <h2 className={cn(type.sectionTitleCenter)}>혼자 만들면 오래 걸립니다</h2>
-            <p className={cn("mt-3", type.sectionLead)}>전문가와 함께하면 바로 연결됩니다</p>
+            <h2 className={cn(type.sectionTitleCenter)}>전문가와 함께하면, 명함은 홍보가 됩니다</h2>
+            <p className={cn("mt-3", type.sectionLead)}>
+              명함 제작부터 블로그, 영상 홍보까지 전문가가 함께 설계합니다
+            </p>
             <ul className="mx-auto mt-8 max-w-md space-y-2.5 text-left text-[15px] text-slate-800 sm:text-base">
               {expertItems.map((line) => (
                 <li key={line} className="flex gap-3">
