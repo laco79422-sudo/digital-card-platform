@@ -92,7 +92,7 @@ export function LandingPage() {
         <div className={cn("relative z-10", layout.page, section.yHero)}>
           <div className="mx-auto flex max-w-3xl flex-col items-center text-center">
             <h1 className="text-balance text-3xl font-extrabold leading-snug tracking-tight text-slate-950 sm:text-4xl md:text-[2.65rem]">
-              명함 하나로 고객이 먼저 찾아옵니다
+              린코 디지털 명함은 고객이 먼저 찾아옵니다
             </h1>
             <p className="mt-4 max-w-xl text-pretty text-base font-medium leading-relaxed text-slate-700 sm:mt-5 sm:text-lg">
               링크 하나로 소개 → 연결 → 상담까지 이어집니다
