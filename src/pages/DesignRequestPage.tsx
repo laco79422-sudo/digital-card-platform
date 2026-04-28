@@ -26,11 +26,13 @@ const styleOptions: Array<{ value: DesignRequestStyle; label: string }> = [
   { value: "free", label: "자유형" },
 ];
 
+const DEFAULT_BUSINESS_TYPE = "사업자 없음";
+
 const schema = z.object({
   name: z.string().min(1, "이름을 입력해 주세요."),
   phone: z.string().min(1, "연락처를 입력해 주세요."),
   email: z.string().email("이메일 형식으로 입력해 주세요."),
-  business_type: z.string().min(1, "업종을 입력해 주세요."),
+  business_type: z.string().optional(),
   style: z.enum(["simple", "premium", "emotional", "business", "free"]),
   reference_url: z.string().optional(),
   request_message: z.string().min(5, "요청사항을 5자 이상 입력해 주세요."),
@@ -54,6 +56,7 @@ export function DesignRequestPage() {
       name: user?.name ?? "",
       phone: user?.phone ?? "",
       email: user?.email ?? "",
+      business_type: DEFAULT_BUSINESS_TYPE,
       style: "simple",
     },
   });
@@ -65,7 +68,7 @@ export function DesignRequestPage() {
       name: values.name.trim(),
       phone: values.phone.trim(),
       email: values.email.trim(),
-      business_type: values.business_type.trim(),
+      business_type: values.business_type?.trim() || DEFAULT_BUSINESS_TYPE,
       style: values.style,
       reference_url: values.reference_url?.trim() || null,
       request_message: values.request_message.trim(),
@@ -121,11 +124,12 @@ export function DesignRequestPage() {
                 {errors.email ? <p className="mt-1 text-xs text-red-600">{errors.email.message}</p> : null}
               </div>
               <div>
-                <label className="text-base font-medium text-slate-800">업종</label>
-                <Input className="mt-1" {...register("business_type")} />
-                {errors.business_type ? (
-                  <p className="mt-1 text-xs text-red-600">{errors.business_type.message}</p>
-                ) : null}
+                <label className="text-base font-medium text-slate-800">업종 또는 활동 분야</label>
+                <Input
+                  className="mt-1"
+                  placeholder="예: 인테리어, 미용, 프리랜서, 사업자 없음"
+                  {...register("business_type")}
+                />
               </div>
             </div>
             <div>
