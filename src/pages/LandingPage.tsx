@@ -248,7 +248,7 @@ export function LandingPage() {
               name="무료"
               priceLabel="₩0"
               tagline="가볍게 시작"
-              features={["공개 명함 1개", "방문·클릭 기본 기록", "간단한 문의 받기"]}
+              features={["명함 1개 생성 가능", "방문·클릭 기본 기록", "간단한 문의 받기"]}
               recommendFor="디지털 명함을 처음 만들어 보고 싶은 분"
               href="/signup"
               cta="무료로 시작"
