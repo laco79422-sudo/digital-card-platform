@@ -232,55 +232,65 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* 5. 요금 미리보기 */}
+      {/* 5. 이용 안내 — 무료 / 스타터 / 프로 선택 */}
       <section className={cn("bg-slate-50", section.y)}>
         <div className={layout.page}>
-          <div className="text-center">
+          <div className="mx-auto max-w-3xl text-center">
             <h2 className={type.sectionTitleCenter}>이용 안내</h2>
-            <p className={cn("mt-2 sm:mt-3", type.sectionLead)}>자세한 비교는 이용 안내 페이지에서 확인하세요.</p>
-            <Link
-              to="/pricing"
-              className="mt-4 inline-flex min-h-11 items-center justify-center text-base font-medium text-brand-700 underline-offset-4 hover:underline"
-            >
-              전체 요금 보기 →
-            </Link>
+            <p className={cn("mt-2 sm:mt-3", type.sectionLead)}>
+              비교표 대신, 지금 단계에 맞는 하나만 고르면 됩니다.
+            </p>
           </div>
-          <div className="mt-8 grid gap-6 sm:mt-10 lg:grid-cols-3">
+
+          <div className="mx-auto mt-10 grid max-w-6xl gap-8 sm:mt-12 lg:grid-cols-3 lg:gap-10">
+            <PricingCard
+              name="무료"
+              priceLabel="₩0"
+              tagline="가볍게 시작"
+              features={["공개 명함 1개", "방문·클릭 기본 기록", "간단한 문의 받기"]}
+              recommendFor="디지털 명함을 처음 만들어 보고 싶은 분"
+              href="/signup"
+              cta="무료로 시작"
+            />
             <PricingCard
               name="스타터"
-              audience="소규모 시작용"
-              priceLabel="₩39,000"
-              description="월"
-              features={["명함 3개", "클릭 기록 90일 보관", "동시에 관리 가능한 의뢰 5건"]}
+              priceLabel="₩14,900"
+              description="/ 월"
+              tagline="혼자 시작하기"
+              features={[
+                "명함·링크 공유에 맞는 구성",
+                "의뢰·상담을 한곳에서 관리",
+                "클릭 기록으로 반응 확인",
+              ]}
+              recommendFor="프리랜서·1인 사업으로 바로 시작하는 분"
               href="/signup"
               cta="스타터 선택"
             />
             <PricingCard
               name="프로"
-              audience="성장하는 브랜드"
               priceLabel="₩59,000"
-              description="월"
-              features={["명함 5개", "방문·클릭 기록", "버튼 클릭 흐름 보기"]}
+              description="/ 월"
+              tagline="고객을 만드는 구조"
+              features={[
+                "명함 여러 개·고객 흐름 한눈에",
+                "방문부터 버튼 클릭까지 깊게 확인",
+                "의뢰를 여유 있게 동시에 처리",
+              ]}
+              recommendFor="문의가 늘고 고객 동선을 체계적으로 잡고 싶은 분"
               highlighted
               href="/signup"
-              cta="프로 이용하기"
-            />
-            <PricingCard
-              name="제작자 플러스"
-              audience="제작자용"
-              priceLabel="₩19,000"
-              description="월"
-              features={["새 의뢰 알림", "제안서 양식"]}
-              href="/signup"
-              cta="플러스 시작"
+              cta="프로 시작하기"
             />
           </div>
-          <div className="mt-10 flex justify-center sm:mt-12">
+
+          <div className="mx-auto mt-12 max-w-lg rounded-2xl border border-slate-200 bg-white px-6 py-8 text-center shadow-sm sm:mt-14">
+            <p className="text-base font-semibold text-slate-900">팀·법인·맞춤 견적이 필요하신가요?</p>
+            <p className="mt-2 text-sm leading-relaxed text-slate-600">전체 플랜·세부 조건은 이용 안내에서 확인할 수 있어요.</p>
             <Link
               to="/pricing"
-              className="inline-flex min-h-11 items-center justify-center text-base font-semibold text-brand-800 underline-offset-4 hover:underline"
+              className="mt-5 inline-flex min-h-[48px] w-full items-center justify-center rounded-xl bg-slate-900 px-5 text-sm font-bold text-white hover:bg-slate-800 sm:w-auto sm:min-w-[200px]"
             >
-              프로 플랜 자세히 보기 →
+              문의·상세 안내 보기
             </Link>
           </div>
         </div>
