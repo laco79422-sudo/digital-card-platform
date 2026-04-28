@@ -441,10 +441,11 @@ export function DashboardPage() {
     if (!referralLink || !referralCard) return;
     const r = await shareCardLinkNativeOrder({
       shareUrl: referralLink,
-      title: `${cardDisplayName(referralCard)} 추천 링크`,
-      shortMessage: "이 명함 링크로 가입하면 디지털 명함 이용 혜택을 받을 수 있어요.",
-      kakaoDescription: referralCard.intro.trim() || cardSubline(referralCard),
+      title: "린코 디지털 명함을 확인해 보세요",
+      shortMessage: "링크 하나로 소개부터 상담까지 연결됩니다.",
+      kakaoDescription: "링크 하나로 소개부터 상담까지 연결됩니다.",
       kakaoImageUrl: getCardHeroImageUrl(referralCard) || undefined,
+      buttonTitle: "명함 보기",
     });
     if (r === "clipboard") {
       setReferralShareHint(true);
@@ -621,10 +622,11 @@ export function DashboardPage() {
     if (!promoUrl) return;
     const r = await shareCardLinkNativeOrder({
       shareUrl: promoUrl,
-      title: `${cardDisplayName(card)} 홍보 링크`,
-      shortMessage: "이 홍보 링크로 소개해 주세요.",
-      kakaoDescription: card.intro.trim() || cardSubline(card),
+      title: "린코 디지털 명함을 확인해 보세요",
+      shortMessage: "링크 하나로 소개부터 상담까지 연결됩니다.",
+      kakaoDescription: "링크 하나로 소개부터 상담까지 연결됩니다.",
       kakaoImageUrl: getCardHeroImageUrl(card) || undefined,
+      buttonTitle: "명함 보기",
     });
     if (r === "clipboard") {
       setCardShareHintId(card.id);
