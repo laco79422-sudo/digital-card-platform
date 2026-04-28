@@ -19,6 +19,8 @@ export function normalizeBusinessCardRow(raw: Record<string, unknown>): Business
 
   const mergedHero = image_url || profile_image_url || imageUrlQuoted || brand_image_url || null;
 
+  const og_image_url = optStr(raw.og_image_url);
+
   const person_name =
     optStr(raw.person_name) ?? optStr(raw.name) ?? base.person_name ?? "";
   const brand_name = optStr(raw.brand_name) ?? optStr(raw.company) ?? base.brand_name ?? "";
@@ -33,6 +35,7 @@ export function normalizeBusinessCardRow(raw: Record<string, unknown>): Business
     intro,
     image_url: image_url ?? undefined,
     profile_image_url: profile_image_url ?? undefined,
+    og_image_url: og_image_url ?? undefined,
     imageUrl: mergedHero ?? base.imageUrl ?? null,
     brand_image_url: mergedHero ?? brand_image_url ?? base.brand_image_url ?? null,
   };

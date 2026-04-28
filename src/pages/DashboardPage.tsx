@@ -12,7 +12,7 @@ import {
 import { layout } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
 import { getCardHeroImageUrl } from "@/lib/businessCardHeroImage";
-import { shareToKakao } from "@/lib/shareToKakao";
+import { shareMyCardToKakao, shareReferralToKakao } from "@/lib/kakao";
 import {
   createAdditionalCard,
   EXTRA_CARD_PRICE,
@@ -438,18 +438,12 @@ export function DashboardPage() {
   };
 
   const shareReferralLink = async () => {
-    if (!referralLink || !referralCard) return;
-    const r = await shareCardLinkNativeOrder({
-      shareUrl: referralLink,
-      title: "린코 디지털 명함을 확인해 보세요",
-      shortMessage: "링크 하나로 소개부터 상담까지 연결됩니다.",
-      kakaoDescription: "링크 하나로 소개부터 상담까지 연결됩니다.",
-      kakaoImageUrl: getCardHeroImageUrl(referralCard) || undefined,
-      buttonTitle: "명함 보기",
-    });
-    if (r === "clipboard") {
+    if (!refCode || !referralLink) return;
+    const url = `${canonicalSiteOrigin()}/?ref=${encodeURIComponent(refCode)}`;
+    const usedKakaoSdk = await shareReferralToKakao(url);
+    if (!usedKakaoSdk) {
       setReferralShareHint(true);
-      window.setTimeout(() => setReferralShareHint(false), 3000);
+      window.setTimeout(() => setReferralShareHint(false), 4000);
     }
   };
 
@@ -953,7 +947,7 @@ export function DashboardPage() {
                       <button
                         type="button"
                         className="inline-flex min-h-10 items-center justify-center rounded-xl border border-amber-300 bg-amber-50 px-3 text-sm font-bold text-amber-950 hover:bg-amber-100"
-                        onClick={() => void shareToKakao(card)}
+                        onClick={() => void shareMyCardToKakao(card)}
                       >
                         카카오톡 보내기
                       </button>
@@ -1383,7 +1377,7 @@ export function DashboardPage() {
           </div>
           {referralShareHint ? (
             <p className="mt-3 text-sm font-medium text-brand-800">
-              카카오톡 공유가 어려워 추천 링크를 복사했어요. 대화방에 붙여넣어 주세요.
+              카카오톡 자동 공유 설정이 아직 연결되지 않아 추천 링크를 복사했습니다. 카카오톡 대화창에 붙여넣어 공유해 주세요.
             </p>
           ) : null}
 

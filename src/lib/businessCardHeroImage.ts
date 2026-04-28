@@ -5,6 +5,7 @@ export function getCardHeroImageUrl(card: BusinessCard, override?: string | null
   const o = override?.trim();
   if (o) return o;
   return (
+    card.og_image_url?.trim() ||
     card.image_url?.trim() ||
     card.profile_image_url?.trim() ||
     card.imageUrl?.trim() ||

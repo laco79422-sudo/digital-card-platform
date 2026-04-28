@@ -1,1 +1,6 @@
-export { shareCardToKakao as shareToKakao } from "@/lib/kakao";
+export {
+  shareMyCardToKakao,
+  shareReferralToKakao,
+  shareCardToKakao,
+  shareMyCardToKakao as shareToKakao,
+} from "@/lib/kakao";
