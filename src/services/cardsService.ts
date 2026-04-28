@@ -2,12 +2,11 @@
  * Supabase 테이블(business_cards, card_links 등)과 연동할 때 사용하는 서비스 레이어입니다.
  * 환경 변수가 없거나 쿼리 실패 시 null을 반환하고, UI는 Zustand 스토어로 폴백합니다.
  */
+import { normalizeBusinessCardRow } from "@/lib/businessCardRow";
 import { isSupabaseConfigured, supabase, supabaseProjectUrl } from "@/lib/supabase/client";
 import type { BusinessCard, CardLink } from "@/types/domain";
 
 const TABLE_CARDS = "business_cards";
-const CARD_TABLE_CANDIDATES = ["business_cards", "cards"] as const;
-type CardTableName = (typeof CARD_TABLE_CANDIDATES)[number];
 
 export type FetchMyCardsStatus = "ok" | "not_configured" | "error";
 
@@ -16,7 +15,7 @@ export type FetchMyCardsResult = {
   cards: BusinessCard[];
   error?: string;
   source?: "user_id" | "owner_id" | "email" | "owner_email" | "none";
-  table?: CardTableName;
+  table?: typeof TABLE_CARDS;
 };
 
 /** Supabase `business_cards`에 존재하는 컬럼만 UPSERT (로컬 전용 필드 제외) */
@@ -47,6 +46,8 @@ const BUSINESS_CARD_REMOTE_KEYS = [
   "trust_line",
   "gallery_urls",
   "services",
+  "image_url",
+  "profile_image_url",
   "imageUrl",
   "brand_image_url",
   "brand_image_frame_ratio",
@@ -67,6 +68,29 @@ export function pickBusinessCardForRemote(card: BusinessCard): BusinessCard {
   }
   return out;
 }
+
+/** PostgREST UPSERT용 — 스네이크 컬럼(image_url 등)과 레거시 카멜 동시 기록 */
+export function businessCardToRemoteRow(card: BusinessCard): Record<string, unknown> {
+  const picked = pickBusinessCardForRemote(card);
+  const hero =
+    card.image_url?.trim() ||
+    card.profile_image_url?.trim() ||
+    picked.imageUrl?.trim() ||
+    picked.brand_image_url?.trim() ||
+    null;
+
+  return {
+    ...picked,
+    image_url: hero ?? card.image_url ?? null,
+    profile_image_url: card.profile_image_url ?? null,
+    imageUrl: hero ?? picked.imageUrl ?? null,
+    brand_image_url: picked.brand_image_url ?? hero ?? null,
+    name: picked.person_name ?? null,
+    title: picked.job_title ?? null,
+    company: picked.brand_name ?? null,
+    description: picked.intro ?? null,
+  };
+}
 const TABLE_LINKS = "card_links";
 
 function normalizeEmail(email: string | null | undefined): string {
@@ -80,14 +104,17 @@ function isMissingColumnError(errorMessage: string, column: string): boolean {
 
 function isMissingTableError(errorMessage: string, table: string): boolean {
   const lower = errorMessage.toLowerCase();
+  const t = table.toLowerCase();
+  if (!lower.includes(t)) return false;
   return (
-    lower.includes(table.toLowerCase()) &&
-    (lower.includes("does not exist") || lower.includes("schema cache") || lower.includes("relation"))
+    lower.includes("does not exist") ||
+    lower.includes("schema cache") ||
+    lower.includes("could not find")
   );
 }
 
 async function queryCardsByColumn(
-  table: CardTableName,
+  table: typeof TABLE_CARDS,
   column: "user_id" | "owner_id" | "email" | "owner_email",
   value: string,
 ): Promise<{ cards: BusinessCard[] | null; error?: string; missingColumn?: boolean; missingTable?: boolean }> {
@@ -104,14 +131,14 @@ async function queryCardsByColumn(
       missingTable: isMissingTableError(error.message, table),
     };
   }
-  const cards = [...((data as BusinessCard[]) ?? [])].sort(
-    (a, b) => new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime(),
-  );
+  const cards = [...((data as Record<string, unknown>[]) ?? [])]
+    .map((row) => normalizeBusinessCardRow(row))
+    .sort((a, b) => new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime());
   return { cards };
 }
 
 async function attachLegacyCardsToUser(
-  table: CardTableName,
+  table: typeof TABLE_CARDS,
   cards: BusinessCard[],
   userId: string,
 ): Promise<BusinessCard[]> {
@@ -159,47 +186,47 @@ export async function fetchMyCardsForUser(user: { id: string; email?: string | n
   }
 
   let firstError = "";
-  for (const table of CARD_TABLE_CANDIDATES) {
-    for (const attempt of attempts) {
-      const result = await queryCardsByColumn(table, attempt.column, attempt.value);
-      if (result.missingTable) {
-        console.info("[cardsService] fetchMyCardsForUser skipped missing table", table);
-        break;
-      }
-      if (result.error && !result.missingColumn) {
-        firstError ||= result.error;
-        console.warn("[cardsService] fetchMyCardsForUser query failed", {
-          table,
-          column: attempt.column,
-          error: result.error,
-        });
-        continue;
-      }
-      if (result.missingColumn) {
-        console.info("[cardsService] fetchMyCardsForUser skipped missing column", {
-          table,
-          column: attempt.column,
-        });
-        continue;
-      }
-      const cards = result.cards ?? [];
-      console.info("[cardsService] fetchMyCardsForUser query result", {
+  const table = TABLE_CARDS;
+  for (const attempt of attempts) {
+    const result = await queryCardsByColumn(table, attempt.column, attempt.value);
+    if (result.missingTable) {
+      console.error("[cardsService] fetchMyCardsForUser missing relation", table, result.error);
+      return { status: "ok", cards: [], source: "none", table };
+    }
+    if (result.error && !result.missingColumn) {
+      firstError ||= result.error;
+      console.error("[cardsService] fetchMyCardsForUser query failed", {
         table,
         column: attempt.column,
-        count: cards.length,
-        authUserId: userId,
-        sampleOwners: cards.slice(0, 5).map((card) => ({
-          id: card.id,
-          user_id: card.user_id,
-          owner_id: card.owner_id ?? null,
-          email: card.email ?? null,
-          owner_email: card.owner_email ?? null,
-        })),
+        error: result.error,
       });
-      if (cards.length > 0) {
-        const normalized = attempt.column === "user_id" ? cards : await attachLegacyCardsToUser(table, cards, userId);
-        return { status: "ok", cards: normalized, source: attempt.column, table };
-      }
+      continue;
+    }
+    if (result.missingColumn) {
+      console.info("[cardsService] fetchMyCardsForUser skipped missing column", {
+        table,
+        column: attempt.column,
+      });
+      continue;
+    }
+    const cards = result.cards ?? [];
+    console.info("[cardsService] fetchMyCardsForUser query result", {
+      table,
+      column: attempt.column,
+      count: cards.length,
+      authUserId: userId,
+      sampleOwners: cards.slice(0, 5).map((card) => ({
+        id: card.id,
+        user_id: card.user_id,
+        owner_id: card.owner_id ?? null,
+        email: card.email ?? null,
+        owner_email: card.owner_email ?? null,
+      })),
+    });
+    if (cards.length > 0) {
+      const normalized =
+        attempt.column === "user_id" ? cards : await attachLegacyCardsToUser(table, cards, userId);
+      return { status: "ok", cards: normalized, source: attempt.column, table };
     }
   }
 
@@ -217,25 +244,25 @@ export async function fetchCardBySlug(slug: string): Promise<BusinessCard | null
   if (!isSupabaseConfigured || !supabase) return null;
   const s = slug.trim();
   if (!s) return null;
-  const primary = await supabase
-    .from(TABLE_CARDS)
-    .select("*")
-    .eq("slug", s)
-    .eq("is_public", true)
-    .maybeSingle();
-  if (!primary.error && primary.data) return primary.data as BusinessCard;
-  if (primary.error && !isMissingTableError(primary.error.message, TABLE_CARDS)) {
-    console.warn("[cardsService] fetchCardBySlug", primary.error.message);
-  }
-
-  const legacy = await supabase.from("cards").select("*").eq("slug", s).eq("is_public", true).maybeSingle();
-  if (legacy.error) {
-    if (!isMissingTableError(legacy.error.message, "cards")) {
-      console.warn("[cardsService] fetchCardBySlug legacy", legacy.error.message);
+  try {
+    const { data, error } = await supabase
+      .from(TABLE_CARDS)
+      .select("*")
+      .eq("slug", s)
+      .eq("is_public", true)
+      .maybeSingle();
+    if (error) {
+      if (!isMissingTableError(error.message, TABLE_CARDS)) {
+        console.error("[cardsService] fetchCardBySlug", error.message, error);
+      }
+      return null;
     }
+    if (!data) return null;
+    return normalizeBusinessCardRow(data as Record<string, unknown>);
+  } catch (e) {
+    console.error("[cardsService] fetchCardBySlug unexpected", e);
     return null;
   }
-  return legacy.data as BusinessCard | null;
 }
 
 export async function updateCardNameRemote(cardId: string, name: string): Promise<boolean> {
@@ -259,12 +286,6 @@ export async function updateCardNameRemote(cardId: string, name: string): Promis
     console.warn("[cardsService] updateCardNameRemote", error.message);
   }
 
-  const legacy = await supabase.from("cards").update({ name }).eq("id", cardId);
-  if (!legacy.error) {
-    updated = true;
-  } else {
-    console.warn("[cardsService] updateCardNameRemote legacy cards", legacy.error.message);
-  }
   return updated;
 }
 
@@ -289,6 +310,8 @@ export async function patchCardBrandHeroRemote(
       BusinessCard,
       | "imageUrl"
       | "brand_image_url"
+      | "image_url"
+      | "profile_image_url"
       | "brand_image_natural_width"
       | "brand_image_natural_height"
       | "brand_image_zoom"
@@ -303,6 +326,8 @@ export async function patchCardBrandHeroRemote(
   const keys = [
     "imageUrl",
     "brand_image_url",
+    "image_url",
+    "profile_image_url",
     "brand_image_natural_width",
     "brand_image_natural_height",
     "brand_image_zoom",
@@ -313,10 +338,17 @@ export async function patchCardBrandHeroRemote(
   for (const key of keys) {
     if (patch[key] !== undefined) row[key] = patch[key];
   }
+  const hero =
+    patch.image_url ?? patch.imageUrl ?? patch.brand_image_url ?? undefined;
+  if (hero !== undefined && hero !== null) {
+    row.image_url = hero;
+    row.imageUrl = hero;
+    if (patch.brand_image_url === undefined) row.brand_image_url = hero;
+  }
   if (Object.keys(row).length === 0) return true;
   const { error } = await supabase.from(TABLE_CARDS).update(row).eq("id", cardId);
   if (error) {
-    console.warn("[cardsService] patchCardBrandHeroRemote", error.message);
+    console.error("[cardsService] patchCardBrandHeroRemote", error.message, error);
     return false;
   }
   return true;
@@ -324,9 +356,9 @@ export async function patchCardBrandHeroRemote(
 
 export async function upsertCardRemote(card: BusinessCard): Promise<boolean> {
   if (!isSupabaseConfigured || !supabase) return false;
-  const { error } = await supabase.from(TABLE_CARDS).upsert(pickBusinessCardForRemote(card));
+  const { error } = await supabase.from(TABLE_CARDS).upsert(businessCardToRemoteRow(card));
   if (error) {
-    console.warn("[cardsService] upsertCardRemote", error.message);
+    console.error("[cardsService] upsertCardRemote", error.message, error);
     return false;
   }
   return true;

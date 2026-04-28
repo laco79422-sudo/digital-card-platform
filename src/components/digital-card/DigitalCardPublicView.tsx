@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { linkButtonClassName } from "@/components/ui/buttonStyles";
 import { BRAND_DISPLAY_NAME } from "@/lib/brand";
+import { getCardHeroImageUrl } from "@/lib/businessCardHeroImage";
 import {
   effectiveTagline,
   galleryImages,
@@ -139,7 +140,7 @@ export function DigitalCardPublicView({
   const company = card.brand_name.trim();
   const description = card.intro.trim();
   const title = card.tagline?.trim() ?? "";
-  const imageUrl = imageUrlOverride?.trim() || card.imageUrl?.trim() || card.brand_image_url?.trim() || "";
+  const imageUrl = getCardHeroImageUrl(card, imageUrlOverride);
   const hasPhone = Boolean(card.phone?.replace(/\D/g, ""));
   const showCompany = Boolean(company && company !== title);
   const trustMetric = trustMetricForView(card);

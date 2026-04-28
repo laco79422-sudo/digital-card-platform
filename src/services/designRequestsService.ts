@@ -27,7 +27,7 @@ export async function createDesignRequest(request: DesignRequest): Promise<{ req
 
   const { data, error } = await supabase.from(TABLE_DESIGN_REQUESTS).insert(request).select("*").single();
   if (error) {
-    console.warn("[designRequestsService] createDesignRequest", error.message);
+    console.error("[designRequestsService] createDesignRequest", error.message, error);
     return { request, remote: false };
   }
   return { request: data as DesignRequest, remote: true };
@@ -55,7 +55,7 @@ export async function fetchMyDesignRequests(user: {
   if (email) query = supabase.from(TABLE_DESIGN_REQUESTS).select("*").or(`user_id.eq.${user.id},email.ilike.${email}`);
   const { data, error } = await query.order("created_at", { ascending: false });
   if (error) {
-    console.warn("[designRequestsService] fetchMyDesignRequests", error.message);
+    console.error("[designRequestsService] fetchMyDesignRequests", error.message, error);
     return null;
   }
   return data as DesignRequest[];
@@ -68,7 +68,7 @@ export async function fetchAllDesignRequests(): Promise<DesignRequest[] | null> 
     .select("*")
     .order("created_at", { ascending: false });
   if (error) {
-    console.warn("[designRequestsService] fetchAllDesignRequests", error.message);
+    console.error("[designRequestsService] fetchAllDesignRequests", error.message, error);
     return null;
   }
   return data as DesignRequest[];
@@ -82,7 +82,7 @@ export async function fetchAssignedDesignRequests(designerId: string): Promise<D
     .eq("assigned_designer_id", designerId)
     .order("created_at", { ascending: false });
   if (error) {
-    console.warn("[designRequestsService] fetchAssignedDesignRequests", error.message);
+    console.error("[designRequestsService] fetchAssignedDesignRequests", error.message, error);
     return null;
   }
   return data as DesignRequest[];
@@ -98,7 +98,7 @@ export async function updateDesignRequestRemote(
     .update({ ...patch, updated_at: new Date().toISOString() })
     .eq("id", id);
   if (error) {
-    console.warn("[designRequestsService] updateDesignRequestRemote", error.message);
+    console.error("[designRequestsService] updateDesignRequestRemote", error.message, error);
     return false;
   }
   return true;

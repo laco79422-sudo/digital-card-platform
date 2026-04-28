@@ -11,6 +11,7 @@ import {
 } from "@/lib/designRequestLabels";
 import { layout } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
+import { getCardHeroImageUrl } from "@/lib/businessCardHeroImage";
 import { fetchMyCardsForUser, type FetchMyCardsResult } from "@/services/cardsService";
 import { fetchMyDesignRequests, updateDesignRequestRemote } from "@/services/designRequestsService";
 import { fetchCardVisitLogsForOwner, fetchCardVisitLogsForPromoterApplicant } from "@/services/cardVisitLogsService";
@@ -371,7 +372,7 @@ export function DashboardPage() {
       title: `${cardDisplayName(referralCard)} 추천 링크`,
       shortMessage: "이 명함 링크로 가입하면 디지털 명함 이용 혜택을 받을 수 있어요.",
       kakaoDescription: referralCard.intro.trim() || cardSubline(referralCard),
-      kakaoImageUrl: referralCard.imageUrl?.trim() || referralCard.brand_image_url?.trim() || undefined,
+      kakaoImageUrl: getCardHeroImageUrl(referralCard) || undefined,
     });
     if (r === "clipboard") {
       setReferralShareHint(true);
@@ -410,7 +411,7 @@ export function DashboardPage() {
       title: `${cardDisplayName(card)} 명함`,
       shortMessage: "내 디지털 명함 공개 링크예요.",
       kakaoDescription: card.intro.trim() || cardSubline(card),
-      kakaoImageUrl: card.imageUrl?.trim() || card.brand_image_url?.trim() || undefined,
+      kakaoImageUrl: getCardHeroImageUrl(card) || undefined,
     });
     if (r === "clipboard") {
       setCardShareHintId(card.id);
@@ -560,7 +561,7 @@ export function DashboardPage() {
       title: `${cardDisplayName(card)} 홍보 링크`,
       shortMessage: "이 홍보 링크로 소개해 주세요.",
       kakaoDescription: card.intro.trim() || cardSubline(card),
-      kakaoImageUrl: card.imageUrl?.trim() || card.brand_image_url?.trim() || undefined,
+      kakaoImageUrl: getCardHeroImageUrl(card) || undefined,
     });
     if (r === "clipboard") {
       setCardShareHintId(card.id);
@@ -850,7 +851,7 @@ export function DashboardPage() {
         ) : (
           <ul className="mt-6 grid gap-4 lg:grid-cols-2">
             {myCards.map((card) => {
-              const imageUrl = card.imageUrl?.trim() || card.brand_image_url?.trim() || "";
+              const imageUrl = getCardHeroImageUrl(card);
               const publicUrl = resolveBusinessCardPublicUrl(card, shareOrigin) ?? "";
               const cardViewCount = cardViews.filter((v) => v.card_id === card.id).length;
               const cardClickCount = cardClicks.filter((c) => c.card_id === card.id).length;

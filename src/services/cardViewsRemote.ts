@@ -9,7 +9,17 @@ export type InsertCardViewRemoteInput = {
   source?: string | null;
 };
 
-/** Supabase `card_views`에 공개 명함 조회 1건 기록 (클라이언트 RLS insert 허용 전제) */
+function isLikelyMissingRelation(message: string): boolean {
+  const m = message.toLowerCase();
+  return (
+    m.includes("does not exist") ||
+    m.includes("could not find") ||
+    m.includes("schema cache") ||
+    m.includes("pgrst205")
+  );
+}
+
+/** Supabase `card_views`에 공개 명함 조회 1건 기록 — 테이블 없으면 조용히 무시 */
 export async function insertCardViewRemote(row: InsertCardViewRemoteInput): Promise<boolean> {
   if (!isSupabaseConfigured || !supabase) return false;
   const payload: Record<string, unknown> = {
@@ -19,10 +29,17 @@ export async function insertCardViewRemote(row: InsertCardViewRemoteInput): Prom
     promoter_code: row.promoter_code ?? null,
     source: row.source ?? null,
   };
-  const { error } = await supabase.from("card_views").insert(payload);
-  if (error) {
-    console.warn("[cardViewsRemote] insertCardViewRemote", error.message);
+  try {
+    const { error } = await supabase.from("card_views").insert(payload);
+    if (error) {
+      if (!isLikelyMissingRelation(error.message)) {
+        console.error("[cardViewsRemote] insertCardViewRemote", error.message, error);
+      }
+      return false;
+    }
+    return true;
+  } catch (e) {
+    console.error("[cardViewsRemote] insertCardViewRemote unexpected", e);
     return false;
   }
-  return true;
 }

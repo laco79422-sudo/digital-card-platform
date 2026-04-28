@@ -71,6 +71,10 @@ export interface BusinessCard {
   trust_testimonials?: TrustTestimonial[] | null;
   /** 히어로 브랜드 대표 이미지 (public URL) */
   imageUrl?: string | null;
+  /** DB 컬럼 `image_url` — 우선 표시 */
+  image_url?: string | null;
+  /** DB 컬럼 `profile_image_url` */
+  profile_image_url?: string | null;
   /** 히어로 브랜드 대표 이미지 (DB 컬럼명, imageUrl과 동기화) */
   brand_image_url?: string | null;
   /** 히어로 프레임 비율 라벨 (저장·재현용, 예: 16:9) */

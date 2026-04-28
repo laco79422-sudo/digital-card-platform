@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader } from "@/components/ui/Card";
 import { layout } from "@/lib/ui-classes";
+import { getCardHeroImageUrl } from "@/lib/businessCardHeroImage";
 import { cn } from "@/lib/utils";
 import { createPromotionApplicationRemote, fetchPromotionEnabledCards } from "@/services/promotionService";
 import { useAppDataStore } from "@/stores/appDataStore";
@@ -103,7 +104,7 @@ export function PromotePage() {
 
       <div className="mt-8 grid gap-4 lg:grid-cols-2">
         {promotableCards.map((card) => {
-          const imageUrl = card.imageUrl?.trim() || card.brand_image_url?.trim() || "";
+          const imageUrl = getCardHeroImageUrl(card);
           const applicationsCount = promotionApplications.filter((application) => application.card_id === card.id).length;
           const existing = promotionApplications.find(
             (application) => application.card_id === card.id && application.applicant_user_id === user.id,

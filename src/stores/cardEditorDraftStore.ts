@@ -88,12 +88,16 @@ export function mergeDraftDefaults(
     imageUrl?: string | null;
     profileImageUrl?: string | null;
     logoUrl?: string | null;
+    image_url?: string | null;
+    profile_image_url?: string | null;
   };
   const resolvedImageUrl =
     imageAliases.imageUrl ??
     partial.brand_image_url ??
     imageAliases.profileImageUrl ??
     imageAliases.logoUrl ??
+    imageAliases.image_url ??
+    imageAliases.profile_image_url ??
     base.brand_image_url;
   const services =
     partial.services && partial.services.length >= 3 ? partial.services : base.services;
@@ -209,8 +213,22 @@ export function draftFromBusinessCard(card: BusinessCard): CardEditorDraft {
     ),
     gallery_urls_raw: card.gallery_urls?.join("\n") ?? "",
     services: svc.slice(0, 5),
-    imageUrl: card.imageUrl ?? card.brand_image_url ?? imageAliases.profileImageUrl ?? imageAliases.logoUrl ?? null,
-    brand_image_url: card.imageUrl ?? card.brand_image_url ?? imageAliases.profileImageUrl ?? imageAliases.logoUrl ?? null,
+    imageUrl:
+      card.image_url?.trim() ||
+      card.profile_image_url?.trim() ||
+      card.imageUrl?.trim() ||
+      card.brand_image_url?.trim() ||
+      imageAliases.profileImageUrl?.trim() ||
+      imageAliases.logoUrl?.trim() ||
+      null,
+    brand_image_url:
+      card.image_url?.trim() ||
+      card.profile_image_url?.trim() ||
+      card.imageUrl?.trim() ||
+      card.brand_image_url?.trim() ||
+      imageAliases.profileImageUrl?.trim() ||
+      imageAliases.logoUrl?.trim() ||
+      null,
     brand_image_frame_ratio: card.brand_image_frame_ratio?.trim() || "16:9",
     brand_image_natural_width: card.brand_image_natural_width ?? null,
     brand_image_natural_height: card.brand_image_natural_height ?? null,
@@ -302,6 +320,8 @@ export function draftToBusinessCard(
     brand_image_frame_ratio: draft.brand_image_frame_ratio?.trim() || "16:9",
     imageUrl,
     brand_image_url: imageUrl,
+    image_url: imageUrl,
+    profile_image_url: null,
     brand_image_natural_width: hasNewHeroMeta ? draft.brand_image_natural_width : null,
     brand_image_natural_height: hasNewHeroMeta ? draft.brand_image_natural_height : null,
     brand_image_zoom: hasNewHeroMeta ? clampZoom(draft.brand_image_zoom) : null,

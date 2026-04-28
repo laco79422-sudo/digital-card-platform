@@ -632,6 +632,7 @@ export function CardEditorPage() {
       const patch = {
         imageUrl: payload.publicUrl,
         brand_image_url: payload.publicUrl,
+        image_url: payload.publicUrl,
         brand_image_natural_width: payload.naturalW,
         brand_image_natural_height: payload.naturalH,
         brand_image_zoom: 1,

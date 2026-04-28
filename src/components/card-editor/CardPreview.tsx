@@ -110,6 +110,7 @@ export function CardPreview({ linkRows, existingCardId, createdAt, guestTempHint
         const patch = {
           imageUrl: publicUrl,
           brand_image_url: publicUrl,
+          image_url: publicUrl,
           brand_image_natural_width: width,
           brand_image_natural_height: height,
           brand_image_zoom: 1,

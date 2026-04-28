@@ -1,3 +1,4 @@
+import { normalizeBusinessCardRow } from "@/lib/businessCardRow";
 import { buildCardShareUrl } from "@/lib/cardShareUrl";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase/client";
 import type { BusinessCard, PromotionApplication } from "@/types/domain";
@@ -37,10 +38,11 @@ export async function fetchPromotionEnabledCards(): Promise<BusinessCard[] | nul
     .eq("is_public", true)
     .order("created_at", { ascending: false });
   if (error) {
-    console.warn("[promotionService] fetchPromotionEnabledCards", error.message);
+    console.error("[promotionService] fetchPromotionEnabledCards", error.message, error);
     return null;
   }
-  return data as BusinessCard[];
+  const rows = (data as Record<string, unknown>[]) ?? [];
+  return rows.map((r) => normalizeBusinessCardRow(r));
 }
 
 export function buildPromoterCode(cardId: string, userId: string): string {

@@ -22,10 +22,18 @@ export function previewOgImageEndpointUrl(origin: string, tempId: string): strin
 
 /** Kakao / Open Graph — og:image must be an absolute https URL. */
 export function previewOgImageUrlFromDraft(
-  draft: Pick<CardEditorDraft, "brand_image_url" | "gallery_urls_raw"> & { imageUrl?: string | null },
+  draft: Pick<CardEditorDraft, "brand_image_url" | "gallery_urls_raw"> & {
+    imageUrl?: string | null;
+    image_url?: string | null;
+    profile_image_url?: string | null;
+  },
   fallbackHttps: string = SITE_OG_IMAGE_URL,
 ): string {
-  const hero = draft.imageUrl?.trim() || draft.brand_image_url?.trim();
+  const hero =
+    draft.image_url?.trim() ||
+    draft.profile_image_url?.trim() ||
+    draft.imageUrl?.trim() ||
+    draft.brand_image_url?.trim();
   if (hero?.startsWith("https://")) return hero;
   const g = firstHttpsUrlFromGalleryRaw(draft.gallery_urls_raw);
   if (g) return g;
