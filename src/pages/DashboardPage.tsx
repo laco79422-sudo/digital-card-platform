@@ -12,8 +12,8 @@ import {
 } from "@/lib/designRequestLabels";
 import { layout } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
+import { buildCardPublicShareUrl, copyLinkToClipboard } from "@/lib/copyShareLink";
 import { getCardHeroImageUrl } from "@/lib/businessCardHeroImage";
-import { shareMyCardToKakao, shareReferralToKakao } from "@/lib/kakao";
 import {
   createAdditionalCard,
   EXTRA_CARD_PRICE,
@@ -239,8 +239,6 @@ export function DashboardPage() {
   const updateDesignRequest = useAppDataStore((s) => s.updateDesignRequest);
   const setPromotionApplications = useAppDataStore((s) => s.setPromotionApplications);
   const updatePromotionApplication = useAppDataStore((s) => s.updatePromotionApplication);
-  const [referralCopyDone, setReferralCopyDone] = useState(false);
-  const [referralShareHint, setReferralShareHint] = useState(false);
   const [cardCopyId, setCardCopyId] = useState<string | null>(null);
   const [nfcCopyCardId, setNfcCopyCardId] = useState<string | null>(null);
   const [promoCopyId, setPromoCopyId] = useState<string | null>(null);
@@ -512,22 +510,16 @@ export function DashboardPage() {
 
   const copyReferralLink = async () => {
     if (!referralLink) return;
-    try {
-      await navigator.clipboard.writeText(referralLink);
-    } catch {
-      window.prompt("추천 링크를 복사해 주세요", referralLink);
-    }
-    setReferralCopyDone(true);
-    window.setTimeout(() => setReferralCopyDone(false), 2200);
+    await copyLinkToClipboard(referralLink, "referral");
   };
 
-  const shareReferralLink = async () => {
-    if (!refCode || !referralLink) return;
-    const usedKakaoSdk = await shareReferralToKakao(referralLink);
-    if (!usedKakaoSdk) {
-      setReferralShareHint(true);
-      window.setTimeout(() => setReferralShareHint(false), 4000);
+  const copyMyCardPublicLink = async (card: BusinessCard) => {
+    const url = buildCardPublicShareUrl(card.slug ?? "");
+    if (!url) {
+      alert("공개 링크를 만들 수 없습니다. 명함 슬러그(/c/주소)를 확인해 주세요.");
+      return;
     }
+    await copyLinkToClipboard(url, "card");
   };
 
   const copyCardLink = async (card: BusinessCard) => {
@@ -1089,9 +1081,9 @@ export function DashboardPage() {
                       <button
                         type="button"
                         className="inline-flex min-h-10 items-center justify-center rounded-xl border border-amber-300 bg-amber-50 px-3 text-sm font-bold text-amber-950 hover:bg-amber-100"
-                        onClick={() => void shareMyCardToKakao(card)}
+                        onClick={() => void copyMyCardPublicLink(card)}
                       >
-                        카카오톡 보내기
+                        링크 복사하기
                       </button>
                       <button
                         type="button"
@@ -1115,6 +1107,9 @@ export function DashboardPage() {
                         홍보 링크 추가
                       </button>
                     </div>
+                    <p className="mt-3 text-xs leading-relaxed text-slate-500">
+                      링크 복사하기를 누르면 명함 주소가 복사됩니다. 카카오톡, 문자, SNS 대화창에 붙여넣어 공유할 수 있어요.
+                    </p>
                   <button
                     type="button"
                     className="mt-2 text-xs font-semibold text-slate-500 underline underline-offset-4 hover:text-slate-800"
@@ -1519,22 +1514,9 @@ export function DashboardPage() {
               onClick={() => void copyReferralLink()}
               disabled={!referralLink}
             >
-              {referralCopyDone ? "복사됐어요" : "링크 복사하기"}
-            </button>
-            <button
-              type="button"
-              className="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 text-sm font-bold text-slate-900 hover:bg-slate-50"
-              onClick={() => void shareReferralLink()}
-              disabled={!referralLink}
-            >
-              카카오톡으로 공유하기
+              추천 링크 복사하기
             </button>
           </div>
-          {referralShareHint ? (
-            <p className="mt-3 text-sm font-medium text-brand-800">
-              카카오톡 자동 공유 설정이 아직 연결되지 않아 추천 링크를 복사했습니다. 카카오톡 대화창에 붙여넣어 공유해 주세요.
-            </p>
-          ) : null}
 
           <div className="mt-5 rounded-xl border border-slate-200 bg-white/80 px-4 py-4">
             <p className="text-sm font-bold text-slate-900">가입 인원 혜택 안내</p>
