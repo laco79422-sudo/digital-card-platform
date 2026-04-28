@@ -10,6 +10,15 @@ export function getOAuthRedirectToDashboard(): string {
   return `${window.location.origin}/dashboard`;
 }
 
+export function getEmailAuthRedirectTo(): string {
+  if (typeof window === "undefined") return "";
+  return `${window.location.origin}/auth/callback`;
+}
+
+export function isEmailConfirmed(user: Pick<User, "email_confirmed_at"> | null | undefined): boolean {
+  return Boolean(user?.email_confirmed_at);
+}
+
 export type SignInWithEmailResult = {
   user: User | null;
   session: Session | null;
@@ -70,7 +79,7 @@ export async function signUpWithEmail(params: SignUpWithEmailParams): Promise<Si
           userType: params.userType,
           referredBy: params.referralCode ?? null,
         },
-        emailRedirectTo: `${window.location.origin}/dashboard`,
+        emailRedirectTo: getEmailAuthRedirectTo(),
       },
     });
 
@@ -94,6 +103,24 @@ export async function signUpWithEmail(params: SignUpWithEmailParams): Promise<Si
       errorMessage: "회원가입 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.",
     };
   }
+}
+
+export async function resendSignupConfirmationEmail(email: string): Promise<{ errorMessage: string | null }> {
+  if (!isSupabaseConfigured || !supabase) {
+    return { errorMessage: getSupabaseConfigErrorMessage() };
+  }
+  const clean = email.trim();
+  if (!clean) return { errorMessage: "인증 메일을 받을 이메일을 입력해 주세요." };
+
+  const { error } = await supabase.auth.resend({
+    type: "signup",
+    email: clean,
+    options: {
+      emailRedirectTo: getEmailAuthRedirectTo(),
+    },
+  });
+  if (error) return { errorMessage: handleAuthError(error) };
+  return { errorMessage: null };
 }
 
 export async function signInWithGoogle(): Promise<{ errorMessage: string | null }> {

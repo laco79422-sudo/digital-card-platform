@@ -5,6 +5,7 @@ import { useSupabaseAuthSync } from "@/hooks/useSupabaseAuthSync";
 import { AdminDashboardPage } from "@/pages/AdminDashboardPage";
 import { ApplicationsPage } from "@/pages/ApplicationsPage";
 import { InstantCardClaimEffect } from "@/components/instant/InstantCardClaimEffect";
+import { AuthCallbackPage } from "@/pages/AuthCallbackPage";
 import { CardEditorPage } from "@/pages/CardEditorPage";
 import { CreateCardForOthersPage } from "@/pages/CreateCardForOthersPage";
 import { CreatorDirectoryPage } from "@/pages/CreatorDirectoryPage";
@@ -42,6 +43,7 @@ function AppRoutes() {
       <Routes>
         <Route path="/c/:slug" element={<PublicCardPage />} />
         <Route path="/preview/:tempId" element={<TempCardPreviewPage />} />
+        <Route path="/auth/callback" element={<AuthCallbackPage />} />
         <Route element={<AppLayout />}>
           <Route index element={<LandingPage />} />
           <Route path="pricing" element={<PricingPage />} />
@@ -51,6 +53,8 @@ function AppRoutes() {
           <Route path="promotion/partner" element={<PromotionPartnerPage />} />
           <Route path="login" element={<LoginPage />} />
           <Route path="mypage" element={<Navigate to="/dashboard" replace />} />
+          <Route path="space" element={<Navigate to="/dashboard" replace />} />
+          <Route path="my-space" element={<Navigate to="/dashboard" replace />} />
           <Route path="signup" element={<SignupPage />} />
           <Route path="create-for-others" element={<CreateCardForOthersPage />} />
           <Route path="create-card" element={<CardEditorPage />} />

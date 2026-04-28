@@ -9,10 +9,8 @@ import { signInWithGoogle, signUpWithEmail } from "@/lib/auth/authActions";
 import { BRAND_DISPLAY_NAME } from "@/lib/brand";
 import { layout } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
-import { clearInstantCardId, peekInstantCardId } from "@/lib/instantCardStorage";
 import { getLandingEmail, hasPendingCardDraft } from "@/lib/pendingCardStorage";
-import { isSupabaseConfigured } from "@/lib/supabase/client";
-import { mapSupabaseUser } from "@/lib/supabase/mapAuthUser";
+import { isSupabaseConfigured, supabase } from "@/lib/supabase/client";
 import { getReferralCodeFromSearch } from "@/lib/referrals";
 import { getPromotionReferralCode } from "@/lib/promotionReferralStorage";
 import { useAppDataStore } from "@/stores/appDataStore";
@@ -59,10 +57,10 @@ export function SignupPage() {
   const authReady = useAuthReady();
   const setUser = useAuthStore((s) => s.setUser);
   const setSession = useAuthStore((s) => s.setSession);
-  const touchActivity = useAuthStore((s) => s.touchActivity);
 
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [verificationSentEmail, setVerificationSentEmail] = useState("");
 
   const {
     register,
@@ -140,28 +138,17 @@ export function SignupPage() {
       }
 
       if (data.session?.user) {
-        setSession(data.session);
-        setUser(mapSupabaseUser(data.session.user));
         useAppDataStore.getState().ensureReferralRecord(data.session.user.id, referralCode);
-        touchActivity();
-        const instantId = peekInstantCardId();
-        if (instantId) {
-          useAppDataStore.getState().claimInstantGuestCard(data.session.user.id, instantId);
-          clearInstantCardId();
-        }
-        navigate(
-          hasPendingCardDraft() ? "/cards/new" : instantId ? `/cards/${instantId}/edit` : "/dashboard",
-          { replace: true },
-        );
+        await supabase?.auth.signOut();
+        setSession(null);
+        setUser(null);
+        setVerificationSentEmail(values.email.trim());
         return;
       }
 
       if (data.user) {
         useAppDataStore.getState().ensureReferralRecord(data.user.id, referralCode);
-        navigate("/login", {
-          replace: true,
-          state: { signupNotice: SIGNUP_SUCCESS_NOTICE },
-        });
+        setVerificationSentEmail(values.email.trim());
         return;
       }
 
@@ -195,14 +182,43 @@ export function SignupPage() {
 
   return (
     <div className={cn(layout.pageAuth, "py-12 sm:py-20 lg:py-24")}>
+      {verificationSentEmail ? (
+        <Card>
+          <CardHeader>
+            <p className="text-sm font-semibold text-brand-800">{BRAND_DISPLAY_NAME}</p>
+            <h1 className="mt-1 text-2xl font-semibold leading-snug tracking-tight text-slate-900">
+              인증 메일을 보냈습니다
+            </h1>
+            <p className="mt-2 text-base leading-relaxed text-slate-600">
+              이메일을 확인해 주세요. 인증을 완료하면 내 공간에서 명함을 만들고 관리할 수 있어요.
+            </p>
+          </CardHeader>
+          <CardContent>
+            <div className="rounded-2xl border border-brand-200 bg-brand-50 px-4 py-4">
+              <p className="text-sm font-bold text-brand-950">인증 메일 발송 주소</p>
+              <p className="mt-1 break-all text-base font-semibold text-brand-900">{verificationSentEmail}</p>
+            </div>
+            <p className="mt-4 text-sm leading-relaxed text-slate-600">
+              메일함에서 인증 버튼을 누르면 자동으로 린코로 돌아옵니다. 메일이 보이지 않으면 스팸함도 확인해 주세요.
+            </p>
+            <Link
+              to="/login"
+              state={{ signupNotice: SIGNUP_SUCCESS_NOTICE }}
+              className="mt-6 inline-flex min-h-[52px] w-full items-center justify-center rounded-xl bg-cta-500 px-5 text-base font-bold text-white shadow-sm shadow-cta-900/20 hover:bg-cta-600"
+            >
+              로그인 화면으로 이동
+            </Link>
+          </CardContent>
+        </Card>
+      ) : (
       <Card>
         <CardHeader>
           <p className="text-sm font-semibold text-brand-800">{BRAND_DISPLAY_NAME}</p>
           <h1 className="mt-1 text-2xl font-semibold leading-snug tracking-tight text-slate-900">회원가입</h1>
           <p className="mt-2 text-base leading-relaxed text-slate-600">
             {hasPendingCardDraft()
-              ? "만들어 두신 명함을 저장하려면 계정이 필요해요. 가입 후 이어서 저장할 수 있습니다."
-              : "이름과 이메일로 계정을 만들면, 내 공간에서 명함을 만들고 의뢰도 할 수 있어요."}
+              ? "만들어 두신 명함을 저장하려면 계정이 필요해요. 가입 후 이메일 인증을 완료하면 이어서 저장할 수 있습니다."
+              : "가입 후 이메일 인증을 완료하면 내 공간에서 명함을 만들고 관리할 수 있어요."}
           </p>
         </CardHeader>
         <CardContent>
@@ -360,6 +376,7 @@ export function SignupPage() {
           </p>
         </CardContent>
       </Card>
+      )}
     </div>
   );
 }

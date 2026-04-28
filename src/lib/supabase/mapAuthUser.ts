@@ -39,6 +39,7 @@ export function resolveDisplayName(
 export function mapSupabaseUser(sessionUser: {
   id: string;
   email?: string | null;
+  email_confirmed_at?: string | null;
   user_metadata?: Record<string, unknown>;
 }): User {
   const meta = sessionUser.user_metadata ?? {};
@@ -49,6 +50,7 @@ export function mapSupabaseUser(sessionUser: {
     role: normalizeRole(roleRaw),
     name: resolveDisplayName(meta, sessionUser.email),
     email: sessionUser.email ?? "",
+    email_confirmed_at: sessionUser.email_confirmed_at ?? null,
     phone: typeof meta.phone === "string" ? meta.phone : null,
     avatar_url:
       typeof meta.avatar_url === "string"
