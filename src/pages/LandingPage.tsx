@@ -285,7 +285,9 @@ export function LandingPage() {
 
           <div className="mx-auto mt-12 max-w-lg rounded-2xl border border-slate-200 bg-white px-6 py-8 text-center shadow-sm sm:mt-14">
             <p className="text-base font-semibold text-slate-900">팀·법인·맞춤 견적이 필요하신가요?</p>
-            <p className="mt-2 text-sm leading-relaxed text-slate-600">전체 플랜·세부 조건은 이용 안내에서 확인할 수 있어요.</p>
+            <p className="mt-2 text-sm leading-relaxed text-slate-600">
+              같은 내용을 이용 안내 페이지에서도 확인할 수 있어요. 팀·법인은 페이지 하단 문의로 연결됩니다.
+            </p>
             <Link
               to="/pricing"
               className="mt-5 inline-flex min-h-[48px] w-full items-center justify-center rounded-xl bg-slate-900 px-5 text-sm font-bold text-white hover:bg-slate-800 sm:w-auto sm:min-w-[200px]"

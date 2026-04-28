@@ -2,6 +2,7 @@ import { PromotionMarketingPlansSection } from "@/components/pricing/PromotionMa
 import { PricingCard } from "@/components/ui/PricingCard";
 import { layout, type } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
+import { Link } from "react-router-dom";
 
 export function PricingPage() {
   return (
@@ -11,9 +12,9 @@ export function PricingPage() {
           이용 안내
         </h1>
         <p className={cn("mt-3 sm:mt-4", type.sectionLead)}>
-          요금은 숫자 나열이 아니라,{" "}
-          <span className="font-semibold text-slate-800">지금 어떤 행동을 하게 될지</span>를 기준으로 골라 보세요.
-          명함을 통해 고객이 먼저 연락하는 구조를 만듭니다.
+          숫자 나열이 아니라,{" "}
+          <span className="font-semibold text-slate-800">지금 어떤 행동을 하게 될지</span>를 기준으로 하나만 골라 보세요.
+          명함으로 고객이 먼저 연락하는 구조를 만듭니다.
         </p>
       </div>
 
@@ -32,70 +33,58 @@ export function PricingPage() {
 
       <h2 className="mt-12 text-lg font-semibold text-slate-900 sm:mt-16 sm:text-xl">사업자 · 명함</h2>
       <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-600 sm:text-[15px]">
-        개인·소규모는 스타터로 링크 공유를 시작하고, 방문·클릭·의뢰 응답이 늘면 프로까지 단계적으로 쓰기 좋아요.
+        비교표보다는 지금 단계에 맞는 하나만 고르면 됩니다.
       </p>
-      <div className="mt-8 grid gap-6 md:grid-cols-2 xl:grid-cols-5">
+      <div className="mx-auto mt-8 grid max-w-6xl gap-8 lg:grid-cols-3 lg:gap-10">
         <PricingCard
           name="무료"
-          audience="가볍게 체험"
           priceLabel="₩0"
-          description="시작해 보기"
-          features={["공개 명함 1개(한 달 이용)", "방문·클릭 기본 기록", "동시에 관리 가능한 의뢰 1건"]}
+          tagline="가볍게 시작"
+          features={["공개 명함 1개", "방문·클릭 기본 기록", "간단한 문의 받기"]}
+          recommendFor="디지털 명함을 처음 만들어 보고 싶은 분"
           href="/signup"
           cta="무료로 시작"
         />
         <PricingCard
-          name="공개 명함 1개 이용권"
-          audience="한 달 이용권"
-          priceLabel="월 14,900원"
-          description="공개 명함 1개를 한 달 동안 이용할 수 있어요."
-          features={[
-            "공개 명함 1개",
-            "한 달 동안 이용",
-            "추천 공유로 무료 혜택 가능",
-          ]}
-          highlighted
-          href="/signup"
-          cta="14,900원으로 이용하기"
-        />
-        <PricingCard
           name="스타터"
-          audience="소규모 시작용"
-          priceLabel="₩39,000"
-          description="월"
+          priceLabel="₩14,900"
+          description="/ 월"
+          tagline="혼자 시작하기"
           features={[
-            "명함 3개",
-            "클릭 기록 90일 보관",
-            "동시에 관리 가능한 의뢰 5건",
+            "명함·링크 공유에 맞는 구성",
+            "의뢰·상담을 한곳에서 관리",
+            "클릭 기록으로 반응 확인",
           ]}
+          recommendFor="프리랜서·1인 사업으로 바로 시작하는 분"
           href="/signup"
           cta="스타터 선택"
         />
         <PricingCard
           name="프로"
-          audience="성장하는 브랜드"
           priceLabel="₩59,000"
-          description="월"
+          description="/ 월"
+          tagline="고객을 만드는 구조"
           features={[
-            "명함 5개",
-            "방문·클릭 기록",
-            "버튼 클릭 흐름 보기",
-            "의뢰 동시 관리 · 제한 없음",
-            "연결 우선 안내",
+            "명함 여러 개·고객 흐름 한눈에",
+            "방문부터 버튼 클릭까지 깊게 확인",
+            "의뢰를 여유 있게 동시에 처리",
           ]}
+          recommendFor="문의가 늘고 고객 동선을 체계적으로 잡고 싶은 분"
           highlighted
           href="/signup"
-          cta="프로 이용하기"
+          cta="프로 시작하기"
         />
-        <PricingCard
-          name="비즈니스"
-          audience="팀·법인"
-          priceLabel="문의"
-          description="맞춤 견적"
-          features={["회사 관리자", "통합 로그인(준비 중)", "담당자 온보딩", "외부 연동 API(준비 중)"]}
-          href="/signup"
-          cta="문의하기"
-        />
+      </div>
+
+      <div className="mx-auto mt-12 max-w-lg rounded-2xl border border-slate-200 bg-slate-50/90 px-6 py-8 text-center sm:mt-14">
+        <p className="text-base font-semibold text-slate-900">팀·법인·맞춤 견적이 필요하신가요?</p>
+        <p className="mt-2 text-sm leading-relaxed text-slate-600">별도 상담 후 견적과 도입 방식을 안내해 드립니다.</p>
+        <Link
+          to="/signup?intent=business"
+          className="mt-5 inline-flex min-h-[48px] w-full items-center justify-center rounded-xl bg-slate-900 px-5 text-sm font-bold text-white hover:bg-slate-800 sm:w-auto sm:min-w-[200px]"
+        >
+          문의하기
+        </Link>
       </div>
 
       <PromotionMarketingPlansSection className="mt-16 sm:mt-24" />
