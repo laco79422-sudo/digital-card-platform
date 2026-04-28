@@ -11,15 +11,24 @@ import { layout } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
 import { fetchMyCardsForUser, type FetchMyCardsResult } from "@/services/cardsService";
 import { fetchMyDesignRequests, updateDesignRequestRemote } from "@/services/designRequestsService";
+import {
+  buildPromoterCode,
+  buildPromotionUrl,
+  fetchPromotionApplicationsForApplicant,
+  fetchPromotionApplicationsForOwner,
+  handlePromotionLinkPaymentSuccess,
+  PROMOTION_LINK_PRICE,
+  startPromotionLinkPayment,
+  updatePromotionApplicationRemote,
+} from "@/services/promotionService";
 import { useAuthStore } from "@/stores/authStore";
 import { useAppDataStore } from "@/stores/appDataStore";
-import type { BusinessCard, User } from "@/types/domain";
+import type { BusinessCard, PromotionApplication, User } from "@/types/domain";
 import QRCode from "qrcode";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 const CARD_MONTHLY_PRICE = 14900;
-const PROMOTION_LINK_PRICE = 10900;
 
 function safeDisplayName(user: User | null): string {
   if (!user) return "사용자";
@@ -101,14 +110,6 @@ function buildPromotionLink(card: BusinessCard, origin: string, refCode: string)
   }
 }
 
-function buildRandomPromotionRefCode(existingCodes: Set<string>): string {
-  for (let i = 0; i < 10; i += 1) {
-    const code = `LINKO${Math.random().toString(36).slice(2, 10).toUpperCase()}`;
-    if (!existingCodes.has(code)) return code;
-  }
-  return `LINKO${Date.now().toString(36).toUpperCase()}`;
-}
-
 export function DashboardPage() {
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
@@ -121,13 +122,16 @@ export function DashboardPage() {
   const designRequests = useAppDataStore((s) => s.designRequests);
   const applications = useAppDataStore((s) => s.applications);
   const referralRecords = useAppDataStore((s) => s.referralRecords);
+  const promotionApplications = useAppDataStore((s) => s.promotionApplications);
+  const platformUsers = useAppDataStore((s) => s.platformUsers);
   const ensureReferralRecord = useAppDataStore((s) => s.ensureReferralRecord);
   const upsertBusinessCard = useAppDataStore((s) => s.upsertBusinessCard);
   const addPayment = useAppDataStore((s) => s.addPayment);
   const extendCardAccess = useAppDataStore((s) => s.extendCardAccess);
-  const addCardPromotionLink = useAppDataStore((s) => s.addCardPromotionLink);
   const setDesignRequests = useAppDataStore((s) => s.setDesignRequests);
   const updateDesignRequest = useAppDataStore((s) => s.updateDesignRequest);
+  const setPromotionApplications = useAppDataStore((s) => s.setPromotionApplications);
+  const updatePromotionApplication = useAppDataStore((s) => s.updatePromotionApplication);
   const [referralCopyDone, setReferralCopyDone] = useState(false);
   const [referralShareHint, setReferralShareHint] = useState(false);
   const [cardCopyId, setCardCopyId] = useState<string | null>(null);
@@ -136,6 +140,7 @@ export function DashboardPage() {
   const [qrCard, setQrCard] = useState<BusinessCard | null>(null);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [qrLink, setQrLink] = useState("");
+  const [promotionPaymentCard, setPromotionPaymentCard] = useState<BusinessCard | null>(null);
   const [cardsFetch, setCardsFetch] = useState<FetchMyCardsResult>({
     status: "ok",
     cards: [],
@@ -189,6 +194,17 @@ export function DashboardPage() {
     });
   }, [setDesignRequests, user?.email, user?.id]);
 
+  useEffect(() => {
+    if (!user?.id) return;
+    void Promise.all([
+      fetchPromotionApplicationsForOwner(user.id),
+      fetchPromotionApplicationsForApplicant(user.id),
+    ]).then(([ownerRows, applicantRows]) => {
+      const rows = [...(ownerRows ?? []), ...(applicantRows ?? [])];
+      if (rows.length) setPromotionApplications(rows);
+    });
+  }, [setPromotionApplications, user?.id]);
+
   const myCards = useMemo(
     () => (uid ? businessCards.filter((card) => cardBelongsToUser(card, user)) : []),
     [businessCards, uid, user],
@@ -211,6 +227,19 @@ export function DashboardPage() {
   }, [designRequests, uid, user?.email]);
 
   const myApps = uid ? applications.filter((a) => a.creator_user_id === uid) : [];
+  const ownerPromotionApplications = useMemo(
+    () => (uid ? promotionApplications.filter((application) => application.owner_user_id === uid) : []),
+    [promotionApplications, uid],
+  );
+  const approvedPromotions = useMemo(
+    () =>
+      uid
+        ? promotionApplications.filter(
+            (application) => application.applicant_user_id === uid && application.status === "approved" && application.promotion_url,
+          )
+        : [],
+    [promotionApplications, uid],
+  );
 
   const isCreator = user?.role === "creator";
   const displayName = safeDisplayName(user);
@@ -315,36 +344,53 @@ export function DashboardPage() {
     navigate("/cards/new");
   };
 
-  const addPromotionLink = (card: BusinessCard) => {
-    if (!uid) return;
-    if (
-      !window.confirm(
-        "홍보 링크를 추가하려면 10,900원이 필요합니다.\n결제 후 새로운 홍보 링크가 생성됩니다.",
-      )
-    ) {
-      return;
-    }
-    const existingCodes = new Set([
-      ...referralRecords.map((r) => r.ref_code),
-      ...cardPromotionLinks.map((link) => link.ref_code),
-    ]);
-    const ref_code = buildRandomPromotionRefCode(existingCodes);
+  const openPromotionPayment = (card: BusinessCard) => {
+    setPromotionPaymentCard(card);
+  };
+
+  const confirmPromotionPayment = async () => {
+    if (!promotionPaymentCard || !uid) return;
+    await startPromotionLinkPayment(promotionPaymentCard.id);
+    await handlePromotionLinkPaymentSuccess(promotionPaymentCard.id);
     addPayment({
       id: crypto.randomUUID(),
       user_id: uid,
-      card_id: card.id,
+      card_id: promotionPaymentCard.id,
       amount: PROMOTION_LINK_PRICE,
-      payment_type: "promotion_link_add",
+      payment_type: "promotion_link_enable",
       status: "completed",
       created_at: new Date().toISOString(),
     });
-    addCardPromotionLink({
-      id: crypto.randomUUID(),
-      card_id: card.id,
-      ref_code,
-      type: "promotion",
-      created_at: new Date().toISOString(),
+    upsertBusinessCard({
+      ...promotionPaymentCard,
+      promotion_enabled: true,
+      promotion_payment_status: "paid",
+      promotion_price: PROMOTION_LINK_PRICE,
     });
+    setPromotionPaymentCard(null);
+  };
+
+  const applicantLabel = (application: PromotionApplication): { name: string; email: string } => {
+    const platformUser = platformUsers.find((u) => u.id === application.applicant_user_id);
+    return {
+      name: application.applicant_name ?? platformUser?.name ?? "홍보 신청자",
+      email: application.applicant_email ?? platformUser?.email ?? application.applicant_user_id,
+    };
+  };
+
+  const decidePromotionApplication = async (application: PromotionApplication, status: "approved" | "rejected") => {
+    const card = businessCards.find((c) => c.id === application.card_id);
+    const promoterCode = status === "approved" ? application.promoter_code ?? buildPromoterCode(application.card_id, application.applicant_user_id) : application.promoter_code;
+    const promotionUrl =
+      status === "approved" && card?.slug ? buildPromotionUrl(shareOrigin, card.slug, promoterCode ?? "") : application.promotion_url;
+    const patch: Partial<PromotionApplication> = {
+      status,
+      promoter_code: promoterCode ?? null,
+      promotion_url: promotionUrl ?? null,
+      approved_at: status === "approved" ? new Date().toISOString() : application.approved_at,
+    };
+    updatePromotionApplication(application.id, patch);
+    await updatePromotionApplicationRemote(application.id, patch);
   };
 
   const copyPromotionLink = async (promoUrl: string, key: string) => {
@@ -707,7 +753,7 @@ export function DashboardPage() {
                     </div>
                   ) : null}
 
-                  <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-5">
                     <Link
                       to={publicUrl || `/c/${encodeURIComponent(card.slug)}`}
                       className="inline-flex min-h-10 items-center justify-center rounded-xl bg-slate-900 px-3 text-sm font-bold text-white hover:bg-slate-800"
@@ -735,6 +781,13 @@ export function DashboardPage() {
                       onClick={() => void openQr(card)}
                     >
                       QR 보기
+                    </button>
+                    <button
+                      type="button"
+                      className="inline-flex min-h-10 items-center justify-center rounded-xl bg-cta-500 px-3 text-sm font-bold text-white hover:bg-cta-600"
+                      onClick={() => openPromotionPayment(card)}
+                    >
+                      홍보 링크 추가
                     </button>
                   </div>
                   <button
@@ -800,9 +853,9 @@ export function DashboardPage() {
                     <button
                       type="button"
                       className="mt-3 inline-flex min-h-10 items-center justify-center rounded-xl bg-cta-500 px-4 text-sm font-bold text-white shadow-sm shadow-cta-900/20 hover:bg-cta-600"
-                      onClick={() => addPromotionLink(card)}
+                      onClick={() => openPromotionPayment(card)}
                     >
-                      홍보 링크 추가
+                      {card.promotion_enabled ? "홍보 신청 받는 중" : "홍보 링크 추가"}
                     </button>
                   </div>
                 </li>
@@ -811,6 +864,130 @@ export function DashboardPage() {
           </ul>
         )}
       </section>
+
+      {!isCreator ? (
+        <section className="mt-10 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-900 sm:text-xl">홍보 신청 관리</h2>
+            <p className="mt-2 text-sm leading-relaxed text-slate-600 sm:text-base">
+              내 명함을 홍보하려는 홍보 신청자를 확인하고 승인 또는 거절할 수 있습니다.
+            </p>
+          </div>
+          {ownerPromotionApplications.length > 0 ? (
+            <ul className="mt-5 grid gap-3">
+              {ownerPromotionApplications.map((application) => {
+                const card = businessCards.find((c) => c.id === application.card_id);
+                const applicant = applicantLabel(application);
+                return (
+                  <li key={application.id} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+                    <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                      <div>
+                        <p className="text-sm font-bold text-slate-900">{applicant.name}</p>
+                        <p className="mt-1 text-xs text-slate-600">{applicant.email}</p>
+                        <p className="mt-2 text-sm text-slate-700">
+                          명함: {card ? cardDisplayName(card) : application.card_name ?? application.card_id}
+                        </p>
+                        <p className="mt-1 text-xs text-slate-500">
+                          신청일 {new Date(application.created_at).toLocaleDateString("ko-KR")}
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="rounded-full bg-white px-2.5 py-1 text-xs font-bold text-slate-700 ring-1 ring-slate-200">
+                          {application.status === "pending"
+                            ? "승인 대기"
+                            : application.status === "approved"
+                              ? "승인 완료"
+                              : "거절"}
+                        </span>
+                        <button
+                          type="button"
+                          className="inline-flex min-h-10 items-center justify-center rounded-xl bg-slate-900 px-4 text-sm font-bold text-white hover:bg-slate-800 disabled:opacity-50"
+                          onClick={() => void decidePromotionApplication(application, "approved")}
+                          disabled={application.status === "approved"}
+                        >
+                          승인
+                        </button>
+                        <button
+                          type="button"
+                          className="inline-flex min-h-10 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 text-sm font-bold text-slate-900 hover:bg-slate-50 disabled:opacity-50"
+                          onClick={() => void decidePromotionApplication(application, "rejected")}
+                          disabled={application.status === "rejected"}
+                        >
+                          거절
+                        </button>
+                      </div>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <p className="mt-5 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center text-sm text-slate-500">
+              아직 홍보 신청자가 없습니다.
+            </p>
+          )}
+        </section>
+      ) : null}
+
+      {!isCreator ? (
+        <section className="mt-10 rounded-2xl border border-brand-200/80 bg-gradient-to-br from-brand-50 via-white to-sky-50 p-4 shadow-sm sm:p-6">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-900 sm:text-xl">내 홍보 링크</h2>
+            <p className="mt-2 text-sm leading-relaxed text-slate-600 sm:text-base">
+              승인된 홍보 링크입니다. 이 링크로 공유하면 내 홍보 활동으로 기록됩니다.
+            </p>
+          </div>
+          {approvedPromotions.length > 0 ? (
+            <ul className="mt-5 grid gap-4 lg:grid-cols-2">
+              {approvedPromotions.map((application) => {
+                const card = businessCards.find((c) => c.id === application.card_id);
+                const promotionUrl = application.promotion_url ?? "";
+                return (
+                  <li key={application.id} className="rounded-2xl border border-brand-100 bg-white px-4 py-4">
+                    <p className="text-sm font-bold text-slate-900">
+                      {card ? cardDisplayName(card) : application.card_name ?? "홍보 중인 명함"}
+                    </p>
+                    <p className="mt-2 break-all rounded-xl bg-brand-50 px-3 py-3 text-xs font-semibold text-brand-900">
+                      {promotionUrl}
+                    </p>
+                    <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                      <button
+                        type="button"
+                        className="inline-flex min-h-10 items-center justify-center rounded-xl bg-slate-50 px-3 text-sm font-bold text-slate-900 ring-1 ring-slate-200 hover:bg-slate-100"
+                        onClick={() => void copyPromotionLink(promotionUrl, application.id)}
+                      >
+                        {promoCopyId === application.id ? "복사됨" : "링크 복사"}
+                      </button>
+                      {card ? (
+                        <button
+                          type="button"
+                          className="inline-flex min-h-10 items-center justify-center rounded-xl bg-slate-50 px-3 text-sm font-bold text-slate-900 ring-1 ring-slate-200 hover:bg-slate-100"
+                          onClick={() => void sharePromotionLink(card, promotionUrl)}
+                        >
+                          카카오톡 공유
+                        </button>
+                      ) : null}
+                      {card ? (
+                        <button
+                          type="button"
+                          className="inline-flex min-h-10 items-center justify-center rounded-xl bg-slate-50 px-3 text-sm font-bold text-slate-900 ring-1 ring-slate-200 hover:bg-slate-100"
+                          onClick={() => void openQr(card, promotionUrl)}
+                        >
+                          QR 보기
+                        </button>
+                      ) : null}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <p className="mt-5 rounded-2xl border border-dashed border-brand-200 bg-white/70 px-4 py-6 text-center text-sm text-slate-500">
+              승인된 홍보 링크가 아직 없습니다. 홍보 가능한 명함에서 먼저 홍보 신청을 해 주세요.
+            </p>
+          )}
+        </section>
+      ) : null}
 
       {!isCreator ? (
         <section className="mt-10 rounded-2xl border border-brand-200/80 bg-gradient-to-br from-brand-50 via-white to-sky-50 p-4 shadow-sm sm:p-6">
@@ -899,6 +1076,37 @@ export function DashboardPage() {
             >
               닫기
             </button>
+          </div>
+        </div>
+      ) : null}
+
+      {promotionPaymentCard ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 px-4" role="dialog" aria-modal="true">
+          <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-xl">
+            <p className="text-lg font-bold text-slate-900">홍보 링크 추가</p>
+            <p className="mt-2 text-sm leading-relaxed text-slate-600">
+              이 명함을 가입자들이 홍보할 수 있도록 공개합니다. 홍보 링크를 추가하면, 가입자들이 홍보 신청을 할 수 있고 승인된 가입자는 전용 공유 링크를 받습니다.
+            </p>
+            <div className="mt-4 rounded-2xl border border-cta-200 bg-cta-50 px-4 py-4">
+              <p className="text-sm font-bold text-slate-900">결제 금액</p>
+              <p className="mt-1 text-2xl font-extrabold text-cta-700">{PROMOTION_LINK_PRICE.toLocaleString()}원</p>
+            </div>
+            <div className="mt-5 grid gap-2">
+              <button
+                type="button"
+                className="inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-cta-500 px-4 text-sm font-bold text-white hover:bg-cta-600"
+                onClick={() => void confirmPromotionPayment()}
+              >
+                10,900원 결제하고 홍보 시작하기
+              </button>
+              <button
+                type="button"
+                className="inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-slate-300 bg-white px-4 text-sm font-bold text-slate-900 hover:bg-slate-50"
+                onClick={() => setPromotionPaymentCard(null)}
+              >
+                닫기
+              </button>
+            </div>
           </div>
         </div>
       ) : null}

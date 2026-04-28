@@ -22,6 +22,7 @@ import { NotFoundPage } from "@/pages/NotFoundPage";
 import { PricingPage } from "@/pages/PricingPage";
 import { PromotionGuidePage } from "@/pages/PromotionGuidePage";
 import { PromotionPartnerPage } from "@/pages/PromotionPartnerPage";
+import { PromotePage } from "@/pages/PromotePage";
 import { PublicCardPage } from "@/pages/PublicCardPage";
 import { TempCardPreviewPage } from "@/pages/TempCardPreviewPage";
 import { RequestCreatePage } from "@/pages/RequestCreatePage";
@@ -54,6 +55,7 @@ function AppRoutes() {
           <Route path="education" element={<EducationPage />} />
           <Route path="promotion/guide" element={<PromotionGuidePage />} />
           <Route path="promotion/partner" element={<PromotionPartnerPage />} />
+          <Route path="promote" element={<PromotePage />} />
           <Route path="login" element={<LoginPage />} />
           <Route path="mypage" element={<Navigate to="/dashboard" replace />} />
           <Route path="space" element={<Navigate to="/dashboard" replace />} />

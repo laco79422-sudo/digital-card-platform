@@ -137,19 +137,19 @@ export function LandingPage() {
       <section className={cn("border-b border-slate-200 bg-white", section.y)}>
         <div className={layout.page}>
           <div className="mx-auto max-w-2xl text-center">
-            <h2 className={cn(type.sectionTitleCenter, "text-slate-900")}>명함을 만들면 자동으로 홍보됩니다</h2>
+            <h2 className={cn(type.sectionTitleCenter, "text-slate-900")}>명함을 만들면 홍보 링크를 추가할 수 있습니다</h2>
             <div className="mx-auto mt-8 max-w-lg space-y-3 text-[15px] leading-relaxed text-slate-800 sm:text-base">
-              <p>명함을 만들면 린코 가입자들이 함께 공유합니다</p>
-              <p>당신의 명함은 다른 사람의 링크 속에서 자연스럽게 퍼집니다</p>
-              <p>별도로 홍보하지 않아도 연결이 계속 만들어집니다</p>
+              <p>명함을 만든 뒤 홍보 링크를 추가하면, 가입자들이 홍보 신청을 할 수 있습니다.</p>
+              <p>이용자가 승인한 가입자는 전용 링크를 받아 명함을 공유할 수 있습니다.</p>
+              <p>공유된 링크로 들어온 방문은 홍보 활동으로 기록됩니다.</p>
             </div>
             <p className="mx-auto mt-8 max-w-xl rounded-2xl border border-brand-200/80 bg-brand-50/80 px-5 py-4 text-base font-bold text-brand-950 sm:text-lg">
-              명함 하나가 자동으로 퍼지고, 고객 연결로 이어집니다
+              내 명함을 만들고, 승인된 가입자들과 함께 공유하세요
             </p>
           </div>
           <div className="mt-10 flex justify-center sm:mt-12">
             <FlowCtaLink to={CREATE_CARD_HREF} variant="outline" className="sm:max-w-lg">
-              이제 링크 하나로 시작하기
+              내 명함 만들고 홍보 시작하기
             </FlowCtaLink>
           </div>
         </div>

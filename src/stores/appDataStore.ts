@@ -27,6 +27,7 @@ import type {
   Payment,
   PromoterParticipation,
   PromotionPoolEntry,
+  PromotionApplication,
   ReferralRecord,
   ServiceApplication,
   ServiceRequest,
@@ -74,6 +75,7 @@ interface AppDataState {
   promoterParticipations: PromoterParticipation[];
   referralRecords: ReferralRecord[];
   designRequests: DesignRequest[];
+  promotionApplications: PromotionApplication[];
 
   setBusinessCards: (cards: BusinessCard[]) => void;
   upsertBusinessCard: (card: BusinessCard) => void;
@@ -99,6 +101,9 @@ interface AppDataState {
   upsertDesignRequest: (request: DesignRequest) => void;
   setDesignRequests: (requests: DesignRequest[]) => void;
   updateDesignRequest: (id: string, patch: Partial<DesignRequest>) => void;
+  upsertPromotionApplication: (application: PromotionApplication) => void;
+  setPromotionApplications: (applications: PromotionApplication[]) => void;
+  updatePromotionApplication: (id: string, patch: Partial<PromotionApplication>) => void;
   addToPromotionPool: (entry: Omit<PromotionPoolEntry, "id" | "registered_at" | "status">) => boolean;
   enrollPromoter: (p: Omit<PromoterParticipation, "id" | "enrolled_at">) => boolean;
 }
@@ -126,6 +131,7 @@ export const useAppDataStore = create<AppDataState>()(
       promoterParticipations: [],
       referralRecords: [],
       designRequests: [],
+      promotionApplications: [],
 
       setBusinessCards: (businessCards) => set({ businessCards }),
       upsertBusinessCard: (card) =>
@@ -239,6 +245,20 @@ export const useAppDataStore = create<AppDataState>()(
             x.id === id ? { ...x, ...patch, updated_at: patch.updated_at ?? new Date().toISOString() } : x,
           ),
         })),
+      upsertPromotionApplication: (application) =>
+        set((s) => ({
+          promotionApplications: s.promotionApplications.some((x) => x.id === application.id)
+            ? s.promotionApplications.map((x) => (x.id === application.id ? { ...x, ...application } : x))
+            : [...s.promotionApplications, application],
+        })),
+      setPromotionApplications: (applications) =>
+        set((s) => ({
+          promotionApplications: mergeById(s.promotionApplications, applications),
+        })),
+      updatePromotionApplication: (id, patch) =>
+        set((s) => ({
+          promotionApplications: s.promotionApplications.map((x) => (x.id === id ? { ...x, ...patch } : x)),
+        })),
       addToPromotionPool: (raw) => {
         let added = false;
         set((s) => {
@@ -294,6 +314,7 @@ export const useAppDataStore = create<AppDataState>()(
         promoterParticipations: state.promoterParticipations,
         referralRecords: state.referralRecords,
         designRequests: state.designRequests,
+        promotionApplications: state.promotionApplications,
       }),
       merge: (persisted, current) => {
         const p = persisted as Partial<AppDataState> | undefined;
@@ -332,6 +353,7 @@ export const useAppDataStore = create<AppDataState>()(
           ),
           referralRecords: mergeReferralRecords(current.referralRecords ?? [], p.referralRecords),
           designRequests: mergeById(current.designRequests ?? [], p.designRequests),
+          promotionApplications: mergeById(current.promotionApplications ?? [], p.promotionApplications),
         };
       },
     },

@@ -47,6 +47,9 @@ export interface BusinessCard {
   created_at: string;
   expire_at?: string | null;
   status?: "active" | "expired" | "payment_required";
+  promotion_enabled?: boolean;
+  promotion_payment_status?: "unpaid" | "paid" | "failed" | "refunded";
+  promotion_price?: number;
   /** Hero/SEO 한 줄 (비어 있으면 직함·소개로 보완) */
   tagline?: string | null;
   /** 공개 명함 절대 URL. 없으면 현재 origin + /c/{slug}로 생성 */
@@ -96,6 +99,7 @@ export interface CardView {
   viewed_at: string;
   referrer: string | null;
   user_agent: string | null;
+  promoter_code?: string | null;
 }
 
 export interface CardClick {
@@ -121,6 +125,24 @@ export interface CardPromotionLink {
   ref_code: string;
   type: "promotion";
   created_at: string;
+}
+
+export type PromotionApplicationStatus = "pending" | "approved" | "rejected";
+
+export interface PromotionApplication {
+  id: string;
+  card_id: string;
+  applicant_user_id: string;
+  owner_user_id: string;
+  status: PromotionApplicationStatus;
+  promoter_code: string | null;
+  promotion_url: string | null;
+  created_at: string;
+  approved_at: string | null;
+  applicant_name?: string | null;
+  applicant_email?: string | null;
+  card_name?: string | null;
+  card_slug?: string | null;
 }
 
 export type CreatorType =

@@ -51,6 +51,7 @@ export function PublicCardPage() {
       viewed_at: new Date().toISOString(),
       referrer: document.referrer || "direct",
       user_agent: navigator.userAgent,
+      promoter_code: referralCode || null,
     });
     if (referralCode) {
       savePromotionReferralCode(referralCode);
