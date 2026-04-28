@@ -1,3 +1,4 @@
+import { CardConnectionModesHint } from "@/components/digital-card/CardConnectionModesHint";
 import { BrandHeroFrame } from "@/components/digital-card/BrandHeroFrame";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -448,6 +449,7 @@ export function DigitalCardPublicView({
                 {hero.secondary.label}
               </Button>
             </div>
+            <CardConnectionModesHint variant="dark" className="mt-4 max-w-md px-2" />
             {!hasPhone && hero.mode !== "from-links" ? (
               <p className="mt-3 text-sm font-medium text-white/80">전화번호가 등록되지 않았습니다</p>
             ) : null}

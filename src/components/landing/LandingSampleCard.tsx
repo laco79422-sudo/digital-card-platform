@@ -1,3 +1,4 @@
+import { CardConnectionModesHint } from "@/components/digital-card/CardConnectionModesHint";
 import { ExternalLink, MessageCircle, Phone } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -110,6 +111,7 @@ export function LandingSampleCard({ variant = "default", sampleType = "personal"
         >
           문의하기
         </span>
+        <CardConnectionModesHint variant="light" className="mt-3 px-1" />
         <div className="flex flex-wrap gap-2 pt-0.5">
           <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-800">
             <Phone className="h-3.5 w-3.5 shrink-0 text-brand-700" aria-hidden />
