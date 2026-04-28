@@ -2,12 +2,13 @@ import { DigitalCardPublicView } from "@/components/digital-card/DigitalCardPubl
 import { DigitalCardSeo } from "@/components/digital-card/DigitalCardSeo";
 import { resolveBusinessCardPublicUrl } from "@/lib/cardShareUrl";
 import { savePromotionReferralCode } from "@/lib/promotionReferralStorage";
-import { updateCardNameRemote } from "@/services/cardsService";
+import { insertCardViewRemote } from "@/services/cardViewsRemote";
+import { fetchCardBySlug, updateCardNameRemote } from "@/services/cardsService";
 import { getLinksForCard, useAppDataStore } from "@/stores/appDataStore";
 import { useAuthStore } from "@/stores/authStore";
 import type { BusinessCard, CardLink, User } from "@/types/domain";
 import QRCode from "qrcode";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 
 export function PublicCardPage() {
@@ -21,10 +22,47 @@ export function PublicCardPage() {
   const addCardClick = useAppDataStore((s) => s.addCardClick);
   const addCardLinkVisit = useAppDataStore((s) => s.addCardLinkVisit);
 
+  const [slugResolveBusy, setSlugResolveBusy] = useState(false);
+
   const card = useMemo(
     () => businessCards.find((c) => c.slug === slug && c.is_public),
     [businessCards, slug],
   );
+
+  useLayoutEffect(() => {
+    const s = slug?.trim();
+    if (!s) {
+      setSlugResolveBusy(false);
+      return;
+    }
+    if (businessCards.some((c) => c.slug === s && c.is_public)) {
+      setSlugResolveBusy(false);
+      return;
+    }
+    setSlugResolveBusy(true);
+  }, [slug, businessCards]);
+
+  useEffect(() => {
+    const s = slug?.trim();
+    if (!s) {
+      setSlugResolveBusy(false);
+      return;
+    }
+    if (businessCards.some((c) => c.slug === s && c.is_public)) {
+      setSlugResolveBusy(false);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      const remote = await fetchCardBySlug(s);
+      if (cancelled) return;
+      if (remote) upsertBusinessCard(remote);
+      setSlugResolveBusy(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [slug, upsertBusinessCard, businessCards]);
   const links = useMemo(
     () => (card ? getLinksForCard(card.id, cardLinks) : []),
     [card, cardLinks],
@@ -33,6 +71,10 @@ export function PublicCardPage() {
     () => new URLSearchParams(location.search).get("ref")?.trim().toUpperCase() ?? "",
     [location.search],
   );
+  const viewSource = useMemo(() => {
+    const s = new URLSearchParams(location.search).get("source")?.trim().toLowerCase() ?? "";
+    return s === "nfc" ? "nfc" : null;
+  }, [location.search]);
   const [qr, setQr] = useState<string | null>(null);
 
   const canEditName = Boolean(card && cardBelongsToUser(card, user));
@@ -65,6 +107,14 @@ export function PublicCardPage() {
       referrer: document.referrer || "direct",
       user_agent: navigator.userAgent,
       promoter_code: referralCode || null,
+      source: viewSource,
+    });
+    void insertCardViewRemote({
+      card_id: card.id,
+      referrer: document.referrer || "direct",
+      user_agent: navigator.userAgent,
+      promoter_code: referralCode || null,
+      source: viewSource,
     });
     if (referralCode) {
       savePromotionReferralCode(referralCode);
@@ -78,7 +128,15 @@ export function PublicCardPage() {
         user_agent: navigator.userAgent,
       });
     }
-  }, [card, addCardView, addCardLinkVisit, location.pathname, location.search, referralCode]);
+  }, [
+    card,
+    addCardView,
+    addCardLinkVisit,
+    location.pathname,
+    location.search,
+    referralCode,
+    viewSource,
+  ]);
 
   const handleLink = (link: CardLink) => {
     if (!card) return;
@@ -94,6 +152,14 @@ export function PublicCardPage() {
     if (href.startsWith("#")) return;
     window.open(href, "_blank", "noopener,noreferrer");
   };
+
+  if (slugResolveBusy) {
+    return (
+      <div className="flex min-h-dvh flex-col items-center justify-center bg-slate-50 px-5">
+        <p className="text-base font-medium text-slate-600">불러오는 중…</p>
+      </div>
+    );
+  }
 
   if (!card) {
     return (

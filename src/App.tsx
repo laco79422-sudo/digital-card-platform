@@ -23,6 +23,7 @@ import { PricingPage } from "@/pages/PricingPage";
 import { PromotionGuidePage } from "@/pages/PromotionGuidePage";
 import { PromotionPartnerPage } from "@/pages/PromotionPartnerPage";
 import { PromotePage } from "@/pages/PromotePage";
+import { NfcAcceptPage } from "@/pages/NfcAcceptPage";
 import { PublicCardPage } from "@/pages/PublicCardPage";
 import { TempCardPreviewPage } from "@/pages/TempCardPreviewPage";
 import { RequestCreatePage } from "@/pages/RequestCreatePage";
@@ -46,6 +47,7 @@ function AppRoutes() {
       <InstantCardClaimEffect />
       <Routes>
         <Route path="/c/:slug" element={<PublicCardPage />} />
+        <Route path="/nfc/:cardId" element={<NfcAcceptPage />} />
         <Route path="/preview/:tempId" element={<TempCardPreviewPage />} />
         <Route path="/auth/callback" element={<AuthCallbackPage />} />
         <Route element={<AppLayout />}>

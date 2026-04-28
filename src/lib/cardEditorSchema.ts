@@ -42,6 +42,7 @@ export const cardEditorSubmitSchema = z.object({
   brand_image_pan_x: z.number().min(-1).max(1).optional(),
   brand_image_pan_y: z.number().min(-1).max(1).optional(),
   brand_image_legacy_object_position: z.string().max(48).nullable().optional(),
+  design_type: z.enum(["simple", "business", "emotional"]).default("simple"),
 });
 
 export function parseCardEditorDraft(draft: CardEditorDraft) {

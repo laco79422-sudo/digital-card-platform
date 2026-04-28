@@ -5,12 +5,14 @@ import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Textarea } from "@/components/ui/Textarea";
 import { buildCardShareUrl, buildTempPreviewUrl, editorOriginFallback } from "@/lib/cardShareUrl";
+import { CARD_DESIGN_LABEL } from "@/lib/cardDesignLabels";
 import { parseCardEditorDraft } from "@/lib/cardEditorSchema";
 import { PREVIEW_CARD_TYPES, PREVIEW_CARD_TYPE_LABEL } from "@/lib/previewCardType";
 import { shareCardLinkNativeOrder } from "@/lib/kakaoWebShare";
 import { previewKakaoFeedFromDraft } from "@/lib/previewShareMeta";
 import { cn } from "@/lib/utils";
 import { slugify } from "@/stores/appDataStore";
+import type { CardDesignType } from "@/types/domain";
 import { useCardEditorDraftStore } from "@/stores/cardEditorDraftStore";
 import { Copy, Loader2, Share2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
@@ -450,6 +452,21 @@ export function CardForm({
                 <option value="navy">네이비 블루</option>
                 <option value="slate">슬레이트 그레이</option>
                 <option value="midnight">미드나이트</option>
+              </Select>
+            </div>
+            <div>
+              <label className="text-base font-medium text-slate-800">출력 템플릿</label>
+              <p className="mt-0.5 text-xs text-slate-500">명함 이미지·PDF 인쇄 시 적용되는 스타일입니다.</p>
+              <Select
+                className="mt-1"
+                value={draft.design_type}
+                onChange={(e) => setDraft({ design_type: e.target.value as CardDesignType })}
+              >
+                {(Object.entries(CARD_DESIGN_LABEL) as [CardDesignType, string][]).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
               </Select>
             </div>
             <div>

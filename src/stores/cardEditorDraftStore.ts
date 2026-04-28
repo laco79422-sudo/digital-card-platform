@@ -1,4 +1,5 @@
-import type { BusinessCard, DigitalCardServiceLine, TrustTestimonial } from "@/types/domain";
+import type { BusinessCard, CardDesignType, DigitalCardServiceLine, TrustTestimonial } from "@/types/domain";
+import { normalizeCardDesignType } from "@/lib/cardDesignLabels";
 import { buildCardShareUrl } from "@/lib/cardShareUrl";
 import { clampZoom } from "@/lib/brandHeroLayout";
 import type { PreviewCardType } from "@/lib/previewCardType";
@@ -53,6 +54,8 @@ export type CardEditorDraft = {
   brand_image_pan_y: number;
   /** natural 미사용(구 카드)일 때 저장소에 되돌릴 cover 초점 */
   brand_image_legacy_object_position: string | null;
+  /** 인쇄·QR 카드 출력 템플릿 */
+  design_type: CardDesignType;
 };
 
 function emptyServiceRows(): DigitalCardServiceLine[] {
@@ -131,6 +134,7 @@ export function mergeDraftDefaults(
       partialRest.brand_image_legacy_object_position !== undefined
         ? partialRest.brand_image_legacy_object_position
         : base.brand_image_legacy_object_position ?? null,
+    design_type: normalizeCardDesignType(partialRest.design_type ?? base.design_type),
   };
 }
 
@@ -165,6 +169,7 @@ export function createEmptyDraft(overrides: Partial<CardEditorDraft> = {}): Card
     brand_image_pan_x: 0,
     brand_image_pan_y: 0,
     brand_image_legacy_object_position: null,
+    design_type: "simple",
     ...overrides,
   };
 }
@@ -219,6 +224,7 @@ export function draftFromBusinessCard(card: BusinessCard): CardEditorDraft {
       card.brand_image_natural_width && card.brand_image_natural_height
         ? null
         : (card.brand_image_object_position?.trim() ?? null),
+    design_type: normalizeCardDesignType(card.design_type),
   };
 }
 
@@ -304,6 +310,7 @@ export function draftToBusinessCard(
     brand_image_object_position: hasNewHeroMeta
       ? null
       : draft.brand_image_legacy_object_position?.trim() || null,
+    design_type: normalizeCardDesignType(draft.design_type),
   };
 }
 

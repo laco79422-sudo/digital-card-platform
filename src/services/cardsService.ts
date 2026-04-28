@@ -56,6 +56,8 @@ const BUSINESS_CARD_REMOTE_KEYS = [
   "brand_image_pan_x",
   "brand_image_pan_y",
   "brand_image_object_position",
+  "qr_image_url",
+  "design_type",
 ] as const satisfies ReadonlyArray<keyof BusinessCard>;
 
 export function pickBusinessCardForRemote(card: BusinessCard): BusinessCard {
@@ -213,17 +215,27 @@ export async function fetchMyCards(userId: string): Promise<BusinessCard[] | nul
 
 export async function fetchCardBySlug(slug: string): Promise<BusinessCard | null> {
   if (!isSupabaseConfigured || !supabase) return null;
-  const { data, error } = await supabase
+  const s = slug.trim();
+  if (!s) return null;
+  const primary = await supabase
     .from(TABLE_CARDS)
     .select("*")
-    .eq("slug", slug)
+    .eq("slug", s)
     .eq("is_public", true)
     .maybeSingle();
-  if (error) {
-    console.warn("[cardsService] fetchCardBySlug", error.message);
+  if (!primary.error && primary.data) return primary.data as BusinessCard;
+  if (primary.error && !isMissingTableError(primary.error.message, TABLE_CARDS)) {
+    console.warn("[cardsService] fetchCardBySlug", primary.error.message);
+  }
+
+  const legacy = await supabase.from("cards").select("*").eq("slug", s).eq("is_public", true).maybeSingle();
+  if (legacy.error) {
+    if (!isMissingTableError(legacy.error.message, "cards")) {
+      console.warn("[cardsService] fetchCardBySlug legacy", legacy.error.message);
+    }
     return null;
   }
-  return data as BusinessCard | null;
+  return legacy.data as BusinessCard | null;
 }
 
 export async function updateCardNameRemote(cardId: string, name: string): Promise<boolean> {

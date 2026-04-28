@@ -1,5 +1,6 @@
 import { PostSaveGrowthPanel } from "@/components/card/PostSaveGrowthPanel";
 import { GuestSavePrompt } from "@/components/card/SavePrompt";
+import { CardQrAndExportPanel } from "@/components/card-print/CardQrAndExportPanel";
 import { CardForm } from "@/components/card-editor/CardForm";
 import { CardEditorGrowthLadder } from "@/components/card-editor/CardEditorGrowthLadder";
 import { CardEditorSaveCompletionPanel } from "@/components/card-editor/CardEditorSaveCompletionPanel";
@@ -52,6 +53,7 @@ import {
 import { removeTempCard, saveTempCard } from "@/lib/tempCardStorage";
 import { buildViralShareText } from "@/lib/viralShareText";
 import { upsertCardRemote } from "@/services/cardsService";
+import { syncQrImageAfterSave } from "@/services/cardQrSync";
 import { ArrowRight, Check, Copy, Loader2, Share2, Sparkles } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -216,6 +218,24 @@ export function CardEditorPage() {
   const autosaveStatusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const draft = useCardEditorDraftStore((s) => s.draft);
+
+  /** 저장된 카드 편집 시 QR·인쇄 패널용 스냅샷 */
+  const exportCardForPrint = useMemo(() => {
+    if (!existing?.id || !user || isGuestRoute) return null;
+    const c = draftToBusinessCard(draft, {
+      id: existing.id,
+      user_id: user.id,
+      created_at: existing.created_at,
+    });
+    return {
+      ...c,
+      expire_at: existing.expire_at ?? c.expire_at,
+      status: existing.status ?? c.status,
+      qr_image_url: existing.qr_image_url ?? c.qr_image_url,
+      design_type: c.design_type ?? existing.design_type,
+    };
+  }, [draft, existing, user, isGuestRoute]);
+
   const [searchParams] = useSearchParams();
   const savedHighlight = searchParams.get("saved") === "1";
 
@@ -425,6 +445,7 @@ export function CardEditorPage() {
             ...card,
             expire_at: existing?.expire_at ?? card.expire_at,
             status: existing?.status ?? card.status,
+            qr_image_url: existing?.qr_image_url ?? card.qr_image_url,
           });
           setCardLinks(cardId, draftLinkRowsToCardLinks(dly, linkRows, cardId));
         }
@@ -801,6 +822,14 @@ export function CardEditorPage() {
       };
       upsertBusinessCard(nextCard);
       await upsertCardRemote(nextCard);
+
+      try {
+        const synced = await syncQrImageAfterSave(nextCard);
+        upsertBusinessCard(synced);
+        await upsertCardRemote(synced);
+      } catch (err) {
+        console.warn("[CardEditorPage] QR 이미지 동기화", err);
+      }
 
       const links: CardLink[] = linkRows
         .filter((r) => r.label && r.url)
@@ -1203,6 +1232,12 @@ export function CardEditorPage() {
             }
           />
         </div>
+
+        {exportCardForPrint ? (
+          <div className="mt-10 scroll-mt-24">
+            <CardQrAndExportPanel card={exportCardForPrint} />
+          </div>
+        ) : null}
 
         <Card>
           <CardHeader>

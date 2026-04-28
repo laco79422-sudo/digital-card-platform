@@ -24,6 +24,9 @@ export type TrustTestimonial = {
   role: string;
 };
 
+/** 출력 템플릿 (QR·인쇄 카드 디자인) */
+export type CardDesignType = "simple" | "business" | "emotional";
+
 export interface BusinessCard {
   id: string;
   user_id: string;
@@ -82,6 +85,10 @@ export interface BusinessCard {
   brand_image_pan_y?: number | null;
   /** 구 카드 호환용 (natural 없을 때 cover 초점) */
   brand_image_object_position?: string | null;
+  /** 공개 명함 QR PNG 저장 URL */
+  qr_image_url?: string | null;
+  /** 인쇄·QR 카드 출력 템플릿 */
+  design_type?: CardDesignType;
 }
 
 export type CardLinkType = "custom" | "phone" | "email" | "kakao" | "youtube" | "blog" | "website";
@@ -102,6 +109,8 @@ export interface CardView {
   referrer: string | null;
   user_agent: string | null;
   promoter_code?: string | null;
+  /** 조회 출처 (예: nfc) */
+  source?: string | null;
 }
 
 export interface CardClick {

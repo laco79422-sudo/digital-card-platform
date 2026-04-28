@@ -1,4 +1,6 @@
+import { CardQrAndExportPanel } from "@/components/card-print/CardQrAndExportPanel";
 import { BRAND_DISPLAY_NAME, brandCta } from "@/lib/brand";
+import { buildNfcAcceptUrl } from "@/lib/siteOrigin";
 import { buildCardShareUrl, resolveBusinessCardPublicUrl } from "@/lib/cardShareUrl";
 import { shareCardLinkNativeOrder } from "@/lib/kakaoWebShare";
 import { buildReferralCode } from "@/lib/referrals";
@@ -135,6 +137,7 @@ export function DashboardPage() {
   const [referralCopyDone, setReferralCopyDone] = useState(false);
   const [referralShareHint, setReferralShareHint] = useState(false);
   const [cardCopyId, setCardCopyId] = useState<string | null>(null);
+  const [nfcCopyCardId, setNfcCopyCardId] = useState<string | null>(null);
   const [promoCopyId, setPromoCopyId] = useState<string | null>(null);
   const [cardShareHintId, setCardShareHintId] = useState<string | null>(null);
   const [qrCard, setQrCard] = useState<BusinessCard | null>(null);
@@ -286,6 +289,17 @@ export function DashboardPage() {
     }
     setCardCopyId(card.id);
     window.setTimeout(() => setCardCopyId(null), 2200);
+  };
+
+  const copyNfcLink = async (card: BusinessCard) => {
+    const url = buildNfcAcceptUrl(card.id);
+    try {
+      await navigator.clipboard.writeText(url);
+    } catch {
+      window.prompt("NFC 링크를 복사해 주세요", url);
+    }
+    setNfcCopyCardId(card.id);
+    window.setTimeout(() => setNfcCopyCardId(null), 2200);
   };
 
   const shareCard = async (card: BusinessCard) => {
@@ -727,6 +741,19 @@ export function DashboardPage() {
                           {publicUrl || "/c/ 주소 미설정"}
                         </p>
                       </div>
+                      <div className="mt-3 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3">
+                        <p className="text-xs font-bold text-slate-700">NFC 태그용 링크</p>
+                        <p className="mt-1 text-xs leading-relaxed text-slate-600">
+                          이 링크를 NFC 태그에 저장하면, 상대방이 태그했을 때 수락 후 명함을 볼 수 있습니다.
+                        </p>
+                        <button
+                          type="button"
+                          className="mt-3 inline-flex min-h-9 items-center justify-center rounded-xl bg-slate-900 px-3 text-xs font-bold text-white hover:bg-slate-800"
+                          onClick={() => void copyNfcLink(card)}
+                        >
+                          {nfcCopyCardId === card.id ? "복사됨" : "NFC 링크 복사"}
+                        </button>
+                      </div>
                       <div className="mt-3 flex flex-wrap gap-2 text-xs font-semibold text-slate-600">
                         <span className="rounded-full bg-slate-100 px-2.5 py-1">총 조회 {cardViewCount}</span>
                         <span className="rounded-full bg-slate-100 px-2.5 py-1">클릭 수 {cardClickCount}</span>
@@ -735,6 +762,10 @@ export function DashboardPage() {
                         </span>
                       </div>
                     </div>
+                  </div>
+
+                  <div className="mt-4">
+                    <CardQrAndExportPanel card={card} />
                   </div>
 
                   {access.expired ? (
