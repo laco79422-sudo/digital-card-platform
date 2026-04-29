@@ -2,7 +2,10 @@ import { saveLinkoReferralCodeFromUrl } from "@/lib/linkoReferralStorage";
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 
-/** 서비스 가입 추적용 `?ref=` 만 저장 (명함 /c/?ref 홍보와 분리) */
+/**
+ * 추천 코드 저장 (`linko_referral_code`).
+ * 메인 `/`, 회원가입·로그인 경로의 `?ref=` 만 처리 — 명함 공유 `/c/{slug}` 와 분리.
+ */
 const REF_CAPTURE_PATH_PREFIXES = ["/signup", "/login"];
 
 export function ReferralCaptureEffect() {

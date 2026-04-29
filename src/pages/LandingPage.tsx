@@ -9,6 +9,7 @@ import { LANDING_FAQ, LANDING_TESTIMONIALS } from "@/data/sampleData";
 import { layout, section, type } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
 import { useAppDataStore } from "@/stores/appDataStore";
+import { useAuthStore } from "@/stores/authStore";
 import { ArrowRight, Check, Video } from "lucide-react";
 import { useMemo, useState, type ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
@@ -59,6 +60,7 @@ export function LandingPage() {
   const [sampleType, setSampleType] = useState<LandingSampleType>("personal");
   const featuredCreatorIds = useAppDataStore((s) => s.featuredCreatorIds);
   const creators = useAppDataStore((s) => s.creators);
+  const user = useAuthStore((s) => s.user);
   const featured = useMemo(
     () =>
       featuredCreatorIds
@@ -80,6 +82,26 @@ export function LandingPage() {
             </p>
           </div>
         </div>
+      ) : null}
+
+      {!user ? (
+        <section className="border-b border-slate-100 bg-slate-50/90">
+          <div className={cn(layout.page, "py-5")}>
+            <div className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white px-4 py-5 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:px-6">
+              <p className="text-sm leading-relaxed text-slate-700">
+                추천링크는 회원가입 후 자동으로 만들어집니다.
+                <br />
+                가입 후 나만의 링크로 린코를 소개할 수 있어요.
+              </p>
+              <Link
+                to="/signup"
+                className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-xl bg-cta-500 px-5 text-center text-sm font-bold text-white shadow-sm hover:bg-cta-600"
+              >
+                회원가입하고 추천링크 받기
+              </Link>
+            </div>
+          </div>
+        </section>
       ) : null}
 
       {/* 1. 강한 결과 + 메인 CTA */}

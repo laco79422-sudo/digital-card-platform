@@ -1488,11 +1488,15 @@ export function DashboardPage() {
           </div>
 
           <div className="mt-8 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-            <div>
-              <p className="text-sm font-bold text-brand-800">내 추천 링크</p>
-              <h3 className="mt-1 text-lg font-semibold text-slate-900 sm:text-xl">추천하고 결제 보상 받기</h3>
+            <div className="max-w-2xl">
+              <h3 className="text-lg font-semibold text-slate-900 sm:text-xl">내 추천 링크</h3>
               <p className="mt-2 text-sm leading-relaxed text-slate-600 sm:text-base">
-                내 추천 링크로 가입한 사용자가 결제할 때마다 10%가 적립됩니다. 명함 공유 링크와는 별도입니다.
+                가입하면 나만의 추천링크가 자동으로 만들어집니다. 이 링크를 비회원에게 보내 린코를 소개할 수 있어요. 추천받은
+                사람이 가입하고 결제하면 추천 보상을 받을 수 있습니다.
+              </p>
+              <p className="mt-3 text-xs leading-relaxed text-slate-500">
+                명함 공유 주소(<span className="font-mono">/c/···</span>)와 추천링크(<span className="font-mono">/?ref=···</span>)는
+                목적이 다릅니다. 소개·가입 유도에는 추천링크를 사용해 주세요.
               </p>
             </div>
             <div className="rounded-xl bg-white px-4 py-3 text-sm font-semibold text-slate-900 shadow-sm ring-1 ring-slate-200">
@@ -1501,9 +1505,9 @@ export function DashboardPage() {
           </div>
 
           <div className="mt-5">
-            <p className="text-sm font-semibold text-slate-800">내 추천 링크 주소</p>
+            <p className="text-sm font-semibold text-slate-800">추천링크 주소</p>
             <p className="mt-2 break-all rounded-xl border border-slate-200 bg-white px-4 py-3 font-mono text-sm font-semibold text-brand-900">
-              {referralLink || "추천 링크를 불러오는 중입니다."}
+              {referralLink || "추천링크를 불러오는 중입니다."}
             </p>
           </div>
 
@@ -1514,7 +1518,7 @@ export function DashboardPage() {
               onClick={() => void copyReferralLink()}
               disabled={!referralLink}
             >
-              추천 링크 복사하기
+              추천링크 복사하기
             </button>
           </div>
 

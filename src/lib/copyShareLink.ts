@@ -14,7 +14,7 @@ export async function copyLinkToClipboard(url: string, type: "card" | "referral"
   try {
     await navigator.clipboard.writeText(url);
     if (type === "referral") {
-      alert("추천 링크가 복사되었습니다.\n카카오톡 대화방이나 SNS에 붙여넣어 공유해 주세요.");
+      alert("추천링크가 복사되었습니다.\n카카오톡, 문자, SNS에 붙여넣어 린코를 소개해 주세요.");
     } else {
       alert("명함 링크가 복사되었습니다.\n카카오톡 대화방을 열고 메시지 입력창에 붙여넣어 공유해 주세요.");
     }

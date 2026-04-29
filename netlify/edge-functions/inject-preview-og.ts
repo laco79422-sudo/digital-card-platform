@@ -263,6 +263,20 @@ export default async (request: Request, context: Context) => {
   const url = new URL(request.url);
 
   if (url.pathname === "/" || url.pathname === "") {
+    const ref = url.searchParams.get("ref")?.trim();
+    const canonical = `${COMPANY_BASE_URL}/${url.search}`;
+    if (ref) {
+      return injectSeo(
+        context,
+        buildCommonSeoBlock({
+          canonical,
+          title: "린코 디지털 명함 — 친구 초대",
+          desc: "추천 링크로 린코를 만나 보세요. 가입 후 디지털 명함을 시작할 수 있어요.",
+          image: OG_REFERRAL,
+        }),
+        "injected-landing-ref",
+      );
+    }
     return injectSeo(context, buildCompanySeoBlock(), "injected-company");
   }
 
