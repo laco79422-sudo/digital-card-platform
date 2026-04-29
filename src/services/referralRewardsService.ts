@@ -37,6 +37,17 @@ export type ReferralRewardBalances = {
   pendingClawback: number;
 };
 
+/** 결제 후 14일이 지난 pending 보상을 출금 가능(confirmed)으로 전환 (추천인 본인 세션) */
+export async function finalizeEligibleReferrerRewards(): Promise<number | null> {
+  if (!isSupabaseConfigured || !supabase) return null;
+  const { data, error } = await supabase.rpc("finalize_eligible_referrer_rewards");
+  if (error) {
+    console.warn("[referralRewardsService] finalize_eligible_referrer_rewards", error.message);
+    return null;
+  }
+  return typeof data === "number" ? data : null;
+}
+
 /** 결제 성공 시 서버에 기록 + 추천 보상(10%) 생성 */
 export async function recordPaymentAndReferralReward(opts: {
   planType: string;
@@ -60,6 +71,7 @@ export async function recordPaymentAndReferralReward(opts: {
 
 export async function fetchReferralRewardsForReferrer(referrerUserId: string): Promise<ReferralRewardRow[]> {
   if (!isSupabaseConfigured || !supabase) return [];
+  await finalizeEligibleReferrerRewards();
   const { data, error } = await supabase
     .from("referral_rewards")
     .select("*")

@@ -38,6 +38,7 @@ import {
 import {
   claimPendingReferral,
   fetchProfileReferralCode,
+  fetchReferralClickCount,
   fetchReferralSignupCount,
 } from "@/services/referralService";
 import {
@@ -259,6 +260,7 @@ export function DashboardPage() {
   const [cardsLoading, setCardsLoading] = useState(false);
   const [profileReferralCodeDb, setProfileReferralCodeDb] = useState<string | null>(null);
   const [referralSignupCountDb, setReferralSignupCountDb] = useState<number | null>(null);
+  const [referralClickCountDb, setReferralClickCountDb] = useState<number | null>(null);
   const [referralRewardRows, setReferralRewardRows] = useState<ReferralRewardRow[]>([]);
   const [rewardClawbackPending, setRewardClawbackPending] = useState(0);
   const [withdrawalModalOpen, setWithdrawalModalOpen] = useState(false);
@@ -286,15 +288,21 @@ export function DashboardPage() {
     if (!uid) {
       setProfileReferralCodeDb(null);
       setReferralSignupCountDb(null);
+      setReferralClickCountDb(null);
       return;
     }
     let cancelled = false;
     void (async () => {
       await claimPendingReferral();
-      const [code, count] = await Promise.all([fetchProfileReferralCode(uid), fetchReferralSignupCount(uid)]);
+      const [code, count, clicks] = await Promise.all([
+        fetchProfileReferralCode(uid),
+        fetchReferralSignupCount(uid),
+        fetchReferralClickCount(uid),
+      ]);
       if (cancelled) return;
       setProfileReferralCodeDb(code);
       setReferralSignupCountDb(count);
+      setReferralClickCountDb(clicks);
     })();
     return () => {
       cancelled = true;
@@ -305,14 +313,17 @@ export function DashboardPage() {
     if (!uid) {
       setReferralRewardRows([]);
       setRewardClawbackPending(0);
+      setReferralClickCountDb(null);
       return;
     }
-    const [rows, claw] = await Promise.all([
+    const [rows, claw, clicks] = await Promise.all([
       fetchReferralRewardsForReferrer(uid),
       fetchPendingClawbacksSum(uid),
+      fetchReferralClickCount(uid),
     ]);
     setReferralRewardRows(rows);
     setRewardClawbackPending(claw);
+    setReferralClickCountDb(clicks);
   }, [uid]);
 
   useEffect(() => {
@@ -492,6 +503,11 @@ export function DashboardPage() {
   const referredCount = referralSignupCountDb ?? myReferral?.referred_count ?? 0;
   const rewardMonths = rewardMonthsForReferralCount(referredCount);
   const referralLink = refCode ? buildSignupReferralUrl(refCode) : "";
+
+  const referralPaymentConversionCount = useMemo(
+    () => referralRewardRows.filter((r) => r.status !== "cancelled").length,
+    [referralRewardRows],
+  );
 
   const referralRewardBalances = useMemo(
     () => aggregateRewardBalances(referralRewardRows, rewardClawbackPending),
@@ -1520,6 +1536,53 @@ export function DashboardPage() {
             >
               추천링크 복사하기
             </button>
+          </div>
+
+          <div className="mt-8 rounded-xl border border-slate-200 bg-white px-4 py-5 shadow-sm">
+            <p className="text-sm font-bold text-slate-900">추천 링크 성과</p>
+            <dl className="mt-4 grid gap-5 sm:grid-cols-2">
+              <div>
+                <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">조회수</dt>
+                <dd className="mt-1 text-xl font-bold tabular-nums text-slate-900">
+                  {(referralClickCountDb ?? 0).toLocaleString()}
+                </dd>
+                <p className="mt-1 text-xs leading-relaxed text-slate-500">추천 링크를 클릭한 횟수입니다.</p>
+              </div>
+              <div>
+                <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">추천 가입자</dt>
+                <dd className="mt-1 text-xl font-bold tabular-nums text-slate-900">{referredCount}명</dd>
+                <p className="mt-1 text-xs leading-relaxed text-slate-500">
+                  추천 링크를 통해 가입한 사람입니다.
+                </p>
+              </div>
+              <div>
+                <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">결제 전환</dt>
+                <dd className="mt-1 text-xl font-bold tabular-nums text-slate-900">
+                  {referralPaymentConversionCount}건
+                </dd>
+                <p className="mt-1 text-xs leading-relaxed text-slate-500">
+                  추천 가입자가 유료 결제한 횟수입니다.
+                </p>
+              </div>
+              <div>
+                <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">적립 예정 보상</dt>
+                <dd className="mt-1 text-xl font-bold tabular-nums text-brand-900">
+                  {referralRewardBalances.pending.toLocaleString()}원
+                </dd>
+                <p className="mt-1 text-xs leading-relaxed text-slate-500">
+                  추천 보상: 결제 금액의 10%가 적립됩니다. 결제 후 14일이 지나 출금 신청 가능 상태로 바뀝니다.
+                </p>
+              </div>
+              <div className="sm:col-span-2">
+                <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">출금 가능 보상</dt>
+                <dd className="mt-1 text-xl font-bold tabular-nums text-emerald-800">
+                  {referralRewardBalances.confirmedAvailable.toLocaleString()}원
+                </dd>
+                <p className="mt-1 text-xs leading-relaxed text-slate-500">
+                  확정된 보상 중 출금 신청할 수 있는 금액입니다.
+                </p>
+              </div>
+            </dl>
           </div>
 
           <div className="mt-5 rounded-xl border border-slate-200 bg-white/80 px-4 py-4">

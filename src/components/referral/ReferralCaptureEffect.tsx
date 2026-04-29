@@ -1,3 +1,4 @@
+import { maybeRecordReferralClickFromUrl } from "@/lib/referralClickTracking";
 import { saveLinkoReferralCodeFromUrl } from "@/lib/linkoReferralStorage";
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
@@ -23,6 +24,7 @@ export function ReferralCaptureEffect() {
 
     if (landing || cardPathWithRef) {
       saveLinkoReferralCodeFromUrl(ref);
+      void maybeRecordReferralClickFromUrl(ref);
     }
   }, [location.pathname, location.search]);
 

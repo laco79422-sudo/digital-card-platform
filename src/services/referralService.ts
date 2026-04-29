@@ -25,6 +25,20 @@ export async function fetchReferralSignupCount(referrerUserId: string): Promise<
   return count ?? 0;
 }
 
+/** 추천 링크(`/?ref=`) 클릭 기록 수 — 유효한 코드로 프로필과 매칭된 행만 집계 */
+export async function fetchReferralClickCount(referrerUserId: string): Promise<number> {
+  if (!isSupabaseConfigured || !supabase) return 0;
+  const { count, error } = await supabase
+    .from("referral_clicks")
+    .select("*", { count: "exact", head: true })
+    .eq("referrer_user_id", referrerUserId);
+  if (error) {
+    console.warn("[referralService] fetchReferralClickCount", error.message);
+    return 0;
+  }
+  return count ?? 0;
+}
+
 /** 로그인 세션 기준으로 저장된 추천 코드를 서버에 반영합니다. 성공 시 로컬 저장값을 지웁니다. */
 export async function claimPendingReferral(): Promise<boolean> {
   if (!isSupabaseConfigured || !supabase) return false;
