@@ -4,7 +4,7 @@ import { useLocation } from "react-router-dom";
 
 /**
  * 추천 코드 저장 (`linko_referral_code`).
- * 메인 `/`, 회원가입·로그인 경로의 `?ref=` 만 처리 — 명함 공유 `/c/{slug}` 와 분리.
+ * 메인 `/`, 회원가입·로그인의 `?ref=` 및 잘못된 `/c/...?ref=` 진입 시에도 저장.
  */
 const REF_CAPTURE_PATH_PREFIXES = ["/signup", "/login"];
 
@@ -13,13 +13,17 @@ export function ReferralCaptureEffect() {
 
   useEffect(() => {
     const path = location.pathname.replace(/\/$/, "") || "/";
-    const allowed =
+    const ref = new URLSearchParams(location.search).get("ref");
+    if (!ref?.trim()) return;
+
+    const landing =
       path === "/" ||
       REF_CAPTURE_PATH_PREFIXES.some((p) => path === p || path.startsWith(`${p}/`));
-    if (!allowed) return;
+    const cardPathWithRef = path.startsWith("/c/");
 
-    const ref = new URLSearchParams(location.search).get("ref");
-    if (ref) saveLinkoReferralCodeFromUrl(ref);
+    if (landing || cardPathWithRef) {
+      saveLinkoReferralCodeFromUrl(ref);
+    }
   }, [location.pathname, location.search]);
 
   return null;

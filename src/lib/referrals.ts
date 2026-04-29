@@ -12,14 +12,15 @@ export function rewardMonthsForReferralCount(count: number): number {
   return 0;
 }
 
+/** 추천 링크 공유·복사용 도메인 (복사 시 localhost가 나가지 않도록 고정) */
+export const LINKO_REFERRAL_PUBLIC_ORIGIN = "https://linkoapp.kr" as const;
+
 /**
- * 추천 전용 URL — 메인(소개)으로 보낸 뒤 가입으로 이어지게 함.
- * 명함 공유 링크(`/c/{slug}`)와 절대 섞지 않음.
+ * 추천 전용 URL — 항상 프로덕션 메인 `/?ref=` (명함 `/c/{slug}` 와 절대 섞지 않음).
  */
-export function buildSignupReferralUrl(siteOrigin: string, referralCode: string): string {
-  const o = siteOrigin.replace(/\/$/, "");
+export function buildSignupReferralUrl(referralCode: string): string {
   const code = referralCode.trim().toUpperCase();
-  return `${o}/?ref=${encodeURIComponent(code)}`;
+  return `${LINKO_REFERRAL_PUBLIC_ORIGIN}/?ref=${encodeURIComponent(code)}`;
 }
 
 export function getReferralCodeFromSearch(search: string): string | null {

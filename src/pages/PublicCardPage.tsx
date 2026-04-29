@@ -1,6 +1,7 @@
 import { DigitalCardPublicView } from "@/components/digital-card/DigitalCardPublicView";
 import { DigitalCardSeo } from "@/components/digital-card/DigitalCardSeo";
 import { resolveBusinessCardPublicUrl } from "@/lib/cardShareUrl";
+import { saveLinkoReferralCodeFromUrl } from "@/lib/linkoReferralStorage";
 import { savePromotionReferralCode } from "@/lib/promotionReferralStorage";
 import { insertCardVisitLog } from "@/services/cardVisitLogsService";
 import { insertCardViewRemote } from "@/services/cardViewsRemote";
@@ -10,7 +11,7 @@ import { useAuthStore } from "@/stores/authStore";
 import type { BusinessCard, CardLink, User } from "@/types/domain";
 import QRCode from "qrcode";
 import { useEffect, useLayoutEffect, useMemo, useState } from "react";
-import { Link, useLocation, useParams } from "react-router-dom";
+import { Link, Navigate, useLocation, useParams } from "react-router-dom";
 
 export function PublicCardPage() {
   const { slug } = useParams();
@@ -186,6 +187,12 @@ export function PublicCardPage() {
   }
 
   if (!card) {
+    /** 추천 전용은 `/?ref=` — 잘못 `/c/{slug}?ref=` 로 들어온 경우 메인으로 넘김 */
+    const refFromQuery = new URLSearchParams(location.search).get("ref")?.trim();
+    if (refFromQuery) {
+      saveLinkoReferralCodeFromUrl(refFromQuery);
+      return <Navigate to={`/?ref=${encodeURIComponent(refFromQuery)}`} replace />;
+    }
     return (
       <div className="flex min-h-dvh flex-col items-center justify-center bg-slate-50 px-5">
         <p className="text-xl font-semibold text-slate-900">명함을 찾을 수 없습니다</p>

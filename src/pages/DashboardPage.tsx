@@ -491,7 +491,7 @@ export function DashboardPage() {
     (uid ? buildReferralCode(uid) : "");
   const referredCount = referralSignupCountDb ?? myReferral?.referred_count ?? 0;
   const rewardMonths = rewardMonthsForReferralCount(referredCount);
-  const referralLink = refCode ? buildSignupReferralUrl(canonicalSiteOrigin(), refCode) : "";
+  const referralLink = refCode ? buildSignupReferralUrl(refCode) : "";
 
   const referralRewardBalances = useMemo(
     () => aggregateRewardBalances(referralRewardRows, rewardClawbackPending),
