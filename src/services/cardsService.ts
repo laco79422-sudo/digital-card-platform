@@ -333,6 +333,34 @@ export async function fetchCardBySlug(slug: string): Promise<FetchCardBySlugResu
   }
 }
 
+function cardBelongsToRemoteEditorUser(card: BusinessCard, user: { id: string; email?: string | null }): boolean {
+  const email = (user.email ?? "").trim().toLowerCase();
+  return (
+    card.user_id === user.id ||
+    card.owner_id === user.id ||
+    Boolean(email && (card.owner_email?.trim().toLowerCase() === email || card.email?.trim().toLowerCase() === email))
+  );
+}
+
+/** 편집기 직접 진입 시 스토어에 카드가 없을 때 Supabase에서 단건 조회 */
+export async function fetchBusinessCardByIdForOwner(
+  cardId: string,
+  user: { id: string; email?: string | null },
+): Promise<{ card: BusinessCard | null; error: string | null }> {
+  if (!isSupabaseConfigured || !supabase) return { card: null, error: null };
+  const trimmed = cardId.trim();
+  if (!trimmed) return { card: null, error: "invalid_id" };
+  const { data, error } = await supabase.from(TABLE_CARDS).select("*").eq("id", trimmed).maybeSingle();
+  if (error) {
+    console.error("[cardsService] fetchBusinessCardByIdForOwner", error.message);
+    return { card: null, error: error.message };
+  }
+  if (!data) return { card: null, error: "not_found" };
+  const card = normalizeBusinessCardRow(data as Record<string, unknown>);
+  if (!cardBelongsToRemoteEditorUser(card, user)) return { card: null, error: "forbidden" };
+  return { card, error: null };
+}
+
 export async function updateCardNameRemote(cardId: string, name: string): Promise<boolean> {
   if (!isSupabaseConfigured || !supabase) return false;
 

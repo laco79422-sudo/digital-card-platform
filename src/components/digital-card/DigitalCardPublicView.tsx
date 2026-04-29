@@ -45,7 +45,7 @@ import {
   Zap,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Link, useBlocker, useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 const themeClass: Record<string, string> = {
   navy: "from-slate-950 via-brand-950 to-brand-900",
@@ -206,15 +206,16 @@ export function DigitalCardPublicView({
   const nameInputRef = useRef<HTMLInputElement>(null);
   const [reservationOpen, setReservationOpen] = useState(false);
 
-  const leaveBlocker = useBlocker(conversionUx);
+  /** BrowserRouter 환경에서는 useBlocker를 쓸 수 없음 — 예약 모달 열린 상태에서만 탭 닫기 경고 */
   useEffect(() => {
-    if (leaveBlocker.state !== "blocked") return;
-    const ok = window.confirm(
-      "지금 나가면 예약 기회를 놓칠 수 있어요.\n정말 나가시겠어요?",
-    );
-    if (ok) leaveBlocker.proceed();
-    else leaveBlocker.reset();
-  }, [leaveBlocker]);
+    if (!conversionUx || !reservationOpen) return;
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [conversionUx, reservationOpen]);
 
   useEffect(() => {
     if (compact) return;

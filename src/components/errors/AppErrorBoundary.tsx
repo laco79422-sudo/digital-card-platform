@@ -32,13 +32,27 @@ export class AppErrorBoundary extends Component<Props, State> {
               {this.state.error.stack}
             </pre>
           ) : null}
-          <button
-            type="button"
-            className="rounded-xl bg-cta-500 px-5 py-2.5 text-sm font-semibold text-white shadow-sm shadow-cta-900/20 hover:bg-cta-600"
-            onClick={() => window.location.reload()}
-          >
-            새로고침
-          </button>
+          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-center">
+            <a
+              href="/dashboard"
+              className="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-50"
+            >
+              내 공간으로 돌아가기
+            </a>
+            <a
+              href="/"
+              className="inline-flex min-h-11 items-center justify-center rounded-xl border border-brand-200 bg-brand-50 px-5 py-2.5 text-sm font-semibold text-brand-950 hover:bg-brand-100"
+            >
+              홈으로 가기
+            </a>
+            <button
+              type="button"
+              className="rounded-xl bg-cta-500 px-5 py-2.5 text-sm font-semibold text-white shadow-sm shadow-cta-900/20 hover:bg-cta-600"
+              onClick={() => window.location.reload()}
+            >
+              새로고침
+            </button>
+          </div>
         </div>
       );
     }

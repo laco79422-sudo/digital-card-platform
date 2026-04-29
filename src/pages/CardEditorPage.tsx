@@ -71,10 +71,15 @@ import {
 } from "@/lib/pendingCardStorage";
 import { removeTempCard, saveTempCard } from "@/lib/tempCardStorage";
 import { buildViralShareText } from "@/lib/viralShareText";
-import { patchCardBrandHeroRemote, upsertCardRemote } from "@/services/cardsService";
+import {
+  fetchBusinessCardByIdForOwner,
+  fetchCardLinks,
+  patchCardBrandHeroRemote,
+  upsertCardRemote,
+} from "@/services/cardsService";
 import { syncQrImageAfterSave } from "@/services/cardQrSync";
 import { ArrowRight, Check, Copy, Loader2, Share2, Sparkles } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   Link,
   Navigate,
@@ -246,6 +251,8 @@ export function CardEditorPage() {
   const [sampleLadderActive, setSampleLadderActive] = useState(() => wantsSample);
   const [growthFlash, setGrowthFlash] = useState<string | null>(null);
   const [paidBusy, setPaidBusy] = useState(false);
+  /** 스토어에 카드가 없을 때 Supabase에서 단건 로드 (직접 URL 진입 등) */
+  const [editorBootstrap, setEditorBootstrap] = useState<"pending" | "ready" | "missing">("pending");
 
   const newCardIdRef = useRef<string | null>(null);
   /** 가입 후 첫 저장 시 로컬 임시 미리보기 삭제 */
@@ -1025,10 +1032,55 @@ export function CardEditorPage() {
     }
   };
 
+  useLayoutEffect(() => {
+    if (isGuestRoute || isNew || !id) {
+      setEditorBootstrap("ready");
+      return;
+    }
+    if (existing) {
+      setEditorBootstrap("ready");
+    }
+  }, [isGuestRoute, isNew, id, existing]);
+
+  useEffect(() => {
+    if (isGuestRoute || isNew || !id || existing || !user) return;
+    let cancelled = false;
+    void (async () => {
+      const result = await fetchBusinessCardByIdForOwner(id, user);
+      if (cancelled) return;
+      if (result.card) {
+        upsertBusinessCard(result.card);
+        const links = await fetchCardLinks(result.card.id);
+        if (links && links.length > 0) {
+          setCardLinks(result.card.id, links);
+        }
+        setEditorBootstrap("ready");
+      } else {
+        setEditorBootstrap("missing");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isGuestRoute, isNew, id, user, existing, upsertBusinessCard, setCardLinks]);
+
   const ownedCardsCount = useMemo(
     () => (user ? businessCards.filter((c) => cardBelongsToUser(c, user)).length : 0),
     [businessCards, user],
   );
+
+  if (!isGuestRoute && !isNew && id && editorBootstrap === "missing") {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  if (!isGuestRoute && !isNew && id && editorBootstrap === "pending") {
+    return (
+      <div className={cn(layout.pageEditor, "flex min-h-[50vh] flex-col items-center justify-center gap-3 py-16")}>
+        <Loader2 className="h-10 w-10 animate-spin text-brand-700" aria-hidden />
+        <p className="text-sm font-medium text-slate-600">명함을 불러오는 중…</p>
+      </div>
+    );
+  }
 
   if (user && isGuestRoute) {
     return <Navigate to={{ pathname: "/cards/new", search: location.search }} replace />;

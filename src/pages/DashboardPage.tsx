@@ -1346,6 +1346,7 @@ export function DashboardPage() {
                       {canEditCard ? (
                         <Link
                           to={`/cards/${encodeURIComponent(card.id)}/edit`}
+                          onClick={(e) => e.stopPropagation()}
                           className="inline-flex min-h-10 items-center justify-center rounded-xl border border-slate-300 bg-white px-3 text-sm font-bold text-slate-900 hover:bg-slate-50"
                         >
                           바로 수정
