@@ -20,18 +20,22 @@ export function previewOgImageEndpointUrl(origin: string, tempId: string): strin
   return `${base}/.netlify/functions/preview-og-image?tempId=${encodeURIComponent(tempId)}`;
 }
 
-/** Kakao / Open Graph — og:image must be an absolute https URL. */
+/** Kakao / Open Graph — og:image must be an absolute https URL. 히어로 표시와 동일 우선순위. */
 export function previewOgImageUrlFromDraft(
   draft: Pick<CardEditorDraft, "brand_image_url" | "gallery_urls_raw"> & {
     imageUrl?: string | null;
     image_url?: string | null;
     profile_image_url?: string | null;
+    og_image_url?: string | null;
+    thumbnail_url?: string | null;
   },
   fallbackHttps: string = SITE_OG_IMAGE_URL,
 ): string {
   const hero =
     draft.image_url?.trim() ||
     draft.profile_image_url?.trim() ||
+    draft.og_image_url?.trim() ||
+    draft.thumbnail_url?.trim() ||
     draft.imageUrl?.trim() ||
     draft.brand_image_url?.trim();
   const normalized = hero?.startsWith("http://") ? `https://${hero.slice("http://".length)}` : hero;
@@ -41,15 +45,14 @@ export function previewOgImageUrlFromDraft(
   return fallbackHttps;
 }
 
-/** 공개 명함 페이지 OG — og_image_url 우선, 없으면 대표 이미지·갤러리, 마지막으로 명함 전용 폴백 PNG */
+/** 공개 명함 페이지 OG — 표시용 히어로와 동일 우선순위 후 갤러리·폴백 */
 export function cardOgImageHttps(card: BusinessCard): string {
-  const og = card.og_image_url?.trim();
-  const ogNorm = og?.startsWith("http://") ? `https://${og.slice("http://".length)}` : og;
-  if (ogNorm?.startsWith("https://")) return ogNorm;
   return previewOgImageUrlFromDraft(
     {
       image_url: card.image_url ?? null,
       profile_image_url: card.profile_image_url ?? null,
+      og_image_url: card.og_image_url ?? null,
+      thumbnail_url: card.thumbnail_url ?? null,
       imageUrl: card.imageUrl ?? null,
       brand_image_url: card.brand_image_url ?? null,
       gallery_urls_raw: card.gallery_urls?.join("\n") ?? "",

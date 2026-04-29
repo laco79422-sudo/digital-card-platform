@@ -1,4 +1,4 @@
-import { getCardHeroImageUrl } from "@/lib/businessCardHeroImage";
+import { resolveCardHeroDisplayUrl } from "@/lib/businessCardHeroImage";
 import { fetchCardByIdForNfc, insertNfcAcceptLog, isUuid } from "@/services/nfcAcceptService";
 import { useAppDataStore } from "@/stores/appDataStore";
 import type { BusinessCard } from "@/types/domain";
@@ -13,7 +13,7 @@ type GateState =
   | { kind: "declined" };
 
 function previewImage(card: BusinessCard): string {
-  return getCardHeroImageUrl(card);
+  return resolveCardHeroDisplayUrl(card);
 }
 
 function previewOrgLine(card: BusinessCard): string {

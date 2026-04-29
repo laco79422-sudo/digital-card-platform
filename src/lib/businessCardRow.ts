@@ -17,9 +17,16 @@ export function normalizeBusinessCardRow(raw: Record<string, unknown>): Business
   const imageUrlQuoted = optStr(raw.imageUrl);
   const brand_image_url = optStr(raw.brand_image_url);
 
-  const mergedHero = image_url || profile_image_url || imageUrlQuoted || brand_image_url || null;
+  const mergedHero =
+    image_url ||
+    profile_image_url ||
+    imageUrlQuoted ||
+    brand_image_url ||
+    optStr(raw.thumbnail_url) ||
+    null;
 
   const og_image_url = optStr(raw.og_image_url);
+  const thumbnail_url = optStr(raw.thumbnail_url);
 
   const person_name =
     optStr(raw.person_name) ?? optStr(raw.name) ?? base.person_name ?? "";
@@ -36,6 +43,7 @@ export function normalizeBusinessCardRow(raw: Record<string, unknown>): Business
     image_url: image_url ?? undefined,
     profile_image_url: profile_image_url ?? undefined,
     og_image_url: og_image_url ?? undefined,
+    thumbnail_url: thumbnail_url ?? undefined,
     imageUrl: mergedHero ?? base.imageUrl ?? null,
     brand_image_url: mergedHero ?? brand_image_url ?? base.brand_image_url ?? null,
   };

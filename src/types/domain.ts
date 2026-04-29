@@ -77,6 +77,8 @@ export interface BusinessCard {
   profile_image_url?: string | null;
   /** 카카오·OG 전용 대표 이미지 URL (있으면 공유 썸네일 우선) */
   og_image_url?: string | null;
+  /** 목록·레거시 스키마용 썸네일 URL */
+  thumbnail_url?: string | null;
   /** 히어로 브랜드 대표 이미지 (DB 컬럼명, imageUrl과 동기화) */
   brand_image_url?: string | null;
   /** 히어로 프레임 비율 라벨 (저장·재현용, 예: 16:9) */

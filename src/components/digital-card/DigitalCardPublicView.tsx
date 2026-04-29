@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { linkButtonClassName } from "@/components/ui/buttonStyles";
 import { BRAND_DISPLAY_NAME } from "@/lib/brand";
-import { getCardHeroImageUrl } from "@/lib/businessCardHeroImage";
+import { getCardHeroImageUrl, resolveCardHeroDisplayUrl } from "@/lib/businessCardHeroImage";
 import {
   effectiveTagline,
   galleryImages,
@@ -140,7 +140,9 @@ export function DigitalCardPublicView({
   const company = card.brand_name.trim();
   const description = card.intro.trim();
   const title = card.tagline?.trim() ?? "";
-  const imageUrl = getCardHeroImageUrl(card, imageUrlOverride);
+  const rawHero = getCardHeroImageUrl(card, imageUrlOverride);
+  /** 편집기(onEmptyImageClick)만 빈 히어로 + 안내; 고객용은 공통 폴백 이미지 */
+  const heroFrameUrl = rawHero || (!onEmptyImageClick ? resolveCardHeroDisplayUrl(card, imageUrlOverride) : "");
   const hasPhone = Boolean(card.phone?.replace(/\D/g, ""));
   const showCompany = Boolean(company && company !== title);
   const trustMetric = trustMetricForView(card);
@@ -307,10 +309,10 @@ export function DigitalCardPublicView({
           <div className="flex flex-col items-center text-center">
             <div className="relative w-full max-w-md overflow-hidden rounded-2xl bg-white/10 shadow-lg ring-1 ring-white/15">
               <div className="relative aspect-video w-full max-h-[min(42vh,320px)] overflow-hidden">
-                {imageUrl ? (
+                {heroFrameUrl ? (
                   <BrandHeroFrame
                     className="absolute inset-0 h-full w-full"
-                    imageUrl={imageUrl}
+                    imageUrl={heroFrameUrl}
                     naturalWidth={card.brand_image_natural_width ?? 0}
                     naturalHeight={card.brand_image_natural_height ?? 0}
                     zoom={card.brand_image_zoom ?? 1}
@@ -330,14 +332,16 @@ export function DigitalCardPublicView({
                     <span className="text-xs font-medium text-white/70">클릭해서 이미지 선택</span>
                   </button>
                 ) : (
-                  <div className="flex h-full min-h-[120px] w-full flex-col items-center justify-center gap-2 px-4 text-white/85">
-                    <ImageIcon className="h-12 w-12 opacity-80 sm:h-14 sm:w-14" aria-hidden />
-                    <span className="text-sm font-medium sm:text-base">이미지를 등록해 주세요</span>
-                  </div>
+                  <div
+                    className="absolute inset-0 min-h-[120px] w-full bg-gradient-to-br from-slate-800 via-brand-950 to-slate-950"
+                    aria-hidden
+                  />
                 )}
               </div>
             </div>
-            {imageHelperText ? <p className="mt-2 text-sm font-medium text-white/85">{imageHelperText}</p> : null}
+            {onEmptyImageClick && imageHelperText ? (
+              <p className="mt-2 text-sm font-medium text-white/85">{imageHelperText}</p>
+            ) : null}
             {hasPitchHeadline ? (
               <>
                 {tempPreview ? (

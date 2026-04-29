@@ -12,6 +12,7 @@ import {
 } from "@/lib/designRequestLabels";
 import { layout } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
+import { CardHeroThumbnailImg } from "@/components/digital-card/CardHeroThumbnailImg";
 import { buildCardPublicShareUrl, copyLinkToClipboard } from "@/lib/copyShareLink";
 import { getCardHeroImageUrl } from "@/lib/businessCardHeroImage";
 import {
@@ -964,7 +965,6 @@ export function DashboardPage() {
         ) : (
           <ul className="mt-6 grid gap-4 lg:grid-cols-2">
             {myCards.map((card) => {
-              const imageUrl = getCardHeroImageUrl(card);
               const publicUrl = resolveBusinessCardPublicUrl(card, shareOrigin) ?? "";
               const cardViewCount = cardViews.filter((v) => v.card_id === card.id).length;
               const cardClickCount = cardClicks.filter((c) => c.card_id === card.id).length;
@@ -1004,13 +1004,7 @@ export function DashboardPage() {
                 >
                   <div className="relative">
                     <div className="aspect-[16/10] w-full overflow-hidden bg-gradient-to-br from-slate-100 to-slate-200">
-                      {imageUrl ? (
-                        <img src={imageUrl} alt="" className="h-full w-full object-cover" loading="lazy" />
-                      ) : (
-                        <div className="flex h-full min-h-[148px] w-full items-center justify-center px-4 text-center text-sm font-semibold text-slate-500">
-                          기본 썸네일
-                        </div>
-                      )}
+                      <CardHeroThumbnailImg card={card} className="h-full w-full object-cover" />
                     </div>
                     <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/92 via-slate-900/55 to-transparent px-4 pb-4 pt-16">
                       <div className="flex flex-wrap items-center gap-2">

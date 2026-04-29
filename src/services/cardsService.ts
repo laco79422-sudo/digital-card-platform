@@ -49,6 +49,7 @@ const BUSINESS_CARD_REMOTE_KEYS = [
   "services",
   "image_url",
   "profile_image_url",
+  "thumbnail_url",
   "imageUrl",
   "brand_image_url",
   "brand_image_frame_ratio",

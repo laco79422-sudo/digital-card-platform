@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader } from "@/components/ui/Card";
 import { layout } from "@/lib/ui-classes";
-import { getCardHeroImageUrl } from "@/lib/businessCardHeroImage";
+import { resolveCardHeroDisplayUrl } from "@/lib/businessCardHeroImage";
 import { cn } from "@/lib/utils";
 import { createPromotionApplicationRemote, fetchPromotionEnabledCards } from "@/services/promotionService";
 import { useAppDataStore } from "@/stores/appDataStore";
@@ -104,7 +104,6 @@ export function PromotePage() {
 
       <div className="mt-8 grid gap-4 lg:grid-cols-2">
         {promotableCards.map((card) => {
-          const imageUrl = getCardHeroImageUrl(card);
           const applicationsCount = promotionApplications.filter((application) => application.card_id === card.id).length;
           const existing = promotionApplications.find(
             (application) => application.card_id === card.id && application.applicant_user_id === user.id,
@@ -114,11 +113,12 @@ export function PromotePage() {
               <CardHeader>
                 <div className="flex gap-4">
                   <div className="h-20 w-28 shrink-0 overflow-hidden rounded-xl bg-slate-100 ring-1 ring-slate-200">
-                    {imageUrl ? (
-                      <img src={imageUrl} alt="" className="h-full w-full object-cover" loading="lazy" />
-                    ) : (
-                      <div className="flex h-full items-center justify-center text-xs font-bold text-slate-500">명함</div>
-                    )}
+                    <img
+                      src={resolveCardHeroDisplayUrl(card)}
+                      alt=""
+                      className="h-full w-full object-cover"
+                      loading="lazy"
+                    />
                   </div>
                   <div>
                     <h2 className="text-lg font-bold text-slate-900">{cardDisplayName(card)}</h2>
