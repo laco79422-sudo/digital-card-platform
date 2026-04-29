@@ -18,19 +18,22 @@ export async function insertCardVisitLog(row: {
   card_slug: string;
   owner_user_id: string;
   promoter_code: string | null;
+  partner_user_id?: string | null;
   source: "direct" | "promotion";
   visitor_user_agent: string | null;
 }): Promise<boolean> {
   if (!isSupabaseConfigured || !supabase) return false;
   try {
-    const { error } = await supabase.from(TABLE).insert({
+    const payload: Record<string, unknown> = {
       card_id: row.card_id,
       card_slug: row.card_slug,
       owner_user_id: row.owner_user_id,
       promoter_code: row.promoter_code,
       source: row.source,
       visitor_user_agent: row.visitor_user_agent,
-    });
+    };
+    if (row.partner_user_id) payload.partner_user_id = row.partner_user_id;
+    const { error } = await supabase.from(TABLE).insert(payload);
     if (error) {
       if (!isLikelyMissingRelation(error.message)) {
         console.error("[cardVisitLogsService] insertCardVisitLog", error.message, error);

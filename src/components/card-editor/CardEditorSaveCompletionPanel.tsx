@@ -2,8 +2,9 @@ import { Button } from "@/components/ui/Button";
 import { downloadRemoteFile } from "@/lib/downloadRemoteFile";
 import { shareCardLinkNativeOrder } from "@/lib/kakaoWebShare";
 import { cn } from "@/lib/utils";
-import { Check, Copy, Download, ImageIcon, Share2, X } from "lucide-react";
+import { Check, Copy, Download, ImageIcon, LayoutDashboard, Share2, X } from "lucide-react";
 import { useCallback, useId, useState } from "react";
+import { Link } from "react-router-dom";
 
 type Props = {
   shareUrl: string;
@@ -12,6 +13,8 @@ type Props = {
   qrImageUrl?: string | null;
   heroImageUrl?: string | null;
   slug?: string;
+  /** 3초 명함 만들기 직후 저장 분기 */
+  quickDraft?: boolean;
   onDismiss: () => void;
 };
 
@@ -22,6 +25,7 @@ export function CardEditorSaveCompletionPanel({
   qrImageUrl,
   heroImageUrl,
   slug,
+  quickDraft,
   onDismiss,
 }: Props) {
   const baseId = useId();
@@ -99,7 +103,14 @@ export function CardEditorSaveCompletionPanel({
             <p id={`${baseId}-title`} className="text-lg font-extrabold tracking-tight text-slate-900 sm:text-xl">
               명함이 완성되었습니다
             </p>
-            <p className="mt-1 text-base font-semibold text-emerald-900 sm:text-lg">지금 공유하면 고객이 들어옵니다</p>
+            {quickDraft ? (
+              <p className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50/90 px-3 py-2 text-sm font-semibold leading-relaxed text-emerald-950">
+                명함 초안이 완성되었습니다. 이제 필요한 부분만 수정하고 바로 공유해 보세요.
+              </p>
+            ) : null}
+            <p className="mt-1 text-base font-semibold text-emerald-900 sm:text-lg">
+              이제 공유하면 고객 유입을 확인할 수 있습니다.
+            </p>
           </div>
         </div>
         <button
@@ -112,7 +123,7 @@ export function CardEditorSaveCompletionPanel({
         </button>
       </div>
 
-      <div className="mt-6 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+      <div className="mt-6 grid grid-cols-1 gap-2.5 sm:grid-cols-3">
         <Button type="button" variant="outline" className="min-h-12 w-full gap-2 sm:min-h-[52px]" onClick={() => void copyLink()}>
           <Copy className="h-4 w-4 shrink-0" aria-hidden />
           {copyLinkDone ? "복사됨!" : "내 명함 링크 복사"}
@@ -129,6 +140,15 @@ export function CardEditorSaveCompletionPanel({
           <Download className="h-4 w-4 shrink-0" aria-hidden />
           명함 이미지 저장
         </Button>
+        <Link
+          to="/dashboard"
+          className={cn(
+            "inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-50 sm:min-h-[52px]",
+          )}
+        >
+          <LayoutDashboard className="h-4 w-4 shrink-0" aria-hidden />
+          내 공간에서 성과 보기
+        </Link>
       </div>
 
       {!hasDownloadableImage ? (
@@ -139,8 +159,10 @@ export function CardEditorSaveCompletionPanel({
       ) : null}
 
       <div className="mt-8 border-t border-slate-200/90 pt-6">
-        <p className="text-sm font-bold text-slate-900">자동 홍보 문구</p>
-        <p className="mt-1 text-xs text-slate-500">업종에 맞춰 생성했습니다. 복사해 카카오·당근·문자에 붙여 넣으세요.</p>
+        <p className="text-sm font-bold text-slate-900">바로 공유할 홍보 문구</p>
+        <p className="mt-1 text-xs text-slate-500">
+          업종에 맞춰 만들었습니다. 링크가 포함되어 있어요. 복사해 카카오·당근·문자에 붙여 넣으세요.
+        </p>
         <div className="mt-3 whitespace-pre-wrap break-words rounded-2xl border-2 border-slate-200 bg-white px-4 py-4 text-[15px] font-medium leading-relaxed text-slate-900 shadow-inner">
           {promoShareText}
         </div>
@@ -148,6 +170,11 @@ export function CardEditorSaveCompletionPanel({
           <Copy className="h-4 w-4 shrink-0" aria-hidden />
           {copyPromoDone ? "홍보 문구 복사됨!" : "홍보 문구 복사하기"}
         </Button>
+        {copyPromoDone ? (
+          <p className="mt-3 text-sm font-medium leading-relaxed text-emerald-900">
+            홍보 문구가 복사되었습니다. 카카오톡, 당근, 문자, SNS에 붙여넣어 공유해 주세요.
+          </p>
+        ) : null}
       </div>
 
       <div id="share-flow-guide" className="mt-8 rounded-xl border border-emerald-200/80 bg-emerald-50/40 px-4 py-4 text-left sm:px-5">

@@ -682,6 +682,19 @@ export function CardForm({
             />
             {errors.kakao_url ? <p className="mt-1 text-xs text-red-600">{errors.kakao_url}</p> : null}
           </div>
+          <div className="sm:col-span-2">
+            <label className="text-base font-medium text-slate-800">카카오톡 상담 링크</label>
+            <p className="mt-1 text-xs leading-relaxed text-slate-500">
+              카카오톡 상담 링크를 입력하면 고객이 버튼 하나로 상담을 시작할 수 있습니다.
+            </p>
+            <Input
+              className="mt-1"
+              placeholder="https://open.kakao.com/..."
+              value={draft.kakao_chat_url}
+              onChange={(e) => setDraft({ kakao_chat_url: e.target.value })}
+            />
+            {errors.kakao_chat_url ? <p className="mt-1 text-xs text-red-600">{errors.kakao_chat_url}</p> : null}
+          </div>
         </CardContent>
       </Card>
     </div>

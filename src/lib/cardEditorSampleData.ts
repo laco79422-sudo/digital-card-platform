@@ -30,6 +30,7 @@ export function getSampleCardDraft(overrides: Partial<CardEditorDraft> = {}): Ca
     blog_url: "",
     youtube_url: "",
     kakao_url: "",
+    kakao_chat_url: "",
     theme: "navy",
     is_public: true,
     tagline: "명함 하나로 고객이 먼저 찾아오게 만듭니다",

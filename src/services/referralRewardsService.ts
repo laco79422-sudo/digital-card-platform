@@ -25,6 +25,8 @@ export type WithdrawalRequestRow = {
   status: string;
   created_at: string;
   processed_at: string | null;
+  /** referral | partner — 마이그레이션 전 행은 없을 수 있음 */
+  source_kind?: string | null;
 };
 
 export type ReferralRewardBalances = {
@@ -228,4 +230,86 @@ export async function fetchPendingReferralRewardsAdmin(): Promise<ReferralReward
     return [];
   }
   return (data as ReferralRewardRow[]) ?? [];
+}
+
+/** 파트너 홍보 수익 — 예약 결제 기준 10% */
+export type PartnerCommissionRow = {
+  id: string;
+  partner_user_id: string;
+  payment_id: string;
+  reservation_id: string | null;
+  card_id: string;
+  gross_amount: number;
+  partner_amount: number;
+  settlement_status: string;
+  withdrawal_request_id: string | null;
+  created_at: string;
+};
+
+export async function finalizeEligiblePartnerCommissionsRemote(): Promise<number | null> {
+  if (!isSupabaseConfigured || !supabase) return null;
+  const { data, error } = await supabase.rpc("finalize_eligible_partner_commissions");
+  if (error) {
+    console.warn("[referralRewardsService] finalize_eligible_partner_commissions", error.message);
+    return null;
+  }
+  return typeof data === "number" ? data : null;
+}
+
+export async function fetchPartnerCommissionsForUser(partnerUserId: string): Promise<PartnerCommissionRow[]> {
+  if (!isSupabaseConfigured || !supabase) return [];
+  await finalizeEligiblePartnerCommissionsRemote();
+  const { data, error } = await supabase
+    .from("partner_commissions")
+    .select("*")
+    .eq("partner_user_id", partnerUserId)
+    .order("created_at", { ascending: false });
+  if (error) {
+    console.warn("[referralRewardsService] partner_commissions select", error.message);
+    return [];
+  }
+  return (data as PartnerCommissionRow[]) ?? [];
+}
+
+export function aggregatePartnerCommissionBalances(rows: PartnerCommissionRow[]): {
+  pending: number;
+  confirmedAvailable: number;
+  confirmedLocked: number;
+  paid: number;
+} {
+  let pending = 0;
+  let confirmedAvailable = 0;
+  let confirmedLocked = 0;
+  let paid = 0;
+  for (const r of rows) {
+    if (r.settlement_status === "pending") pending += r.partner_amount;
+    else if (r.settlement_status === "confirmed") {
+      if (r.withdrawal_request_id) confirmedLocked += r.partner_amount;
+      else confirmedAvailable += r.partner_amount;
+    } else if (r.settlement_status === "paid") paid += r.partner_amount;
+  }
+  return { pending, confirmedAvailable, confirmedLocked, paid };
+}
+
+export function confirmedPartnerCommissionsForWithdrawal(rows: PartnerCommissionRow[]): PartnerCommissionRow[] {
+  return rows.filter((r) => r.settlement_status === "confirmed" && !r.withdrawal_request_id);
+}
+
+export async function createPartnerCommissionWithdrawalRemote(opts: {
+  commissionIds: string[];
+  bankName: string;
+  bankAccount: string;
+  accountHolder: string;
+}): Promise<{ ok: boolean; id?: string; message?: string }> {
+  if (!isSupabaseConfigured || !supabase) return { ok: false, message: "Supabase 미설정" };
+  const { data, error } = await supabase.rpc("create_partner_commission_withdrawal_request", {
+    p_commission_ids: opts.commissionIds,
+    p_bank_name: opts.bankName,
+    p_bank_account: opts.bankAccount,
+    p_account_holder: opts.accountHolder,
+  });
+  if (error) {
+    return { ok: false, message: error.message };
+  }
+  return { ok: true, id: typeof data === "string" ? data : undefined };
 }

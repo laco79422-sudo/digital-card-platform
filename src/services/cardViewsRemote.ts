@@ -5,6 +5,7 @@ export type InsertCardViewRemoteInput = {
   referrer?: string | null;
   user_agent?: string | null;
   promoter_code?: string | null;
+  partner_user_id?: string | null;
   /** 예: nfc, 직접 링크 등 */
   source?: string | null;
 };
@@ -29,6 +30,7 @@ export async function insertCardViewRemote(row: InsertCardViewRemoteInput): Prom
     promoter_code: row.promoter_code ?? null,
     source: row.source ?? null,
   };
+  if (row.partner_user_id) payload.partner_user_id = row.partner_user_id;
   try {
     const { error } = await supabase.from("card_views").insert(payload);
     if (error) {

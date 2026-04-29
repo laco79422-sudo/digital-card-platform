@@ -12,6 +12,7 @@ const PLACEHOLDER_GALLERY = [
 const DEFAULT_TRUST_TESTIMONIALS: TrustTestimonial[] = [
   { quote: "명함 하나로 문의가 늘었습니다.", person_name: "김○○", role: "소상공인 · 카페" },
   { quote: "링크 하나로 상담이 한곳에 모였어요.", person_name: "이○○", role: "프리랜서 마케터" },
+  { quote: "예약부터 안내까지 빠르고 깔끔했어요.", person_name: "박○○", role: "방문 고객" },
 ];
 
 export function effectiveTagline(card: BusinessCard): string {
@@ -43,7 +44,23 @@ export function trustTestimonialsForView(card: BusinessCard): TrustTestimonial[]
   if (line) {
     return [{ quote: line, person_name: "고객 후기", role: "" }];
   }
-  return [...DEFAULT_TRUST_TESTIMONIALS];
+  return [...DEFAULT_TRUST_TESTIMONIALS.slice(0, 2)];
+}
+
+/** 매출 전환형 명함 — 후기 카드 3칸 */
+export function trustTestimonialsThreeForConversion(card: BusinessCard): TrustTestimonial[] {
+  const from = card.trust_testimonials?.filter((t) => t.quote.trim()) ?? [];
+  const merged: TrustTestimonial[] = [...from];
+  if (merged.length === 0) {
+    const line = card.trust_line?.trim();
+    if (line) merged.push({ quote: line, person_name: "고객 후기", role: "" });
+  }
+  let i = 0;
+  while (merged.length < 3) {
+    merged.push(DEFAULT_TRUST_TESTIMONIALS[i % DEFAULT_TRUST_TESTIMONIALS.length]);
+    i++;
+  }
+  return merged.slice(0, 3);
 }
 
 export function galleryImages(card: BusinessCard): string[] {
@@ -124,6 +141,7 @@ export function resolveHeroCtas(card: BusinessCard, links: CardLink[]): HeroCtaB
   }
 
   const kakaoLink =
+    card.kakao_chat_url?.trim() ||
     card.kakao_url?.trim() ||
     links.find((l) => l.type === "kakao")?.url ||
     links.find((l) => /카카오|kakao/i.test(l.label))?.url;
@@ -166,6 +184,7 @@ export function resolveStickyCtas(card: BusinessCard, links: CardLink[]): CtaAct
     out.push({ label: "문의하기", href: telHref(card.phone), external: true });
   }
   const kakao =
+    card.kakao_chat_url?.trim() ||
     card.kakao_url?.trim() ||
     links.find((l) => l.type === "kakao")?.url ||
     links.find((l) => /카카오|상담/i.test(l.label))?.url;
@@ -188,6 +207,9 @@ export function seoTitle(card: BusinessCard): string {
 
 /** Kakao·OG 스크래퍼용 — Netlify Edge `inject-preview-og` 와 동일 문구 */
 export function seoOgCardTitle(card: BusinessCard): string {
+  const displayName = card.person_name?.trim() || card.name?.trim() || "";
+  const ind = card.industry?.trim();
+  if (displayName && ind) return `${displayName} / ${ind}`;
   const brand = card.brand_name?.trim();
   const person = card.person_name?.trim();
   if (brand && person) return `${brand} / ${person}`;
@@ -195,11 +217,10 @@ export function seoOgCardTitle(card: BusinessCard): string {
 }
 
 export function seoOgCardDescription(card: BusinessCard): string {
-  const job = card.job_title?.trim();
-  const tag = effectiveTagline(card);
-  const intro = card.intro?.trim().slice(0, 200);
-  const line = job || tag || intro;
-  return (line || "링크 하나로 소개부터 상담까지 연결됩니다.").slice(0, 300);
+  const headline = effectiveTagline(card);
+  const body = card.intro?.trim();
+  const line = headline || body;
+  return (line || "링크 하나로 고객과 연결됩니다.").slice(0, 300);
 }
 
 export function seoDescription(card: BusinessCard): string {

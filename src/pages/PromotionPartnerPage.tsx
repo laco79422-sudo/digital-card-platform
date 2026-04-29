@@ -1,51 +1,70 @@
 import { Button } from "@/components/ui/Button";
 import { linkButtonClassName } from "@/components/ui/buttonStyles";
 import { Card, CardContent, CardHeader } from "@/components/ui/Card";
+import { appendPartnerQueryToUrl } from "@/lib/linkoPartnerAttribution";
 import { buildCardShareUrl } from "@/lib/cardShareUrl";
 import { shareCardLinkNativeOrder } from "@/lib/kakaoWebShare";
 import { layout } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
+import { activatePartnerProgramRemote } from "@/services/partnerProgramService";
 import { useAuthStore } from "@/stores/authStore";
 import { useAppDataStore } from "@/stores/appDataStore";
-import { ExternalLink, Share2, UserPlus } from "lucide-react";
+import { ExternalLink, Loader2, Share2, UserPlus } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
 export function PromotionPartnerPage() {
   const user = useAuthStore((s) => s.user);
+  const setUser = useAuthStore((s) => s.setUser);
   const promotionPool = useAppDataStore((s) => s.promotionPool);
   const enrollPromoter = useAppDataStore((s) => s.enrollPromoter);
   const promoterParticipations = useAppDataStore((s) => s.promoterParticipations);
 
   const [enrollFlash, setEnrollFlash] = useState<string | null>(null);
+  const [activating, setActivating] = useState(false);
 
   const activePool = useMemo(
     () => promotionPool.filter((e) => e.status === "active"),
     [promotionPool],
   );
 
-  const isEnrolled = user
+  const isEnrolledLocal = user
     ? promoterParticipations.some((p) => p.user_id === user.id)
     : false;
 
+  const partnerActive = Boolean(user?.is_partner) || isEnrolledLocal;
+
   const origin = typeof window !== "undefined" ? window.location.origin : "";
 
-  const onEnroll = () => {
+  const onActivatePartner = async () => {
     if (!user) {
       setEnrollFlash("로그인 후 참여할 수 있어요.");
       return;
     }
-    const ok = enrollPromoter({
+    setActivating(true);
+    enrollPromoter({
       user_id: user.id,
       user_name: user.name,
       user_email: user.email,
     });
-    setEnrollFlash(ok ? "홍보 파트너 참여가 등록되었습니다." : "이미 참여 중이에요.");
+    const remoteOk = await activatePartnerProgramRemote();
+    setActivating(false);
+    if (remoteOk) {
+      setUser({ ...user, is_partner: true });
+      setEnrollFlash("파트너 계정이 활성화되었습니다. 아래 링크에 ?partner=가 포함되어 성과가 추적됩니다.");
+    } else {
+      setEnrollFlash(
+        "로컬 등록은 되었어요. Supabase 연결 후 서버에서 파트너 플래그가 활성화됩니다.",
+      );
+    }
   };
 
   const shareOne = async (slug: string) => {
-    const shareUrl = buildCardShareUrl(origin, slug);
+    let shareUrl = buildCardShareUrl(origin, slug);
     if (!shareUrl) return;
+    if (user?.id && partnerActive) {
+      shareUrl = appendPartnerQueryToUrl(shareUrl, user.id);
+    }
     const r = await shareCardLinkNativeOrder({
       shareUrl,
       title: "디지털 명함",
@@ -65,15 +84,18 @@ export function PromotionPartnerPage() {
           홍보 파트너로 참여하기
         </h1>
         <p className="mt-4 text-pretty text-base leading-relaxed text-slate-600">
-          홍보 풀에 올라온 명함을 보고, 링크와 메시지로 가볍게 공유 활동을 이어갈 수 있어요. 명함 사용자와 홍보 파트너가 같은
-          구조 안에서 연결됩니다.
+          다른 사람의 공개 명함을 홍보하고, 예약·결제 전환 시 <strong className="font-semibold text-slate-800">홍보 수익 10%</strong>가 기록됩니다.
+          명함 소유자(크리에이터)에게는 서비스 매출(결제액의 90%)이 적립되는 구조입니다.
         </p>
 
         <Card className="mt-8 border-brand-200/80 bg-brand-50/30">
           <CardHeader>
-            <h2 className="text-lg font-semibold text-slate-900">참여 신청</h2>
+            <h2 className="text-lg font-semibold text-slate-900">파트너 신청</h2>
             <p className="text-sm text-slate-600">
-              로그인한 계정으로 한 번 신청하면, 아래 목록과 공유 도구를 계속 이용할 수 있어요.
+              「홍보 참여하기」로 계정에 파트너 역할을 활성화합니다. 공유 링크 형식:{" "}
+              <code className="rounded bg-white/80 px-1.5 py-0.5 font-mono text-xs text-brand-900">
+                …/c/&#123;slug&#125;?partner=&#123;내 회원 ID&#125;
+              </code>
             </p>
           </CardHeader>
           <CardContent className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
@@ -82,13 +104,29 @@ export function PromotionPartnerPage() {
                 <Button
                   type="button"
                   className="w-full gap-2 sm:w-auto"
-                  variant={isEnrolled ? "outline" : "primary"}
-                  onClick={onEnroll}
-                  disabled={isEnrolled}
+                  variant={partnerActive ? "outline" : "primary"}
+                  onClick={() => void onActivatePartner()}
+                  disabled={partnerActive || activating}
                 >
-                  <UserPlus className="h-4 w-4 shrink-0" aria-hidden />
-                  {isEnrolled ? "참여 완료" : "홍보 참여 신청하기"}
+                  {activating ? (
+                    <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden />
+                  ) : (
+                    <UserPlus className="h-4 w-4 shrink-0" aria-hidden />
+                  )}
+                  {partnerActive ? "파트너 활성화됨" : "홍보 참여하기"}
                 </Button>
+                {partnerActive ? (
+                  <Link
+                    to="/partner/dashboard"
+                    className={linkButtonClassName({
+                      variant: "secondary",
+                      size: "md",
+                      className: "w-full sm:w-auto",
+                    })}
+                  >
+                    파트너 대시보드
+                  </Link>
+                ) : null}
                 <Link
                   to="/promotion/guide"
                   className={linkButtonClassName({
@@ -137,7 +175,7 @@ export function PromotionPartnerPage() {
         <section className="mt-10">
           <h2 className="text-lg font-bold text-slate-900">홍보 풀 명함</h2>
           <p className="mt-1 text-sm text-slate-600">
-            명함 사용자가 「홍보 요청하기」로 등록한 명함이에요. 열기·공유로 활동을 이어가 보세요.
+            명함 사용자가 「홍보 요청하기」로 등록한 명함이에요. 파트너 활성화 후 공유하면 추적됩니다.
           </p>
 
           {activePool.length === 0 ? (
@@ -156,7 +194,9 @@ export function PromotionPartnerPage() {
             <ul className="mt-6 space-y-3">
               {activePool.map((row) => {
                 const href = `/c/${encodeURIComponent(row.slug)}`;
-                const fullUrl = origin ? `${origin}${href}` : href;
+                const baseUrl = origin ? `${origin}${href}` : href;
+                const partnerUrl =
+                  user?.id && partnerActive ? appendPartnerQueryToUrl(baseUrl, user.id) : baseUrl;
                 return (
                   <li
                     key={row.id}
@@ -165,7 +205,12 @@ export function PromotionPartnerPage() {
                     <div className="min-w-0">
                       <p className="font-semibold text-slate-900">{row.brand_name}</p>
                       <p className="text-sm text-slate-600">{row.person_name}</p>
-                      <p className="mt-1 break-all font-mono text-xs text-brand-800">{fullUrl}</p>
+                      <p className="mt-1 break-all font-mono text-xs text-brand-800">{partnerUrl}</p>
+                      {!partnerActive ? (
+                        <p className="mt-1 text-[11px] text-slate-500">
+                          파트너 활성화 후 위 주소에 내 회원 ID가 붙습니다.
+                        </p>
+                      ) : null}
                     </div>
                     <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
                       <Link

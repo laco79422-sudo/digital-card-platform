@@ -9,6 +9,8 @@ export interface User {
   phone: string | null;
   avatar_url: string | null;
   created_at: string;
+  /** Supabase `profiles.is_partner`와 동기화 — 홍보 파트너 */
+  is_partner?: boolean;
 }
 
 /** 랜딩형 디지털 명함 — 서비스 블록 한 줄 */
@@ -47,6 +49,8 @@ export interface BusinessCard {
   blog_url: string | null;
   youtube_url: string | null;
   kakao_url: string | null;
+  /** 오픈채팅·채널 등 카카오톡 상담 전용 링크 */
+  kakao_chat_url?: string | null;
   theme: "navy" | "slate" | "midnight";
   is_public: boolean;
   created_at: string;
@@ -77,6 +81,10 @@ export interface BusinessCard {
   profile_image_url?: string | null;
   /** 카카오·OG 전용 대표 이미지 URL (있으면 공유 썸네일 우선) */
   og_image_url?: string | null;
+  /** 선택 업종 표시명 (예: 세차장) — OG 제목·업종별 이미지 매칭 */
+  industry?: string | null;
+  /** 업종 템플릿 기본 히어로 이미지 절대 URL */
+  auto_image_url?: string | null;
   /** 목록·레거시 스키마용 썸네일 URL */
   thumbnail_url?: string | null;
   /** 히어로 브랜드 대표 이미지 (DB 컬럼명, imageUrl과 동기화) */
@@ -171,6 +179,8 @@ export interface CardVisitLog {
   card_slug: string;
   owner_user_id: string;
   promoter_code: string | null;
+  /** 홍보 파트너 계정(auth.users.id) — `?partner=` 링크 */
+  partner_user_id?: string | null;
   source: "direct" | "promotion";
   visitor_user_agent: string | null;
   visited_at: string;

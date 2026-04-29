@@ -1,3 +1,4 @@
+import { RewardAdsSection } from "@/components/reward-ads/RewardAdsSection";
 import { PostSaveGrowthPanel } from "@/components/card/PostSaveGrowthPanel";
 import { GuestSavePrompt } from "@/components/card/SavePrompt";
 import { CardQrAndExportPanel } from "@/components/card-print/CardQrAndExportPanel";
@@ -6,20 +7,28 @@ import { CardForm } from "@/components/card-editor/CardForm";
 import { CardEditorGrowthLadder } from "@/components/card-editor/CardEditorGrowthLadder";
 import { CardEditorSaveCompletionPanel } from "@/components/card-editor/CardEditorSaveCompletionPanel";
 import { CardPreview } from "@/components/card-editor/CardPreview";
-import { RevenueTemplateSection } from "@/components/card-editor/RevenueTemplateSection";
+import { IndustryPickSection } from "@/components/card-editor/IndustryPickSection";
 import { Button } from "@/components/ui/Button";
 import { linkButtonClassName } from "@/components/ui/buttonStyles";
 import { Card, CardContent, CardHeader } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
-import { buildCardPromoShareText } from "@/lib/cardPromoShareText";
+import {
+  applyCtaLabelToPrimaryLinkLabel,
+  getIndustryTemplate,
+  mergeIndustryCopyIntoDraft,
+  parseIndustryQuery,
+  resolvePromoShareTextWithIndustryTemplate,
+} from "@/data/industryTemplates";
 import {
   buildRevenueCardDraft,
   buildRevenueTemplateLinkRows,
   parseRevenueTemplateSearch,
+  type RevenueCardTemplateId,
 } from "@/data/revenueCardTemplates";
 import { getCardHeroImageUrl } from "@/lib/businessCardHeroImage";
 import { buildCardShareUrl, buildTempPreviewUrl, editorOriginFallback } from "@/lib/cardShareUrl";
+import { canonicalSiteOrigin } from "@/lib/siteOrigin";
 import { parseCardEditorDraft, zodIssuesToFieldErrors } from "@/lib/cardEditorSchema";
 import { shareCardLinkNativeOrder } from "@/lib/kakaoWebShare";
 import { previewKakaoFeedFromDraft } from "@/lib/previewShareMeta";
@@ -193,10 +202,12 @@ export function CardEditorPage() {
   const isNew = !id || id === "new";
   const wantsSample = useMemo(() => parseWantsSample(location.search), [location.search]);
 
-  const revenueTemplateId = useMemo(
-    () => (!isGuestRoute && isNew ? parseRevenueTemplateSearch(location.search) : null),
-    [isGuestRoute, isNew, location.search],
-  );
+  const revenueTemplateId = useMemo((): RevenueCardTemplateId | null => {
+    if (isGuestRoute || !isNew) return null;
+    const fromIndustry = parseIndustryQuery(location.search);
+    if (fromIndustry) return fromIndustry;
+    return parseRevenueTemplateSearch(location.search);
+  }, [isGuestRoute, isNew, location.search]);
 
   const routeKey = useMemo(() => {
     if (isGuestRoute) return wantsSample ? "create-card-sample" : "create-card";
@@ -268,12 +279,13 @@ export function CardEditorPage() {
   const [guestTempId, setGuestTempId] = useState<string | null>(null);
 
   const completionShareUrl = useMemo(() => {
-    const o = editorOriginFallback(shareOrigin);
+    const o = canonicalSiteOrigin();
     return buildCardShareUrl(o, draft.slug.trim());
-  }, [draft.slug, shareOrigin]);
+  }, [draft.slug]);
 
   const promoShareText = useMemo(
-    () => (completionShareUrl ? buildCardPromoShareText(completionShareUrl, draft) : ""),
+    () =>
+      completionShareUrl ? resolvePromoShareTextWithIndustryTemplate(completionShareUrl, draft) : "",
     [completionShareUrl, draft],
   );
 
@@ -392,10 +404,13 @@ export function CardEditorPage() {
       const st = useCardEditorDraftStore.getState();
       if (st.hydratedKey === routeKey) return;
       replaceDraft(
-        buildRevenueCardDraft(revenueTemplateId, {
-          person_name: user.name?.trim() || DEFAULT_CARD_PERSON_NAME,
-          email: user.email ?? "",
-        }),
+        mergeIndustryCopyIntoDraft(
+          buildRevenueCardDraft(revenueTemplateId, {
+            person_name: user.name?.trim() || DEFAULT_CARD_PERSON_NAME,
+            email: user.email ?? "",
+          }),
+          getIndustryTemplate(revenueTemplateId),
+        ),
       );
       setLinkRows(buildRevenueTemplateLinkRows(revenueTemplateId));
       setHydratedKey(routeKey);
@@ -849,6 +864,57 @@ export function CardEditorPage() {
     navigate(`/cards/${id}/edit`, { replace: true });
   }, [id, navigate]);
 
+  const handleQuickThreeSecondCard = useCallback(async () => {
+    const tid = revenueTemplateId;
+    if (!tid || !user || !location.pathname.includes("/cards/new")) return;
+    setSubmitting(true);
+    try {
+      const tmpl = getIndustryTemplate(tid);
+      let nextDraft = buildRevenueCardDraft(tid, {
+        person_name: user.name?.trim() || DEFAULT_CARD_PERSON_NAME,
+        email: user.email ?? "",
+      });
+      nextDraft = mergeIndustryCopyIntoDraft(nextDraft, tmpl);
+      const cardId = crypto.randomUUID();
+      const card = draftToBusinessCard(nextDraft, {
+        id: cardId,
+        user_id: user.id,
+        created_at: new Date().toISOString(),
+      });
+      upsertBusinessCard(card);
+      await upsertCardRemote(card);
+      try {
+        const synced = await syncQrImageAfterSave(card);
+        upsertBusinessCard(synced);
+        await upsertCardRemote(synced);
+      } catch (err) {
+        console.warn("[CardEditorPage] quick QR 동기화", err);
+      }
+      const rawLinks = buildRevenueTemplateLinkRows(tid);
+      const primaryLabel = applyCtaLabelToPrimaryLinkLabel(tmpl.ctaText);
+      const links: CardLink[] = rawLinks.map((r, i) => ({
+        id: r.id,
+        card_id: cardId,
+        label: i === 0 ? primaryLabel : r.label,
+        type: r.type,
+        url: r.url,
+        sort_order: i,
+      }));
+      setCardLinks(cardId, links);
+      navigate(`/cards/${encodeURIComponent(cardId)}/edit?saved=1&welcome=1&quick=1`, { replace: true });
+    } finally {
+      setSubmitting(false);
+    }
+  }, [
+    revenueTemplateId,
+    user,
+    location.pathname,
+    upsertBusinessCard,
+    upsertCardRemote,
+    setCardLinks,
+    navigate,
+  ]);
+
   const onSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setFieldErrors({});
@@ -1023,12 +1089,14 @@ export function CardEditorPage() {
 
       {user && !isGuestRoute && isNew && location.pathname === "/cards/new" && !wantsSample ? (
         <div className="mb-8 space-y-4">
-          <RevenueTemplateSection
+          <IndustryPickSection
             selectedId={revenueTemplateId}
             disabled={submitting}
-            onSelectTemplate={(tid) =>
-              navigate(`/cards/new?template=${encodeURIComponent(tid)}`, { replace: true })
+            submitting={submitting}
+            onSelectIndustry={(templateId) =>
+              navigate(`/cards/new?industry=${encodeURIComponent(templateId)}`, { replace: true })
             }
+            onQuickCreate={() => void handleQuickThreeSecondCard()}
           />
         </div>
       ) : null}
@@ -1043,6 +1111,7 @@ export function CardEditorPage() {
               qrImageUrl={existing?.qr_image_url ?? null}
               heroImageUrl={heroImageUrlForDownload || null}
               slug={draft.slug.trim()}
+              quickDraft={searchParams.get("quick") === "1"}
               onDismiss={dismissSaveBanner}
             />
             <PostSaveGrowthPanel />
@@ -1065,6 +1134,10 @@ export function CardEditorPage() {
             </Button>
           </div>
         )
+      ) : null}
+
+      {savedHighlight && welcomeHighlight && user && !isGuestRoute && id ? (
+        <RewardAdsSection placement="card_complete" className="mb-8" />
       ) : null}
 
       <section

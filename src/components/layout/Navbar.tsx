@@ -90,6 +90,11 @@ export function Navbar() {
             ) : null}
             {user ? (
               <>
+                {user?.is_partner ? (
+                  <Link to="/partner/dashboard" className={linkButtonClassName({ variant: "ghost", size: "sm" })}>
+                    파트너
+                  </Link>
+                ) : null}
                 <Link to="/space" className={linkButtonClassName({ size: "sm" })}>
                   내 공간
                 </Link>
@@ -166,6 +171,15 @@ export function Navbar() {
               ) : null}
               {user ? (
                 <div className="mt-3 flex flex-col gap-0">
+                  {user.is_partner ? (
+                    <Link
+                      to="/partner/dashboard"
+                      className="rounded-lg px-3 py-3 text-base font-medium text-brand-800 hover:bg-brand-50"
+                      onClick={() => setOpen(false)}
+                    >
+                      파트너 대시보드
+                    </Link>
+                  ) : null}
                   <Link
                     to="/space"
                     className={linkButtonClassName({ size: "lg", className: "w-full" })}

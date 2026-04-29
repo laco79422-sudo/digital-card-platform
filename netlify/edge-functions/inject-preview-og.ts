@@ -34,6 +34,7 @@ type CardLike = {
   job_title?: string;
   tagline?: string | null;
   intro?: string | null;
+  industry?: string | null;
   og_image_url?: string | null;
   image_url?: string | null;
   profile_image_url?: string | null;
@@ -46,8 +47,52 @@ const COMPANY_OG_TITLE = "린코 디지털 명함";
 const COMPANY_OG_DESCRIPTION = "명함 하나로 고객이 먼저 찾아옵니다";
 const COMPANY_BASE_URL = "https://linkoapp.kr";
 const OG_DEFAULT = `${COMPANY_BASE_URL}/og-default.png`;
-const OG_CARD_DEFAULT = `${COMPANY_BASE_URL}/og-card-default.png`;
 const OG_REFERRAL = `${COMPANY_BASE_URL}/og-referral.png`;
+const OG_INDUSTRY_DEFAULT = `${COMPANY_BASE_URL}/industry-og/default.png`;
+
+/** Edge 번들과 동일 규칙 — `src/lib/industryOg.ts` 와 basename 동기화 */
+const INDUSTRY_OG_BASENAME: Record<string, string> = {
+  세차장: "carwash",
+  음식점: "restaurant",
+  미용실: "hairshop",
+  인테리어: "interior",
+  부동산: "realestate",
+  "청소/입주청소": "cleaning",
+  "헬스/PT": "fitness",
+  "학원/과외": "academy",
+  "자동차 정비소": "repair",
+  "온라인 판매": "store",
+  카페: "restaurant",
+  꽃집: "store",
+  "촬영/스튜디오": "store",
+  프리랜서: "store",
+  "이사/용달": "default",
+  "중고거래/개인 판매": "store",
+  "반려동물 미용": "default",
+  네일샵: "hairshop",
+  "필라테스·요가": "fitness",
+  "학습지·방문교육": "academy",
+  "보험 설계사": "default",
+  "대출·금융 상담": "default",
+  "차량 렌트·리스": "default",
+  "중고차 판매": "default",
+  "출장 서비스(수리·설치)": "repair",
+  "사진 보정·디자인": "store",
+  "유튜브·영상 제작": "store",
+  "블로그 마케팅": "store",
+  "행사·이벤트": "default",
+  "악기 레슨": "academy",
+  "결혼·웨딩": "default",
+  "여행·투어": "default",
+  "번역·통역": "default",
+  "법률·세무 상담": "default",
+};
+
+function industryOgUrlFromLabel(industry: string | undefined): string {
+  const key = industry?.trim() ?? "";
+  const base = INDUSTRY_OG_BASENAME[key] ?? "default";
+  return `${COMPANY_BASE_URL}/industry-og/${base}.png`;
+}
 
 function esc(s: string): string {
   return s
@@ -187,16 +232,19 @@ function buildCompanySeoBlock(): string {
   });
 }
 
-function ogFromCard(card: CardLike, fallbackImage: string): { title: string; desc: string; image: string; siteName: string } {
+function ogFromCard(card: CardLike): { title: string; desc: string; image: string; siteName: string } {
   const brand = (card.brand_name || "").trim().slice(0, 80);
   const person = (card.person_name || "").trim().slice(0, 80);
-  const title = (brand && person ? `${brand} / ${person}` : brand || person || "디지털 명함").slice(0, 200);
-  const desc = (
-    (card.job_title || "").trim() ||
-    (card.tagline || "").trim() ||
-    (card.intro || "").trim() ||
-    "링크 하나로 소개부터 상담까지 연결됩니다."
-  ).slice(0, 300);
+  const ind = (card.industry || "").trim().slice(0, 80);
+  let title: string;
+  if (person && ind) title = `${person} / ${ind}`;
+  else if (brand && person) title = `${brand} / ${person}`;
+  else title = (brand || person || "디지털 명함").slice(0, 200);
+  title = title.slice(0, 200);
+
+  const headline = (card.tagline || "").trim();
+  const body = (card.intro || "").trim();
+  const desc = (headline || body || "링크 하나로 고객과 연결됩니다.").slice(0, 300);
 
   let image =
     (card.og_image_url || "").trim() ||
@@ -206,7 +254,8 @@ function ogFromCard(card: CardLike, fallbackImage: string): { title: string; des
   image = ensureOgImageHttps(image);
   if (!image.startsWith("https://")) image = firstGalleryHttpsFromList(galleryUrlsArray(card));
   image = ensureOgImageHttps(image);
-  if (!image.startsWith("https://")) image = fallbackImage;
+  if (!image.startsWith("https://")) image = industryOgUrlFromLabel(card.industry ?? undefined);
+  if (!image.startsWith("https://")) image = OG_INDUSTRY_DEFAULT;
 
   const siteName = (card.brand_name || COMPANY_OG_TITLE).trim();
   return { title, desc, image, siteName };
@@ -228,7 +277,7 @@ async function fetchPublicCardBySlug(
 ): Promise<{ card: CardLike | null; status: number }> {
   /** PostgREST 수동 URL에서는 카멜케이스 컬럼(imageUrl) 생략 — snake_case만 선택해 조회 안정화 */
   const cols =
-    "slug,person_name,brand_name,job_title,tagline,intro,og_image_url,image_url,profile_image_url,brand_image_url,gallery_urls";
+    "slug,person_name,brand_name,job_title,tagline,intro,industry,og_image_url,image_url,profile_image_url,brand_image_url,gallery_urls";
   const rest = `${supabaseUrl.replace(/\/$/, "")}/rest/v1/business_cards?slug=eq.${encodeURIComponent(
     slug,
   )}&is_public=eq.true&select=${cols}&limit=1`;
@@ -333,7 +382,7 @@ export default async (request: Request, context: Context) => {
     }
 
     const canonical = `${COMPANY_BASE_URL}/c/${encodeURIComponent(slug)}`;
-    const { title, desc, image, siteName } = ogFromCard(card, OG_CARD_DEFAULT);
+    const { title, desc, image, siteName } = ogFromCard(card);
     return injectSeo(
       context,
       buildCommonSeoBlock({ canonical, title, desc, image, siteName, type: "website" }),

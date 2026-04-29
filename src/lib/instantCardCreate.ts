@@ -58,6 +58,7 @@ export function buildQuickShareCard(opts: {
     blog_url: null,
     youtube_url: null,
     kakao_url: null,
+    kakao_chat_url: null,
     theme: "navy",
     is_public: true,
     created_at: opts.created_at,

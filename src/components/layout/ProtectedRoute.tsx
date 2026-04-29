@@ -8,9 +8,12 @@ import { Navigate, useLocation } from "react-router-dom";
 export function ProtectedRoute({
   children,
   roles,
+  requirePartner,
 }: {
   children: ReactNode;
   roles?: UserRole[];
+  /** 로그인 + 이메일 인증 후 `profiles.is_partner` 필요 */
+  requirePartner?: boolean;
 }) {
   const user = useAuthStore((s) => s.user);
   const authLoading = useAuthStore((s) => s.authLoading);
@@ -74,6 +77,10 @@ export function ProtectedRoute({
         </div>
       </div>
     );
+  }
+
+  if (requirePartner && !user.is_partner) {
+    return <Navigate to="/promotion/partner" replace />;
   }
 
   if (roles && !roles.includes(user.role)) {

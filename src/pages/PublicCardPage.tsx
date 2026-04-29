@@ -1,8 +1,10 @@
 import { DigitalCardPublicView } from "@/components/digital-card/DigitalCardPublicView";
 import { DigitalCardSeo } from "@/components/digital-card/DigitalCardSeo";
 import { resolveBusinessCardPublicUrl } from "@/lib/cardShareUrl";
+import { parsePartnerIdFromSearch, rememberPartnerForCard, getStoredPartnerForCard } from "@/lib/linkoPartnerAttribution";
 import { saveLinkoReferralCodeFromUrl } from "@/lib/linkoReferralStorage";
 import { savePromotionReferralCode } from "@/lib/promotionReferralStorage";
+import { insertCardActionLogRemote, insertInquiryLogRemote } from "@/services/cardAnalyticsRemote";
 import { insertCardVisitLog } from "@/services/cardVisitLogsService";
 import { insertCardViewRemote } from "@/services/cardViewsRemote";
 import { fetchCardBySlug, updateCardNameRemote } from "@/services/cardsService";
@@ -77,6 +79,10 @@ export function PublicCardPage() {
     () => new URLSearchParams(location.search).get("ref")?.trim().toUpperCase() ?? "",
     [location.search],
   );
+  const partnerIdFromUrl = useMemo(
+    () => parsePartnerIdFromSearch(location.search),
+    [location.search],
+  );
   const viewSource = useMemo(() => {
     const s = new URLSearchParams(location.search).get("source")?.trim().toLowerCase() ?? "";
     return s === "nfc" ? "nfc" : null;
@@ -106,29 +112,32 @@ export function PublicCardPage() {
 
   useEffect(() => {
     if (!card?.user_id || !card.slug?.trim()) return;
-    const refRaw = new URLSearchParams(window.location.search).get("ref")?.trim() ?? "";
-    const refNorm = refRaw.toUpperCase();
-    const source: "direct" | "promotion" = refNorm ? "promotion" : "direct";
     const slugKey = card.slug.trim();
-    const storageKey = `visitLogged:${slugKey}:${refNorm || "direct"}`;
+    if (partnerIdFromUrl) rememberPartnerForCard(card.id, partnerIdFromUrl);
+
+    const storageKey = `visitLogged:${slugKey}`;
     try {
       if (sessionStorage.getItem(storageKey)) return;
       sessionStorage.setItem(storageKey, "1");
     } catch {
       /* ignore storage failures */
     }
+
+    const refRaw = new URLSearchParams(window.location.search).get("ref")?.trim() ?? "";
+    const refNorm = refRaw.toUpperCase();
+    const promotionActive = Boolean(refNorm) || Boolean(partnerIdFromUrl);
+    const source: "direct" | "promotion" = promotionActive ? "promotion" : "direct";
+
     void insertCardVisitLog({
       card_id: card.id,
       card_slug: slugKey,
       owner_user_id: card.user_id,
       promoter_code: refNorm || null,
+      partner_user_id: partnerIdFromUrl,
       source,
       visitor_user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
     });
-  }, [card?.id, card?.slug, card?.user_id, location.search]);
 
-  useEffect(() => {
-    if (!card) return;
     addCardView({
       id: crypto.randomUUID(),
       card_id: card.id,
@@ -143,8 +152,10 @@ export function PublicCardPage() {
       referrer: document.referrer || "direct",
       user_agent: navigator.userAgent,
       promoter_code: referralCode || null,
+      partner_user_id: partnerIdFromUrl,
       source: viewSource,
     });
+
     if (referralCode) {
       savePromotionReferralCode(referralCode);
       addCardLinkVisit({
@@ -161,10 +172,11 @@ export function PublicCardPage() {
     card,
     addCardView,
     addCardLinkVisit,
+    referralCode,
+    partnerIdFromUrl,
+    viewSource,
     location.pathname,
     location.search,
-    referralCode,
-    viewSource,
   ]);
 
   const handleLink = (link: CardLink) => {
@@ -175,6 +187,23 @@ export function PublicCardPage() {
       action_type: link.type,
       clicked_at: new Date().toISOString(),
     });
+    void insertCardActionLogRemote({
+      card_id: card.id,
+      owner_user_id: card.user_id,
+      action_type: link.type,
+      action_label: link.label,
+      partner_user_id: getStoredPartnerForCard(card.id),
+    });
+    const inquiry =
+      ["phone", "email", "kakao"].includes(link.type) ||
+      /문의|상담|예약|주문|견적|연락|구매/.test(link.label);
+    if (inquiry) {
+      void insertInquiryLogRemote({
+        card_id: card.id,
+        owner_user_id: card.user_id,
+        inquiry_type: link.type,
+      });
+    }
     let href = link.url;
     if (link.type === "email" && !href.startsWith("mailto:")) href = `mailto:${href}`;
     if (link.type === "phone" && !href.startsWith("tel:")) href = `tel:${href}`;
@@ -221,10 +250,11 @@ export function PublicCardPage() {
         links={links}
         onLinkClick={handleLink}
         qrDataUrl={qr}
-        referralLanding={Boolean(referralCode)}
+        referralLanding={Boolean(referralCode || partnerIdFromUrl)}
         editableName={canEditName}
         namePlaceholder="이름을 입력하세요"
         onNameChange={(name) => void saveCardName(name)}
+        enableReservationBooking
       />
     </>
   );

@@ -20,17 +20,21 @@ import { LandingPage } from "@/pages/LandingPage";
 import { LoginPage } from "@/pages/LoginPage";
 import { MyCardsPage } from "@/pages/MyCardsPage";
 import { NotFoundPage } from "@/pages/NotFoundPage";
+import { PartnerDashboardPage } from "@/pages/PartnerDashboardPage";
 import { PricingPage } from "@/pages/PricingPage";
 import { PromotionGuidePage } from "@/pages/PromotionGuidePage";
 import { PromotionPartnerPage } from "@/pages/PromotionPartnerPage";
 import { PromotePage } from "@/pages/PromotePage";
 import { NfcAcceptPage } from "@/pages/NfcAcceptPage";
 import { PublicCardPage } from "@/pages/PublicCardPage";
+import { ReservationPaymentPage } from "@/pages/ReservationPaymentPage";
 import { TempCardPreviewPage } from "@/pages/TempCardPreviewPage";
 import { RequestCreatePage } from "@/pages/RequestCreatePage";
 import { RequestListPage } from "@/pages/RequestListPage";
 import { SignupPage } from "@/pages/SignupPage";
 import { StructureBlueprintPage } from "@/pages/StructureBlueprintPage";
+import { AdsCreatePage } from "@/pages/AdsCreatePage";
+import { AdvertiserDashboardPage } from "@/pages/AdvertiserDashboardPage";
 import { ReferralCaptureEffect } from "@/components/referral/ReferralCaptureEffect";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { useParams } from "react-router-dom";
@@ -49,6 +53,7 @@ function AppRoutes() {
       <InstantCardClaimEffect />
       <Routes>
         <Route path="/c/:slug" element={<PublicCardPage />} />
+        <Route path="/pay/reservation/:reservationId" element={<ReservationPaymentPage />} />
         <Route path="/nfc/:cardId" element={<NfcAcceptPage />} />
         <Route path="/preview/:tempId" element={<TempCardPreviewPage />} />
         <Route path="/auth/callback" element={<AuthCallbackPage />} />
@@ -73,10 +78,34 @@ function AppRoutes() {
         <Route path="requests" element={<RequestListPage />} />
 
         <Route
+          path="partner/dashboard"
+          element={
+            <ProtectedRoute requirePartner>
+              <PartnerDashboardPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="dashboard"
           element={
             <ProtectedRoute>
               <DashboardPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="ads/create"
+          element={
+            <ProtectedRoute>
+              <AdsCreatePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="ads/dashboard"
+          element={
+            <ProtectedRoute>
+              <AdvertiserDashboardPage />
             </ProtectedRoute>
           }
         />

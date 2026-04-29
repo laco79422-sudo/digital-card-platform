@@ -1,4 +1,5 @@
 import { CardConnectionModesHint } from "@/components/digital-card/CardConnectionModesHint";
+import { ReservationModal } from "@/components/digital-card/ReservationModal";
 import { BrandHeroFrame } from "@/components/digital-card/BrandHeroFrame";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -14,7 +15,9 @@ import {
   sortedUsableLinks,
   trustMetricForView,
   trustTestimonialsForView,
+  trustTestimonialsThreeForConversion,
 } from "@/lib/digitalCardViewModel";
+import { defaultReservationAmountKrw } from "@/lib/defaultReservationAmount";
 import { resolveCardShareUrl } from "@/lib/cardShareUrl";
 import { shareCardLinkNativeOrder } from "@/lib/kakaoWebShare";
 import { buildPreviewMeta, type PreviewCardType } from "@/lib/previewCardType";
@@ -22,8 +25,11 @@ import { tempPreviewKakaoFeedFromCard } from "@/lib/previewShareMeta";
 import { layout } from "@/lib/ui-classes";
 import { buildViralShareText } from "@/lib/viralShareText";
 import { cn } from "@/lib/utils";
+import { insertCardActionLogRemote } from "@/services/cardAnalyticsRemote";
+import { getStoredPartnerForCard } from "@/lib/linkoPartnerAttribution";
 import type { BusinessCard, CardLink } from "@/types/domain";
 import {
+  ArrowRight,
   Copy,
   ExternalLink,
   Headphones,
@@ -39,7 +45,7 @@ import {
   Zap,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useBlocker, useNavigate } from "react-router-dom";
 
 const themeClass: Record<string, string> = {
   navy: "from-slate-950 via-brand-950 to-brand-900",
@@ -110,6 +116,8 @@ type Props = {
   onNameChange?: (name: string) => void | Promise<void>;
   /** 카카오 공유 직전 — Supabase에 임시 명함 동기화(크롤러 OG와 일치) */
   onBeforeKakaoShare?: () => void | Promise<void>;
+  /** 공개 명함만 — 히어로·sticky를 「지금 예약하기」 단일 CTA로 통합 */
+  enableReservationBooking?: boolean;
 };
 
 export function DigitalCardPublicView({
@@ -130,7 +138,9 @@ export function DigitalCardPublicView({
   namePlaceholder = "이름을 입력하세요",
   onNameChange,
   onBeforeKakaoShare,
+  enableReservationBooking = false,
 }: Props) {
+  const navigate = useNavigate();
   const grad = themeClass[card.theme] ?? themeClass.navy;
   const tagline = effectiveTagline(card);
   const hasPitchHeadline = Boolean(card.tagline?.trim());
@@ -146,11 +156,30 @@ export function DigitalCardPublicView({
   const hasPhone = Boolean(card.phone?.replace(/\D/g, ""));
   const showCompany = Boolean(company && company !== title);
   const trustMetric = trustMetricForView(card);
-  const testimonials = trustTestimonialsForView(card);
+  const conversionUx = enableReservationBooking && !compact && !tempPreview;
+  const testimonials = conversionUx ? trustTestimonialsThreeForConversion(card) : trustTestimonialsForView(card);
   const gallery = galleryImages(card);
+  const beforeAfterPairs = useMemo(() => {
+    const g = gallery;
+    const pairs: { before: string; after: string }[] = [];
+    for (let i = 0; i + 1 < g.length && pairs.length < 2; i += 2) {
+      pairs.push({ before: g[i], after: g[i + 1] });
+    }
+    return pairs;
+  }, [gallery]);
   const services = serviceBlocks(card);
   const hero = resolveHeroCtas(card, links);
   const sticky = resolveStickyCtas(card, links);
+  const defaultBookingAmount = useMemo(() => defaultReservationAmountKrw(card.industry), [card.industry]);
+  const bookingServiceTitles = useMemo(
+    () => serviceBlocks(card).map((s) => s.title).filter(Boolean),
+    [card],
+  );
+  const kakaoConsultHref = useMemo(
+    () => card.kakao_chat_url?.trim() || card.kakao_url?.trim() || "",
+    [card.kakao_chat_url, card.kakao_url],
+  );
+  const ownerUidForLog = card.owner_id ?? card.user_id;
   const previewMeta = buildPreviewMeta({
     type: previewVariant ?? "person",
     person_name: card.person_name,
@@ -175,6 +204,17 @@ export function DigitalCardPublicView({
   const [editingName, setEditingName] = useState(false);
   const [nameDraft, setNameDraft] = useState(name);
   const nameInputRef = useRef<HTMLInputElement>(null);
+  const [reservationOpen, setReservationOpen] = useState(false);
+
+  const leaveBlocker = useBlocker(conversionUx);
+  useEffect(() => {
+    if (leaveBlocker.state !== "blocked") return;
+    const ok = window.confirm(
+      "지금 나가면 예약 기회를 놓칠 수 있어요.\n정말 나가시겠어요?",
+    );
+    if (ok) leaveBlocker.proceed();
+    else leaveBlocker.reset();
+  }, [leaveBlocker]);
 
   useEffect(() => {
     if (compact) return;
@@ -188,6 +228,21 @@ export function DigitalCardPublicView({
   useEffect(() => {
     if (editingName) nameInputRef.current?.focus();
   }, [editingName]);
+
+  const logAndOpenKakaoConsult = useCallback(() => {
+    if (kakaoConsultHref) {
+      const pid = getStoredPartnerForCard(card.id);
+      void insertCardActionLogRemote({
+        card_id: card.id,
+        owner_user_id: ownerUidForLog,
+        action_type: "kakao_chat",
+        ...(pid ? { partner_user_id: pid } : {}),
+      });
+      window.open(kakaoConsultHref, "_blank", "noopener,noreferrer");
+    } else if (hasPhone) {
+      navigateCta(`tel:${card.phone!.replace(/\D/g, "")}`);
+    }
+  }, [card.id, ownerUidForLog, kakaoConsultHref, hasPhone, card.phone]);
 
   const cardPublicUrl = useMemo(() => {
     if (shareUrlOverride) return shareUrlOverride;
@@ -237,15 +292,6 @@ export function DigitalCardPublicView({
       window.setTimeout(() => setKakaoHint(false), 2800);
     }
   }, [card, cardPublicUrl, onBeforeKakaoShare, shareOrigin, tempPreview]);
-
-  const PrimaryHeroIcon =
-    hero.mode === "from-links" && hero.primaryLinkType
-      ? iconForLinkType(hero.primaryLinkType)
-      : Phone;
-  const SecondaryHeroIcon =
-    hero.mode === "from-links" && hero.secondaryLinkType
-      ? iconForLinkType(hero.secondaryLinkType)
-      : MessageCircle;
 
   const commitNameEdit = useCallback(() => {
     const next = nameDraft.trim() || namePlaceholder;
@@ -307,6 +353,24 @@ export function DigitalCardPublicView({
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(255,255,255,0.12),_transparent_55%)]" />
         <div className="relative mx-auto w-full max-w-lg px-0">
           <div className="flex flex-col items-center text-center">
+            {conversionUx ? (
+              <div className="mb-5 w-full max-w-xl space-y-3 px-1">
+                <div className="flex flex-wrap items-center justify-center gap-2">
+                  <span className="rounded-full bg-emerald-400/25 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wide text-emerald-50 ring-1 ring-emerald-300/45">
+                    오늘 예약 가능
+                  </span>
+                  <span className="rounded-full bg-amber-400/25 px-3 py-1.5 text-[11px] font-bold text-amber-50 ring-1 ring-amber-300/40">
+                    지금 자리 남아있어요
+                  </span>
+                </div>
+                <p className="text-balance text-2xl font-extrabold leading-snug tracking-tight text-white sm:text-[26px]">
+                  지금 바로 예약 가능합니다
+                </p>
+                <p className="text-sm font-semibold text-emerald-50/95">
+                  지금 바로 확인 · 바로 예약 · 바로 연결
+                </p>
+              </div>
+            ) : null}
             <div className="relative w-full max-w-md overflow-hidden rounded-2xl bg-white/10 shadow-lg ring-1 ring-white/15">
               <div className="relative aspect-video w-full max-h-[min(42vh,320px)] overflow-hidden">
                 {heroFrameUrl ? (
@@ -339,6 +403,32 @@ export function DigitalCardPublicView({
                 )}
               </div>
             </div>
+            {conversionUx ? (
+              <div className="mt-5 w-full max-w-md space-y-2 px-2">
+                <p className="text-xl font-extrabold leading-tight text-white sm:text-2xl">{trustMetric}</p>
+                <p className="text-sm font-medium text-white/90">
+                  {company ? `${company} · ` : ""}
+                  {name || "디지털 명함"}
+                </p>
+                {position ? <p className="text-xs font-medium text-white/70">{position}</p> : null}
+                <p className="text-[11px] font-medium text-white/55">예약 → 결제까지 한 번에 이어집니다</p>
+              </div>
+            ) : null}
+            {conversionUx && (kakaoConsultHref || hasPhone) ? (
+              <div className="mt-4 w-full max-w-md px-2">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="min-h-[48px] w-full border border-white/40 bg-white/15 text-base font-bold text-white backdrop-blur hover:bg-white/25"
+                  onClick={logAndOpenKakaoConsult}
+                >
+                  <MessageCircle className="mr-2 h-5 w-5 shrink-0" aria-hidden />
+                  {kakaoConsultHref ? "카카오톡 상담하기" : "전화 문의"}
+                </Button>
+              </div>
+            ) : null}
+            {!conversionUx ? (
+              <>
             {onEmptyImageClick && imageHelperText ? (
               <p className="mt-2 text-sm font-medium text-white/85">{imageHelperText}</p>
             ) : null}
@@ -434,28 +524,57 @@ export function DigitalCardPublicView({
               </>
             )}
             <div className="mt-7 flex w-full max-w-md flex-col gap-3 sm:mt-8 sm:flex-row sm:justify-center">
-              {hasPhone || hero.mode === "from-links" ? (
+              {enableReservationBooking ? (
                 <Button
                   type="button"
-                  className="min-h-[54px] w-full flex-1 border-0 bg-white text-base font-bold text-slate-900 shadow-[0_12px_40px_-8px_rgba(0,0,0,0.45)] ring-2 ring-white/40 hover:bg-white/95 sm:min-h-[52px]"
-                  onClick={() => navigateCta(hero.primary.href)}
+                  className="min-h-[54px] w-full border-0 bg-white text-base font-bold text-slate-900 shadow-[0_12px_40px_-8px_rgba(0,0,0,0.45)] ring-2 ring-white/40 hover:bg-white/95 sm:min-h-[52px]"
+                  onClick={() => setReservationOpen(true)}
                 >
-                  <PrimaryHeroIcon className="mr-2 h-5 w-5 shrink-0" aria-hidden />
-                  {hero.primary.label}
+                  지금 예약하기
+                  <ArrowRight className="ml-2 h-5 w-5 shrink-0" aria-hidden />
                 </Button>
-              ) : null}
-              <Button
-                type="button"
-                variant="secondary"
-                className="min-h-[54px] w-full flex-1 border-2 border-white/55 bg-white/15 text-base font-bold text-white shadow-lg backdrop-blur hover:bg-white/25 sm:min-h-[52px]"
-                onClick={() => navigateCta(hero.secondary.href)}
-              >
-                <SecondaryHeroIcon className="mr-2 h-5 w-5 shrink-0" aria-hidden />
-                {hero.secondary.label}
-              </Button>
+              ) : (
+                <>
+                  {hasPhone || hero.mode === "from-links" ? (
+                    <Button
+                      type="button"
+                      className="min-h-[54px] w-full flex-1 border-0 bg-white text-base font-bold text-slate-900 shadow-[0_12px_40px_-8px_rgba(0,0,0,0.45)] ring-2 ring-white/40 hover:bg-white/95 sm:min-h-[52px]"
+                      onClick={() => navigateCta(hero.primary.href)}
+                    >
+                      {(() => {
+                        const PrimaryHeroIcon =
+                          hero.mode === "from-links" && hero.primaryLinkType
+                            ? iconForLinkType(hero.primaryLinkType)
+                            : Phone;
+                        return <PrimaryHeroIcon className="mr-2 h-5 w-5 shrink-0" aria-hidden />;
+                      })()}
+                      {hero.primary.label}
+                    </Button>
+                  ) : null}
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="min-h-[54px] w-full flex-1 border-2 border-white/55 bg-white/15 text-base font-bold text-white shadow-lg backdrop-blur hover:bg-white/25 sm:min-h-[52px]"
+                    onClick={() => navigateCta(hero.secondary.href)}
+                  >
+                    {(() => {
+                      const SecondaryHeroIcon =
+                        hero.mode === "from-links" && hero.secondaryLinkType
+                          ? iconForLinkType(hero.secondaryLinkType)
+                          : MessageCircle;
+                      return <SecondaryHeroIcon className="mr-2 h-5 w-5 shrink-0" aria-hidden />;
+                    })()}
+                    {hero.secondary.label}
+                  </Button>
+                </>
+              )}
             </div>
-            <CardConnectionModesHint variant="dark" className="mt-4 max-w-md px-2" />
-            {!hasPhone && hero.mode !== "from-links" ? (
+              </>
+            ) : null}
+            {!conversionUx ? (
+              <CardConnectionModesHint variant="dark" className="mt-4 max-w-md px-2" />
+            ) : null}
+            {!conversionUx && !enableReservationBooking && !hasPhone && hero.mode !== "from-links" ? (
               <p className="mt-3 text-sm font-medium text-white/80">전화번호가 등록되지 않았습니다</p>
             ) : null}
           </div>
@@ -469,58 +588,132 @@ export function DigitalCardPublicView({
         >
           <header className="section-title mb-4 flex flex-col gap-3">
             <h2 id="trust-heading" className="text-xl font-extrabold tracking-tight text-slate-900 sm:text-2xl">
-              작업 &amp; 신뢰
+              {conversionUx ? "실제 후기 · 전후 사례" : "작업 & 신뢰"}
             </h2>
             <span className="w-fit rounded-full bg-brand-600/15 px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-brand-900 ring-1 ring-brand-600/20">
-              실제 프로젝트
+              {conversionUx ? "신뢰 요소" : "실제 프로젝트"}
             </span>
           </header>
 
-          <p className="text-center text-2xl font-extrabold leading-tight text-brand-800 sm:text-left sm:text-3xl">
-            {trustMetric}
-          </p>
-          <p className="mt-2 text-center text-sm font-medium text-slate-600 sm:text-left">
-            누적 사례와 고객 후기로 첫인상을 증명합니다.
-          </p>
+          {conversionUx ? (
+            <>
+              <p className="text-center text-2xl font-extrabold leading-tight text-brand-800 sm:text-3xl">
+                {trustMetric}
+              </p>
+              <p className="mt-2 text-center text-sm font-medium text-slate-600">
+                누적 이용 지표 · 실제 고객 후기로 확인하세요.
+              </p>
 
-          <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {gallery.map((src, i) => (
-              <div
-                key={`${src}-${i}`}
-                className="group relative aspect-[4/3] overflow-hidden rounded-2xl bg-slate-100 shadow-inner ring-1 ring-slate-900/[0.04]"
-              >
-                <img
-                  src={src}
-                  alt={`프로젝트 이미지 ${i + 1}`}
-                  className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]"
-                  loading={i === 0 ? "eager" : "lazy"}
-                  decoding="async"
-                />
+              {beforeAfterPairs.length > 0 ? (
+                <div className="mt-8 space-y-8">
+                  {beforeAfterPairs.map((pair, idx) => (
+                    <div key={`ba-${pair.before.slice(-24)}-${idx}`} className="space-y-3">
+                      <p className="text-center text-xs font-bold uppercase tracking-wide text-slate-500">
+                        전후 사례
+                        {beforeAfterPairs.length > 1 ? ` ${idx + 1}` : ""}
+                      </p>
+                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <figure className="overflow-hidden rounded-2xl bg-slate-100 shadow-inner ring-1 ring-slate-900/[0.06]">
+                          <img
+                            src={pair.before}
+                            alt={`전 ${idx + 1}`}
+                            className="aspect-[4/3] w-full object-cover"
+                            loading={idx === 0 ? "eager" : "lazy"}
+                            decoding="async"
+                          />
+                          <figcaption className="border-t border-slate-100 bg-white px-3 py-2 text-center text-[11px] font-bold text-slate-600">
+                            Before
+                          </figcaption>
+                        </figure>
+                        <figure className="overflow-hidden rounded-2xl bg-slate-100 shadow-inner ring-1 ring-slate-900/[0.06]">
+                          <img
+                            src={pair.after}
+                            alt={`후 ${idx + 1}`}
+                            className="aspect-[4/3] w-full object-cover"
+                            loading={idx === 0 ? "eager" : "lazy"}
+                            decoding="async"
+                          />
+                          <figcaption className="border-t border-slate-100 bg-white px-3 py-2 text-center text-[11px] font-bold text-slate-600">
+                            After
+                          </figcaption>
+                        </figure>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="mt-6 text-center text-sm text-slate-500">
+                  등록된 갤러리가 곧 전후 사례로 표시됩니다.
+                </p>
+              )}
+
+              <div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-3">
+                {testimonials.map((t, i) => (
+                  <figure
+                    key={`${t.quote.slice(0, 24)}-${i}`}
+                    className="flex h-full flex-col rounded-2xl border border-slate-200/90 bg-gradient-to-br from-white via-white to-slate-50/90 p-5 shadow-sm"
+                  >
+                    <Quote className="h-8 w-8 text-brand-200" aria-hidden strokeWidth={1.25} />
+                    <blockquote className="mt-3 flex-1 text-[15px] font-semibold leading-snug tracking-tight text-slate-900">
+                      “{t.quote}”
+                    </blockquote>
+                    <figcaption className="mt-4 border-t border-slate-100 pt-3 text-sm text-slate-600">
+                      <p className="font-bold text-slate-900">{t.person_name}</p>
+                      {t.role.trim() ? <p className="mt-0.5 text-slate-600">{t.role}</p> : null}
+                    </figcaption>
+                  </figure>
+                ))}
               </div>
-            ))}
-          </div>
+            </>
+          ) : (
+            <>
+              <p className="text-center text-2xl font-extrabold leading-tight text-brand-800 sm:text-left sm:text-3xl">
+                {trustMetric}
+              </p>
+              <p className="mt-2 text-center text-sm font-medium text-slate-600 sm:text-left">
+                누적 사례와 고객 후기로 첫인상을 증명합니다.
+              </p>
 
-          <div className="mt-10 space-y-6">
-            {testimonials.map((t, i) => (
-              <figure
-                key={`${t.quote.slice(0, 24)}-${i}`}
-                className="rounded-2xl border border-slate-200/90 bg-gradient-to-br from-white via-white to-slate-50/90 p-5 shadow-sm sm:p-6"
-              >
-                <Quote
-                  className="h-9 w-9 text-brand-200 sm:h-10 sm:w-10"
-                  aria-hidden
-                  strokeWidth={1.25}
-                />
-                <blockquote className="mt-3 text-[17px] font-semibold leading-snug tracking-tight text-slate-900 sm:text-lg">
-                  “{t.quote}”
-                </blockquote>
-                <figcaption className="mt-5 border-t border-slate-100 pt-4 text-sm text-slate-600">
-                  <p className="font-bold text-slate-900">{t.person_name}</p>
-                  {t.role.trim() ? <p className="mt-0.5 text-slate-600">{t.role}</p> : null}
-                </figcaption>
-              </figure>
-            ))}
-          </div>
+              <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {gallery.map((src, i) => (
+                  <div
+                    key={`${src}-${i}`}
+                    className="group relative aspect-[4/3] overflow-hidden rounded-2xl bg-slate-100 shadow-inner ring-1 ring-slate-900/[0.04]"
+                  >
+                    <img
+                      src={src}
+                      alt={`프로젝트 이미지 ${i + 1}`}
+                      className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]"
+                      loading={i === 0 ? "eager" : "lazy"}
+                      decoding="async"
+                    />
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-10 space-y-6">
+                {testimonials.map((t, i) => (
+                  <figure
+                    key={`${t.quote.slice(0, 24)}-${i}`}
+                    className="rounded-2xl border border-slate-200/90 bg-gradient-to-br from-white via-white to-slate-50/90 p-5 shadow-sm sm:p-6"
+                  >
+                    <Quote
+                      className="h-9 w-9 text-brand-200 sm:h-10 sm:w-10"
+                      aria-hidden
+                      strokeWidth={1.25}
+                    />
+                    <blockquote className="mt-3 text-[17px] font-semibold leading-snug tracking-tight text-slate-900 sm:text-lg">
+                      “{t.quote}”
+                    </blockquote>
+                    <figcaption className="mt-5 border-t border-slate-100 pt-4 text-sm text-slate-600">
+                      <p className="font-bold text-slate-900">{t.person_name}</p>
+                      {t.role.trim() ? <p className="mt-0.5 text-slate-600">{t.role}</p> : null}
+                    </figcaption>
+                  </figure>
+                ))}
+              </div>
+            </>
+          )}
         </section>
 
         <section
@@ -554,29 +747,31 @@ export function DigitalCardPublicView({
             })}
           </ul>
 
-          <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-center">
-            <Link
-              to="/create-card"
-              className={cn(
-                linkButtonClassName({ variant: "primary", size: "lg" }),
-                "w-full min-h-[52px] justify-center sm:w-auto sm:min-w-[12rem]",
-              )}
-            >
-              내 명함 만들기
-            </Link>
-            <Link
-              to="/create-card?sample=true"
-              className={cn(
-                linkButtonClassName({ variant: "outline", size: "lg" }),
-                "w-full min-h-[52px] justify-center sm:w-auto sm:min-w-[12rem]",
-              )}
-            >
-              이 구조 그대로 사용하기
-            </Link>
-          </div>
+          {!conversionUx ? (
+            <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-center">
+              <Link
+                to="/create-card"
+                className={cn(
+                  linkButtonClassName({ variant: "primary", size: "lg" }),
+                  "w-full min-h-[52px] justify-center sm:w-auto sm:min-w-[12rem]",
+                )}
+              >
+                내 명함 만들기
+              </Link>
+              <Link
+                to="/create-card?sample=true"
+                className={cn(
+                  linkButtonClassName({ variant: "outline", size: "lg" }),
+                  "w-full min-h-[52px] justify-center sm:w-auto sm:min-w-[12rem]",
+                )}
+              >
+                이 구조 그대로 사용하기
+              </Link>
+            </div>
+          ) : null}
         </section>
 
-        {tertiaryLinks.length > 0 ? (
+        {!conversionUx && tertiaryLinks.length > 0 ? (
           <section className="rounded-2xl border border-slate-200/80 bg-white p-4 sm:p-6">
             <p className="text-center text-xs font-semibold uppercase tracking-wide text-slate-500">
               {hero.mode === "from-links" ? "빠른 연결" : "더 연결하기"}
@@ -604,7 +799,7 @@ export function DigitalCardPublicView({
           </section>
         ) : null}
 
-        {!compact && qrDataUrl ? (
+        {!conversionUx && !compact && qrDataUrl ? (
           <div className="flex flex-col items-center rounded-2xl border border-slate-200 bg-white p-5">
             <p className="text-sm font-medium text-slate-600">명함 공유 QR</p>
             <img
@@ -615,7 +810,7 @@ export function DigitalCardPublicView({
           </div>
         ) : null}
 
-        {!compact && cardPublicUrl ? (
+        {!conversionUx && !compact && cardPublicUrl ? (
           <section
             className="rounded-2xl border-2 border-dashed border-brand-300/80 bg-gradient-to-b from-brand-50/90 via-white to-slate-50/90 p-5 shadow-[0_16px_40px_-20px_rgba(15,23,42,0.25)] sm:p-7"
             aria-label="이 명함 공유하기"
@@ -704,7 +899,7 @@ export function DigitalCardPublicView({
           </section>
         ) : null}
 
-        {!compact && referralLanding ? (
+        {!conversionUx && !compact && referralLanding ? (
           <section
             className="rounded-2xl border border-cta-200 bg-gradient-to-br from-cta-50 via-white to-brand-50 p-5 shadow-[0_18px_45px_-26px_rgba(15,23,42,0.28)] sm:p-7"
             aria-label="명함을 본 뒤 시작하기"
@@ -747,7 +942,26 @@ export function DigitalCardPublicView({
         </div>
       </div>
 
-      {!hideSticky && sticky.length > 0 ? (
+      {!hideSticky && enableReservationBooking ? (
+        <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-slate-200/90 bg-white/95 px-3 py-2 shadow-[0_-8px_30px_rgba(0,0,0,0.08)] backdrop-blur-md pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2">
+          <div className="mx-auto flex max-w-lg flex-col gap-1">
+            <Button
+              type="button"
+              variant="primary"
+              className="min-h-[48px] w-full px-2 text-base font-bold sm:text-lg"
+              onClick={() => setReservationOpen(true)}
+            >
+              지금 예약하기
+              <ArrowRight className="ml-2 h-5 w-5 shrink-0" aria-hidden />
+            </Button>
+            {conversionUx ? (
+              <p className="text-center text-[11px] font-semibold text-slate-500">
+                예약 → 결제까지 한 번에 이어집니다
+              </p>
+            ) : null}
+          </div>
+        </div>
+      ) : !hideSticky && sticky.length > 0 ? (
         <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-slate-200/90 bg-white/95 px-3 py-2 shadow-[0_-8px_30px_rgba(0,0,0,0.08)] backdrop-blur-md pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2">
           <div className="mx-auto flex max-w-lg gap-2">
             {sticky.map((a) => (
@@ -763,6 +977,21 @@ export function DigitalCardPublicView({
             ))}
           </div>
         </div>
+      ) : null}
+
+      {enableReservationBooking ? (
+        <ReservationModal
+          open={reservationOpen}
+          onClose={() => setReservationOpen(false)}
+          card={card}
+          defaultAmountKrw={defaultBookingAmount}
+          serviceTitles={bookingServiceTitles}
+          onReserved={({ id, booking_token }) => {
+            navigate(
+              `/pay/reservation/${encodeURIComponent(id)}?token=${encodeURIComponent(booking_token)}`,
+            );
+          }}
+        />
       ) : null}
     </div>
   );

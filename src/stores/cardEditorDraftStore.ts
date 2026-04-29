@@ -3,6 +3,7 @@ import { normalizeCardDesignType } from "@/lib/cardDesignLabels";
 import { buildCardShareUrl } from "@/lib/cardShareUrl";
 import { clampZoom } from "@/lib/brandHeroLayout";
 import type { PreviewCardType } from "@/lib/previewCardType";
+import { generateIndustryOgImage } from "@/lib/industryOg";
 import { create } from "zustand";
 
 export const DEFAULT_CARD_PERSON_NAME = "린코";
@@ -37,6 +38,7 @@ export type CardEditorDraft = {
   blog_url: string;
   youtube_url: string;
   kakao_url: string;
+  kakao_chat_url: string;
   theme: "navy" | "slate" | "midnight";
   is_public: boolean;
   tagline: string;
@@ -56,6 +58,12 @@ export type CardEditorDraft = {
   brand_image_legacy_object_position: string | null;
   /** 인쇄·QR 카드 출력 템플릿 */
   design_type: CardDesignType;
+  /** 선택 업종 표시명 — OG·통계·템플릿 이미지 매칭 */
+  industry: string | null;
+  /** 업종 템플릿 기본 히어로 URL */
+  auto_image_url: string | null;
+  /** OG·카카오 공유 이미지 (합성 PNG 확장 예정) */
+  og_image_url: string | null;
 };
 
 function emptyServiceRows(): DigitalCardServiceLine[] {
@@ -157,6 +165,7 @@ export function createEmptyDraft(overrides: Partial<CardEditorDraft> = {}): Card
     blog_url: "",
     youtube_url: "",
     kakao_url: "",
+    kakao_chat_url: "",
     theme: "navy",
     is_public: true,
     tagline: "",
@@ -174,6 +183,9 @@ export function createEmptyDraft(overrides: Partial<CardEditorDraft> = {}): Card
     brand_image_pan_y: 0,
     brand_image_legacy_object_position: null,
     design_type: "simple",
+    industry: null,
+    auto_image_url: null,
+    og_image_url: null,
     ...overrides,
   };
 }
@@ -200,6 +212,7 @@ export function draftFromBusinessCard(card: BusinessCard): CardEditorDraft {
     blog_url: card.blog_url ?? "",
     youtube_url: card.youtube_url ?? "",
     kakao_url: card.kakao_url ?? "",
+    kakao_chat_url: card.kakao_chat_url ?? "",
     theme: card.theme,
     is_public: card.is_public,
     tagline: card.tagline ?? "",
@@ -243,6 +256,9 @@ export function draftFromBusinessCard(card: BusinessCard): CardEditorDraft {
         ? null
         : (card.brand_image_object_position?.trim() ?? null),
     design_type: normalizeCardDesignType(card.design_type),
+    industry: card.industry?.trim() || null,
+    auto_image_url: card.auto_image_url?.trim() || null,
+    og_image_url: card.og_image_url?.trim() || null,
   };
 }
 
@@ -288,6 +304,12 @@ export function draftToBusinessCard(
   const trust_line = trimmedTestimonials[0]?.quote ?? null;
   const trust_metric = draft.trust_metric.trim() || null;
   const imageUrl = (draft.imageUrl ?? draft.brand_image_url)?.trim() || null;
+  const industry = draft.industry?.trim() || null;
+  const explicitOg = draft.og_image_url?.trim();
+  const explicitAuto = draft.auto_image_url?.trim();
+  const resolvedOg =
+    explicitOg ||
+    (industry ? generateIndustryOgImage({ industry, og_image_url: null }) : null);
   const publicUrl =
     typeof window !== "undefined" ? buildCardShareUrl(window.location.origin, draft.slug.trim()) : null;
 
@@ -305,6 +327,7 @@ export function draftToBusinessCard(
     blog_url: draft.blog_url.trim() || null,
     youtube_url: draft.youtube_url.trim() || null,
     kakao_url: draft.kakao_url.trim() || null,
+    kakao_chat_url: draft.kakao_chat_url.trim() || null,
     theme: draft.theme,
     is_public: draft.is_public,
     created_at: opts.created_at,
@@ -331,6 +354,9 @@ export function draftToBusinessCard(
       ? null
       : draft.brand_image_legacy_object_position?.trim() || null,
     design_type: normalizeCardDesignType(draft.design_type),
+    industry,
+    auto_image_url: explicitAuto || null,
+    og_image_url: resolvedOg || null,
   };
 }
 

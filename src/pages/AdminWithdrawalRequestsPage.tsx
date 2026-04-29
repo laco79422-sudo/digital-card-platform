@@ -179,6 +179,7 @@ export function AdminWithdrawalRequestsPage() {
               <thead>
                 <tr className="border-b border-slate-100 text-slate-500">
                   <th className="pb-2 font-medium">일시</th>
+                  <th className="pb-2 font-medium">구분</th>
                   <th className="pb-2 font-medium">신청자</th>
                   <th className="pb-2 font-medium">금액</th>
                   <th className="pb-2 font-medium">은행 / 계좌</th>
@@ -191,6 +192,11 @@ export function AdminWithdrawalRequestsPage() {
                 {rows.map((r) => (
                   <tr key={r.id} className="border-b border-slate-50 align-top">
                     <td className="py-2 text-slate-600">{new Date(r.created_at).toLocaleString("ko-KR")}</td>
+                    <td className="py-2">
+                      <Badge tone={r.source_kind === "partner" ? "brand" : "default"}>
+                        {r.source_kind === "partner" ? "파트너" : "추천"}
+                      </Badge>
+                    </td>
                     <td className="py-2 font-medium text-slate-800">{userLabel(r.user_id)}</td>
                     <td className="py-2 tabular-nums">{r.amount.toLocaleString()}원</td>
                     <td className="py-2 text-slate-700">

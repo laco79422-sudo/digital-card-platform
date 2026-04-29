@@ -18,6 +18,7 @@ export const cardEditorSubmitSchema = z.object({
   blog_url: optionalUrl,
   youtube_url: optionalUrl,
   kakao_url: optionalUrl,
+  kakao_chat_url: optionalUrl,
   theme: z.enum(["navy", "slate", "midnight"]),
   is_public: z.boolean(),
   tagline: z.string().optional(),
@@ -43,6 +44,9 @@ export const cardEditorSubmitSchema = z.object({
   brand_image_pan_y: z.number().min(-1).max(1).optional(),
   brand_image_legacy_object_position: z.string().max(48).nullable().optional(),
   design_type: z.enum(["simple", "business", "emotional"]).default("simple"),
+  industry: z.string().nullable().optional(),
+  auto_image_url: z.string().nullable().optional(),
+  og_image_url: z.string().nullable().optional(),
 });
 
 export function parseCardEditorDraft(draft: CardEditorDraft) {

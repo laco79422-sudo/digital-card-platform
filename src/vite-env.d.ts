@@ -8,6 +8,11 @@ interface ImportMetaEnv {
   readonly VITE_KAKAO_JS_KEY?: string;
   /** 카카오 JS 키 (별칭) — `VITE_KAKAO_JS_KEY`와 동일 용도 */
   readonly VITE_KAKAO_JAVASCRIPT_KEY?: string;
+  /** Toss Payments 클라이언트 키 */
+  readonly VITE_TOSS_CLIENT_KEY?: string;
+  readonly VITE_PAYMENT_PROVIDER?: string;
+  readonly VITE_STRIPE_PUBLISHABLE_KEY?: string;
+  readonly VITE_NETLIFY_FUNCTIONS_BASE?: string;
 }
 
 interface ImportMeta {

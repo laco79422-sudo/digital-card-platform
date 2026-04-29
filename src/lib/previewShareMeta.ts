@@ -1,5 +1,6 @@
 import { buildPreviewMeta } from "@/lib/previewCardType";
-import { SITE_OG_CARD_FALLBACK_URL, SITE_OG_IMAGE_URL } from "@/lib/siteLinkPreview";
+import { generateIndustryOgImage } from "@/lib/industryOg";
+import { SITE_OG_IMAGE_URL } from "@/lib/siteLinkPreview";
 import type { BusinessCard } from "@/types/domain";
 import type { CardEditorDraft } from "@/stores/cardEditorDraftStore";
 
@@ -32,9 +33,9 @@ export function previewOgImageUrlFromDraft(
   fallbackHttps: string = SITE_OG_IMAGE_URL,
 ): string {
   const hero =
+    draft.og_image_url?.trim() ||
     draft.image_url?.trim() ||
     draft.profile_image_url?.trim() ||
-    draft.og_image_url?.trim() ||
     draft.thumbnail_url?.trim() ||
     draft.imageUrl?.trim() ||
     draft.brand_image_url?.trim();
@@ -45,9 +46,9 @@ export function previewOgImageUrlFromDraft(
   return fallbackHttps;
 }
 
-/** 공개 명함 페이지 OG — 표시용 히어로와 동일 우선순위 후 갤러리·폴백 */
+/** 공개 명함 페이지 OG — og_image_url 우선, 없으면 히어로·갤러리, 업종별 `/industry-og/` 폴백 */
 export function cardOgImageHttps(card: BusinessCard): string {
-  return previewOgImageUrlFromDraft(
+  const fromDraft = previewOgImageUrlFromDraft(
     {
       image_url: card.image_url ?? null,
       profile_image_url: card.profile_image_url ?? null,
@@ -57,8 +58,10 @@ export function cardOgImageHttps(card: BusinessCard): string {
       brand_image_url: card.brand_image_url ?? null,
       gallery_urls_raw: card.gallery_urls?.join("\n") ?? "",
     },
-    SITE_OG_CARD_FALLBACK_URL,
+    "",
   );
+  if (fromDraft?.startsWith("https://")) return fromDraft;
+  return generateIndustryOgImage({ industry: card.industry ?? null, og_image_url: null });
 }
 
 export function previewOgTitleFromDraft(draft: Pick<CardEditorDraft, "person_name" | "brand_name">): string {

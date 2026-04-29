@@ -10,6 +10,7 @@ import {
 } from "@/lib/auth/inactivityConstants";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase/client";
 import { mapSupabaseUser } from "@/lib/supabase/mapAuthUser";
+import { fetchProfilePartnerFlagRemote } from "@/services/partnerProgramService";
 import { claimPendingReferral } from "@/services/referralService";
 import { useAuthStore } from "@/stores/authStore";
 import type { Session } from "@supabase/supabase-js";
@@ -54,7 +55,14 @@ export function useSupabaseAuthSync() {
         if (last == null) {
           writeActivityTimestamp(now);
         }
-        setUser(mapSupabaseUser(session.user));
+        const base = mapSupabaseUser(session.user);
+        let is_partner = false;
+        try {
+          is_partner = await fetchProfilePartnerFlagRemote(session.user.id);
+        } catch {
+          is_partner = false;
+        }
+        setUser({ ...base, is_partner });
         setSession(session);
         setLastActivityAt(readLastActivityMs());
         void claimPendingReferral();

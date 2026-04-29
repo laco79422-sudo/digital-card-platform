@@ -34,6 +34,7 @@ const BUSINESS_CARD_REMOTE_KEYS = [
   "blog_url",
   "youtube_url",
   "kakao_url",
+  "kakao_chat_url",
   "theme",
   "is_public",
   "created_at",
@@ -61,6 +62,9 @@ const BUSINESS_CARD_REMOTE_KEYS = [
   "brand_image_object_position",
   "qr_image_url",
   "design_type",
+  "og_image_url",
+  "industry",
+  "auto_image_url",
 ] as const satisfies ReadonlyArray<keyof BusinessCard>;
 
 export function pickBusinessCardForRemote(card: BusinessCard): BusinessCard {

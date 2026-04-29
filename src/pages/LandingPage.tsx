@@ -1,3 +1,4 @@
+import { RewardAdsSection } from "@/components/reward-ads/RewardAdsSection";
 import { LandingSampleCard, type LandingSampleType } from "@/components/landing/LandingSampleCard";
 import { SiteLinkPreviewSeo } from "@/components/seo/SiteLinkPreviewSeo";
 import { CreatorCard } from "@/components/ui/CreatorCard";
@@ -162,6 +163,8 @@ export function LandingPage() {
           </div>
         </div>
       </section>
+
+      <RewardAdsSection placement="landing" />
 
       {/* 2. 플랫폼 설명 — 4단계 */}
       <section className={cn("border-b border-slate-200 bg-white", section.y)}>

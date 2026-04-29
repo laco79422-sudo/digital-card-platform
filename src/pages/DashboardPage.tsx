@@ -1,3 +1,4 @@
+import { RewardAdsSection } from "@/components/reward-ads/RewardAdsSection";
 import { Input } from "@/components/ui/Input";
 import { CardQrAndExportPanel } from "@/components/card-print/CardQrAndExportPanel";
 import { BRAND_DISPLAY_NAME } from "@/lib/brand";
@@ -15,6 +16,7 @@ import { cn } from "@/lib/utils";
 import { CardHeroThumbnailImg } from "@/components/digital-card/CardHeroThumbnailImg";
 import { buildCardPublicShareUrl, copyLinkToClipboard } from "@/lib/copyShareLink";
 import { getCardHeroImageUrl } from "@/lib/businessCardHeroImage";
+import { isSupabaseConfigured } from "@/lib/supabase/client";
 import {
   createAdditionalCard,
   EXTRA_CARD_PRICE,
@@ -22,11 +24,17 @@ import {
   startExtraCardPayment,
 } from "@/services/extraCardPaymentService";
 import {
+  fetchRemoteActionCountForOwner,
+  fetchRemoteCardViewCountForCards,
+  fetchRemoteInquiryCountForOwner,
+} from "@/services/cardAnalyticsRemote";
+import {
   fetchCardVisitLogsForOwner,
   fetchCardVisitLogsForPromoterApplicant,
 } from "@/services/cardVisitLogsService";
 import { fetchMyCardsForUser, type FetchMyCardsResult } from "@/services/cardsService";
 import { fetchMyDesignRequests, updateDesignRequestRemote } from "@/services/designRequestsService";
+import { fetchReservationsForCardIds, type ReservationRow } from "@/services/reservationsService";
 import {
   aggregateRewardBalances,
   confirmedAvailableForWithdrawal,
@@ -291,6 +299,10 @@ export function DashboardPage() {
   const [withdrawalSelectedIds, setWithdrawalSelectedIds] = useState<string[]>([]);
   const [withdrawalBusy, setWithdrawalBusy] = useState(false);
   const [withdrawalError, setWithdrawalError] = useState<string | null>(null);
+  const [ownerReservations, setOwnerReservations] = useState<ReservationRow[]>([]);
+  const [remoteViewSum, setRemoteViewSum] = useState<number | null>(null);
+  const [remoteActionSum, setRemoteActionSum] = useState<number | null>(null);
+  const [remoteInquirySum, setRemoteInquirySum] = useState<number | null>(null);
 
   const uid = user?.id ?? "";
   useEffect(() => {
@@ -422,7 +434,66 @@ export function DashboardPage() {
     () => (uid ? businessCards.filter((card) => cardBelongsToUser(card, user)) : []),
     [businessCards, uid, user],
   );
+
+  useEffect(() => {
+    if (!uid || myCards.length === 0) {
+      setRemoteViewSum(null);
+      setRemoteActionSum(null);
+      setRemoteInquirySum(null);
+      return;
+    }
+    let cancelled = false;
+    const ids = myCards.map((c) => c.id);
+    void (async () => {
+      const [rv, ra, ri] = await Promise.all([
+        fetchRemoteCardViewCountForCards(ids),
+        fetchRemoteActionCountForOwner(uid),
+        fetchRemoteInquiryCountForOwner(uid),
+      ]);
+      if (cancelled) return;
+      setRemoteViewSum(rv);
+      setRemoteActionSum(ra);
+      setRemoteInquirySum(ri);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [uid, myCards]);
   const shareOrigin = typeof window !== "undefined" ? window.location.origin : "";
+
+  useEffect(() => {
+    if (!uid || !isSupabaseConfigured || myCards.length === 0) {
+      setOwnerReservations([]);
+      return;
+    }
+    let cancelled = false;
+    const ids = myCards.map((c) => c.id);
+    void fetchReservationsForCardIds(ids).then((rows) => {
+      if (!cancelled) setOwnerReservations(rows);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [uid, myCards]);
+
+  const todayYmd = useMemo(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }, []);
+
+  const reservationsToday = useMemo(
+    () => ownerReservations.filter((r) => r.reservation_date === todayYmd && r.status !== "cancelled"),
+    [ownerReservations, todayYmd],
+  );
+  const reservationsWaiting = useMemo(
+    () => ownerReservations.filter((r) => r.status === "pending"),
+    [ownerReservations],
+  );
+  const reservationsDone = useMemo(
+    () => ownerReservations.filter((r) => r.status === "completed"),
+    [ownerReservations],
+  );
+
   const promoteOrigin = canonicalSiteOrigin();
   const myCardIds = useMemo(() => new Set(myCards.map((c) => c.id)), [myCards]);
 
@@ -443,6 +514,22 @@ export function DashboardPage() {
     () => visitLogs.filter((l) => myCardIds.has(l.card_id)).length,
     [visitLogs, myCardIds],
   );
+
+  const promoLinkInboundCount = useMemo(
+    () => cardLinkVisits.filter((v) => myCardIds.has(v.card_id)).length,
+    [cardLinkVisits, myCardIds],
+  );
+
+  const viewsDisplay = remoteViewSum ?? viewsCount;
+  const clicksDisplay = remoteActionSum ?? clicksCount;
+  const inquiriesDisplay = remoteInquirySum ?? inquiryClickCount;
+
+  const hasPerformanceSignal =
+    viewsDisplay > 0 ||
+    clicksDisplay > 0 ||
+    inquiriesDisplay > 0 ||
+    promoLinkInboundCount > 0 ||
+    serverVisitCount > 0;
 
   const myOpenRequests = uid
     ? requests.filter((r) => r.client_user_id === uid && r.status === "open").length
@@ -865,6 +952,18 @@ export function DashboardPage() {
           >
             의뢰하기
           </Link>
+          <Link
+            to="/ads/create"
+            className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-brand-200 bg-brand-50/90 px-5 text-base font-semibold text-brand-950 hover:bg-brand-100 sm:min-h-0 sm:py-2.5"
+          >
+            광고 등록
+          </Link>
+          <Link
+            to="/ads/dashboard"
+            className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-slate-300 bg-white px-5 text-base font-semibold text-slate-900 hover:bg-slate-50 sm:min-h-0 sm:py-2.5"
+          >
+            내 광고 통계
+          </Link>
         </div>
       </div>
 
@@ -926,6 +1025,8 @@ export function DashboardPage() {
         )}
       </div>
 
+      {uid ? <RewardAdsSection placement="dashboard" className="mt-10" /> : null}
+
       {uid ? (
         <section
           className="mt-10 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7"
@@ -935,14 +1036,91 @@ export function DashboardPage() {
             내 명함 성과
           </h2>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-600 sm:text-base">
-            공유가 있어야 숫자가 쌓입니다. 조회·클릭·문의·방문을 확인한 뒤 아래에서 바로 다시 공유해 보세요.
+            당신의 명함이 얼마나 고객을 만들고 있는지 확인하세요.
           </p>
+          {hasPerformanceSignal ? (
+            <p className="mt-3 max-w-2xl rounded-xl border border-emerald-200 bg-emerald-50/80 px-4 py-3 text-sm font-medium text-emerald-950">
+              좋아요. 명함이 고객에게 도달하고 있습니다.
+            </p>
+          ) : (
+            <p className="mt-3 max-w-2xl rounded-xl border border-amber-200 bg-amber-50/90 px-4 py-3 text-sm font-medium text-amber-950">
+              아직 고객 반응이 없어요. 홍보 문구를 복사해 카카오톡, 당근, 문자에 공유해 보세요.
+            </p>
+          )}
           <div className="mt-6 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-            <PerformanceStatCard label="조회수" hint="명함 페이지가 연 횟수" value={viewsCount} />
-            <PerformanceStatCard label="클릭수" hint="명함 속 버튼 클릭" value={clicksCount} />
-            <PerformanceStatCard label="문의 수" hint="전화·메일·카카오 등 상담 클릭" value={inquiryClickCount} />
-            <PerformanceStatCard label="방문 수" hint="기록된 방문 로그" value={serverVisitCount} />
+            <PerformanceStatCard label="조회수" hint="공개 명함 열람·조회 기록" value={viewsDisplay} />
+            <PerformanceStatCard label="클릭수" hint="명함 속 버튼·링크 클릭" value={clicksDisplay} />
+            <PerformanceStatCard label="문의 수" hint="문의·상담 성격 연결" value={inquiriesDisplay} />
+            <PerformanceStatCard label="홍보 링크 유입 수" hint="추천·홍보 링크로 들어온 횟수" value={promoLinkInboundCount} />
           </div>
+          <div className="mt-4 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
+            <PerformanceStatCard label="추천 가입자 수" hint="추천 링크로 가입한 사용자" value={referredCount} />
+            <PerformanceStatCard
+              label="결제 전환 수"
+              hint="추천 보상이 적립된 결제 건수"
+              value={referralPaymentConversionCount}
+            />
+            <PerformanceStatCard
+              label="적립 예정 보상"
+              hint="정산 전 추천 보상(원)"
+              value={Math.round(referralRewardBalances.pending)}
+            />
+          </div>
+        </section>
+      ) : null}
+
+      {uid && myCards.length > 0 && isSupabaseConfigured ? (
+        <section
+          className="mt-8 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6"
+          aria-labelledby="dashboard-reservations-heading"
+        >
+          <h2 id="dashboard-reservations-heading" className="text-lg font-bold text-slate-900 sm:text-xl">
+            예약 현황
+          </h2>
+          <p className="mt-2 text-sm leading-relaxed text-slate-600 sm:text-base">
+            고객이 공개 명함에서 신청한 예약입니다.
+          </p>
+          <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div className="rounded-xl border border-emerald-100 bg-emerald-50/60 px-4 py-3">
+              <p className="text-xs font-bold uppercase tracking-wide text-emerald-800">오늘 예약</p>
+              <p className="mt-1 text-2xl font-extrabold text-emerald-950">{reservationsToday.length}</p>
+            </div>
+            <div className="rounded-xl border border-amber-100 bg-amber-50/70 px-4 py-3">
+              <p className="text-xs font-bold uppercase tracking-wide text-amber-900">대기 예약</p>
+              <p className="mt-1 text-2xl font-extrabold text-amber-950">{reservationsWaiting.length}</p>
+            </div>
+            <div className="rounded-xl border border-slate-200 bg-slate-50/90 px-4 py-3">
+              <p className="text-xs font-bold uppercase tracking-wide text-slate-600">이용 완료</p>
+              <p className="mt-1 text-2xl font-extrabold text-slate-900">{reservationsDone.length}</p>
+            </div>
+          </div>
+          {ownerReservations.length === 0 ? (
+            <p className="mt-6 text-sm text-slate-500">아직 등록된 예약이 없습니다.</p>
+          ) : (
+            <ul className="mt-6 divide-y divide-slate-100 rounded-xl border border-slate-100">
+              {ownerReservations.slice(0, 24).map((r) => {
+                const cardLabel =
+                  myCards.find((c) => c.id === r.card_id)?.person_name?.trim() ||
+                  myCards.find((c) => c.id === r.card_id)?.brand_name?.trim() ||
+                  "명함";
+                return (
+                  <li key={r.id} className="flex flex-col gap-1 px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="font-semibold text-slate-900">
+                        {r.reservation_date} · {r.time_slot}
+                      </p>
+                      <p className="text-slate-600">
+                        {cardLabel} · {r.customer_name} · {r.service_name}
+                      </p>
+                    </div>
+                    <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-bold uppercase text-slate-700">
+                      {r.status}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
         </section>
       ) : null}
 
