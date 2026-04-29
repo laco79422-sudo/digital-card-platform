@@ -237,7 +237,7 @@ export function CardQrAndExportPanel({ card }: { card: BusinessCard }) {
         </div>
 
         <p className="mt-4 text-xs leading-relaxed text-slate-600">
-          NFC 카드에도 동일한 링크를 저장하면 폰을 대기만 해도 연결됩니다.
+          NFC 카드에도 내 명함 링크와 동일한 주소를 저장하면 폰을 대기만 해도 연결됩니다.
         </p>
       </section>
 

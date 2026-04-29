@@ -532,7 +532,7 @@ export function DashboardPage() {
   const copyMyCardPublicLink = async (card: BusinessCard) => {
     const url = buildCardPublicShareUrl(card.slug ?? "");
     if (!url) {
-      alert("공개 링크를 만들 수 없습니다. 명함 슬러그(/c/주소)를 확인해 주세요.");
+      alert("내 명함 링크를 만들 수 없습니다. 명함 슬러그(/c/주소)를 확인해 주세요.");
       return;
     }
     await copyLinkToClipboard(url, "card");
@@ -544,7 +544,7 @@ export function DashboardPage() {
     try {
       await navigator.clipboard.writeText(url);
     } catch {
-      window.prompt("공개 링크를 복사해 주세요", url);
+      window.prompt("내 명함 링크를 복사해 주세요", url);
     }
     setCardCopyId(card.id);
     window.setTimeout(() => setCardCopyId(null), 2200);
@@ -894,7 +894,7 @@ export function DashboardPage() {
             <p className="mt-2 text-sm leading-relaxed text-slate-600 sm:text-base">
               {myCards.length >= 1
                 ? "추가 명함은 1개당 10,900원 결제 후 만들 수 있습니다."
-                : "내 명함은 실제 프로필 페이지이고, 공개 링크와 홍보 링크는 이 명함으로 들어오는 공유 경로예요."}
+                : "내 명함은 실제 프로필 페이지예요. 내 명함 링크는 고객에게 보내는 실제 명함 주소예요. 홍보 링크는 승인된 홍보용 주소로 이 명함에 들어오는 경로예요."}
             </p>
           </div>
           {!isCreator ? (
@@ -1052,7 +1052,7 @@ export function DashboardPage() {
 
                   <div data-dashboard-card-stop className="space-y-4 border-t border-slate-100 p-4">
                     <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3">
-                      <p className="text-xs font-bold text-slate-700">공개 링크</p>
+                      <p className="text-xs font-bold text-slate-700">내 명함 링크</p>
                       <p className="mt-1 break-all text-xs font-semibold text-brand-800">
                         {publicUrl || "/c/ 주소 미설정"}
                       </p>
@@ -1099,7 +1099,7 @@ export function DashboardPage() {
                         className="inline-flex min-h-10 items-center justify-center rounded-xl border border-amber-300 bg-amber-50 px-3 text-sm font-bold text-amber-950 hover:bg-amber-100"
                         onClick={() => void copyMyCardPublicLink(card)}
                       >
-                        링크 복사하기
+                        내 명함 링크 복사하기
                       </button>
                       <button
                         type="button"
@@ -1124,18 +1124,18 @@ export function DashboardPage() {
                       </button>
                     </div>
                     <p className="mt-3 text-xs leading-relaxed text-slate-500">
-                      링크 복사하기를 누르면 명함 주소가 복사됩니다. 카카오톡, 문자, SNS 대화창에 붙여넣어 공유할 수 있어요.
+                      내 명함 링크 복사하기를 누르면 명함 주소가 복사됩니다. 카카오톡, 문자, SNS 대화창에 붙여넣어 공유할 수 있어요.
                     </p>
                   <button
                     type="button"
                     className="mt-2 text-xs font-semibold text-slate-500 underline underline-offset-4 hover:text-slate-800"
                     onClick={() => void copyCardLink(card)}
                   >
-                    {cardCopyId === card.id ? "공개 링크 복사됨" : "공개 링크 복사"}
+                    {cardCopyId === card.id ? "내 명함 링크 복사됨" : "내 명함 링크 복사"}
                   </button>
                   {cardShareHintId === card.id ? (
                     <p className="mt-2 text-sm font-medium text-brand-800">
-                      카카오톡 공유가 어려워 공개 링크를 복사했어요. 대화방에 붙여넣어 주세요.
+                      카카오톡 공유가 어려워 내 명함 링크를 복사했어요. 대화방에 붙여넣어 주세요.
                     </p>
                   ) : null}
                   <div className="mt-4 rounded-2xl border border-brand-100 bg-brand-50/50 px-4 py-4">
