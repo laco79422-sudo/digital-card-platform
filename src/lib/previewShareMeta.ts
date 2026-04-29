@@ -34,16 +34,18 @@ export function previewOgImageUrlFromDraft(
     draft.profile_image_url?.trim() ||
     draft.imageUrl?.trim() ||
     draft.brand_image_url?.trim();
-  if (hero?.startsWith("https://")) return hero;
+  const normalized = hero?.startsWith("http://") ? `https://${hero.slice("http://".length)}` : hero;
+  if (normalized?.startsWith("https://")) return normalized;
   const g = firstHttpsUrlFromGalleryRaw(draft.gallery_urls_raw);
-  if (g) return g;
+  if (g) return g.startsWith("http://") ? `https://${g.slice("http://".length)}` : g;
   return fallbackHttps;
 }
 
 /** 공개 명함 페이지 OG — og_image_url 우선, 없으면 대표 이미지·갤러리, 마지막으로 명함 전용 폴백 PNG */
 export function cardOgImageHttps(card: BusinessCard): string {
   const og = card.og_image_url?.trim();
-  if (og?.startsWith("https://")) return og;
+  const ogNorm = og?.startsWith("http://") ? `https://${og.slice("http://".length)}` : og;
+  if (ogNorm?.startsWith("https://")) return ogNorm;
   return previewOgImageUrlFromDraft(
     {
       image_url: card.image_url ?? null,

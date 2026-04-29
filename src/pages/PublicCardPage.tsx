@@ -6,15 +6,17 @@ import { savePromotionReferralCode } from "@/lib/promotionReferralStorage";
 import { insertCardVisitLog } from "@/services/cardVisitLogsService";
 import { insertCardViewRemote } from "@/services/cardViewsRemote";
 import { fetchCardBySlug, updateCardNameRemote } from "@/services/cardsService";
+import { decodeRouteSlugParam, slugEqualsStored } from "@/lib/publicCardSlug";
 import { getLinksForCard, useAppDataStore } from "@/stores/appDataStore";
 import { useAuthStore } from "@/stores/authStore";
 import type { BusinessCard, CardLink, User } from "@/types/domain";
 import QRCode from "qrcode";
-import { useEffect, useLayoutEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, Navigate, useLocation, useParams } from "react-router-dom";
 
 export function PublicCardPage() {
   const { slug } = useParams();
+  const decodedSlug = useMemo(() => decodeRouteSlugParam(slug), [slug]);
   const location = useLocation();
   const user = useAuthStore((s) => s.user);
   const businessCards = useAppDataStore((s) => s.businessCards);
@@ -24,47 +26,49 @@ export function PublicCardPage() {
   const addCardClick = useAppDataStore((s) => s.addCardClick);
   const addCardLinkVisit = useAppDataStore((s) => s.addCardLinkVisit);
 
-  const [slugResolveBusy, setSlugResolveBusy] = useState(false);
+  const fetchGenRef = useRef(0);
+
+  const [slugResolveBusy, setSlugResolveBusy] = useState(() => Boolean(slug?.trim()));
 
   const card = useMemo(
-    () => businessCards.find((c) => c.slug === slug && c.is_public),
-    [businessCards, slug],
+    () =>
+      businessCards.find((c) => slugEqualsStored(c.slug, decodedSlug) && c.is_public),
+    [businessCards, decodedSlug],
   );
 
-  useLayoutEffect(() => {
-    const s = slug?.trim();
-    if (!s) {
-      setSlugResolveBusy(false);
-      return;
-    }
-    if (businessCards.some((c) => c.slug === s && c.is_public)) {
-      setSlugResolveBusy(false);
-      return;
-    }
-    setSlugResolveBusy(true);
-  }, [slug, businessCards]);
-
   useEffect(() => {
-    const s = slug?.trim();
-    if (!s) {
+    const gen = ++fetchGenRef.current;
+
+    if (!decodedSlug.trim()) {
       setSlugResolveBusy(false);
       return;
     }
-    if (businessCards.some((c) => c.slug === s && c.is_public)) {
+
+    if (
+      useAppDataStore.getState().businessCards.some((c) => slugEqualsStored(c.slug, decodedSlug) && c.is_public)
+    ) {
       setSlugResolveBusy(false);
       return;
     }
-    let cancelled = false;
+
+    setSlugResolveBusy(true);
+
     void (async () => {
-      const remote = await fetchCardBySlug(s);
-      if (cancelled) return;
-      if (remote) upsertBusinessCard(remote);
+      const result = await fetchCardBySlug(decodedSlug);
+      if (gen !== fetchGenRef.current) return;
+      if (result.card) {
+        upsertBusinessCard(result.card);
+      } else {
+        console.error("[PublicCardPage] 명함을 찾을 수 없음 — slug 조회 실패", {
+          rawSlugFromRouter: slug,
+          decodedSlug,
+          sourceTable: result.sourceTable,
+          errorMessage: result.errorMessage,
+        });
+      }
       setSlugResolveBusy(false);
     })();
-    return () => {
-      cancelled = true;
-    };
-  }, [slug, upsertBusinessCard, businessCards]);
+  }, [decodedSlug, slug, upsertBusinessCard]);
   const links = useMemo(
     () => (card ? getLinksForCard(card.id, cardLinks) : []),
     [card, cardLinks],
@@ -181,7 +185,7 @@ export function PublicCardPage() {
   if (slugResolveBusy) {
     return (
       <div className="flex min-h-dvh flex-col items-center justify-center bg-slate-50 px-5">
-        <p className="text-base font-medium text-slate-600">불러오는 중…</p>
+        <p className="text-base font-medium text-slate-600">명함을 불러오고 있습니다.</p>
       </div>
     );
   }

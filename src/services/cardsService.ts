@@ -3,6 +3,7 @@
  * 환경 변수가 없거나 쿼리 실패 시 null을 반환하고, UI는 Zustand 스토어로 폴백합니다.
  */
 import { normalizeBusinessCardRow } from "@/lib/businessCardRow";
+import { normalizeSlugLookup } from "@/lib/publicCardSlug";
 import { isSupabaseConfigured, supabase, supabaseProjectUrl } from "@/lib/supabase/client";
 import type { BusinessCard, CardLink } from "@/types/domain";
 
@@ -240,28 +241,90 @@ export async function fetchMyCards(userId: string): Promise<BusinessCard[] | nul
   return result.cards;
 }
 
-export async function fetchCardBySlug(slug: string): Promise<BusinessCard | null> {
-  if (!isSupabaseConfigured || !supabase) return null;
-  const s = slug.trim();
-  if (!s) return null;
+export type FetchCardBySlugResult = {
+  card: BusinessCard | null;
+  errorMessage: string | null;
+  /** 조회에 사용한 테이블 (실패 시 마지막 시도) */
+  sourceTable: "business_cards" | "cards";
+};
+
+/** 공개 명함 slug 조회 — `business_cards` 우선, 레거시 `cards` 테이블은 선택적 폴백 */
+export async function fetchCardBySlug(slug: string): Promise<FetchCardBySlugResult> {
+  if (!isSupabaseConfigured || !supabase) {
+    return { card: null, errorMessage: "Supabase 미설정", sourceTable: "business_cards" };
+  }
+  const trimmed = slug.trim();
+  if (!trimmed) {
+    return { card: null, errorMessage: "빈 slug", sourceTable: "business_cards" };
+  }
+
+  const variants = Array.from(
+    new Set([normalizeSlugLookup(trimmed), trimmed].filter((x) => x.length > 0)),
+  );
+
+  let lastError: string | null = null;
+
   try {
-    const { data, error } = await supabase
-      .from(TABLE_CARDS)
-      .select("*")
-      .eq("slug", s)
-      .eq("is_public", true)
-      .maybeSingle();
-    if (error) {
-      if (!isMissingTableError(error.message, TABLE_CARDS)) {
-        console.error("[cardsService] fetchCardBySlug", error.message, error);
+    for (const v of variants) {
+      const { data, error } = await supabase
+        .from(TABLE_CARDS)
+        .select("*")
+        .eq("slug", v)
+        .eq("is_public", true)
+        .maybeSingle();
+      if (error) {
+        if (!isMissingTableError(error.message, TABLE_CARDS)) {
+          lastError = error.message;
+          console.error("[cardsService] fetchCardBySlug business_cards", v, error.message, error);
+        }
+        continue;
       }
-      return null;
+      if (data) {
+        return {
+          card: normalizeBusinessCardRow(data as Record<string, unknown>),
+          errorMessage: null,
+          sourceTable: "business_cards",
+        };
+      }
     }
-    if (!data) return null;
-    return normalizeBusinessCardRow(data as Record<string, unknown>);
+
+    for (const v of variants) {
+      const { data, error } = await supabase
+        .from("cards")
+        .select("*")
+        .eq("slug", v)
+        .eq("is_public", true)
+        .maybeSingle();
+      if (error) {
+        const msg = error.message || "";
+        if (
+          msg.includes("cards") &&
+          (msg.includes("does not exist") || msg.includes("schema cache") || msg.includes("Could not find"))
+        ) {
+          break;
+        }
+        lastError = msg;
+        console.warn("[cardsService] fetchCardBySlug cards fallback", v, msg);
+        continue;
+      }
+      if (data) {
+        return {
+          card: normalizeBusinessCardRow(data as Record<string, unknown>),
+          errorMessage: null,
+          sourceTable: "cards",
+        };
+      }
+    }
+
+    return {
+      card: null,
+      errorMessage: lastError ?? "일치하는 공개 명함 없음",
+      sourceTable: "business_cards",
+    };
   } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
     console.error("[cardsService] fetchCardBySlug unexpected", e);
-    return null;
+    return { card: null, errorMessage: msg, sourceTable: "business_cards" };
   }
 }
 

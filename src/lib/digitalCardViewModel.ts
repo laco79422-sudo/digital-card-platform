@@ -188,8 +188,10 @@ export function seoTitle(card: BusinessCard): string {
 
 /** Kakao·OG 스크래퍼용 — Netlify Edge `inject-preview-og` 와 동일 문구 */
 export function seoOgCardTitle(card: BusinessCard): string {
-  const name = card.person_name?.trim() || card.brand_name?.trim() || "이름";
-  return `${name}님의 디지털 명함`;
+  const brand = card.brand_name?.trim();
+  const person = card.person_name?.trim();
+  if (brand && person) return `${brand} / ${person}`;
+  return brand || person || "디지털 명함";
 }
 
 export function seoOgCardDescription(card: BusinessCard): string {

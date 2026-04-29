@@ -188,8 +188,9 @@ function buildCompanySeoBlock(): string {
 }
 
 function ogFromCard(card: CardLike, fallbackImage: string): { title: string; desc: string; image: string; siteName: string } {
-  const displayName = (card.person_name || card.brand_name || "이름").trim().slice(0, 80);
-  const title = `${displayName}님의 디지털 명함`.slice(0, 200);
+  const brand = (card.brand_name || "").trim().slice(0, 80);
+  const person = (card.person_name || "").trim().slice(0, 80);
+  const title = (brand && person ? `${brand} / ${person}` : brand || person || "디지털 명함").slice(0, 200);
   const desc = (
     (card.job_title || "").trim() ||
     (card.tagline || "").trim() ||
@@ -201,13 +202,23 @@ function ogFromCard(card: CardLike, fallbackImage: string): { title: string; des
     (card.og_image_url || "").trim() ||
     (card.image_url || "").trim() ||
     (card.profile_image_url || "").trim() ||
-    (card.imageUrl || "").trim() ||
     (card.brand_image_url || "").trim();
+  image = ensureOgImageHttps(image);
   if (!image.startsWith("https://")) image = firstGalleryHttpsFromList(galleryUrlsArray(card));
+  image = ensureOgImageHttps(image);
   if (!image.startsWith("https://")) image = fallbackImage;
 
   const siteName = (card.brand_name || COMPANY_OG_TITLE).trim();
   return { title, desc, image, siteName };
+}
+
+/** 카카오·OG 스크래퍼는 https 이미지 URL을 요구하는 경우가 많음 */
+function ensureOgImageHttps(url: string): string {
+  const t = url.trim();
+  if (!t) return "";
+  if (t.startsWith("https://")) return t;
+  if (t.startsWith("http://")) return `https://${t.slice("http://".length)}`;
+  return t;
 }
 
 async function fetchPublicCardBySlug(
@@ -215,8 +226,9 @@ async function fetchPublicCardBySlug(
   supabaseKey: string,
   slug: string,
 ): Promise<{ card: CardLike | null; status: number }> {
+  /** PostgREST 수동 URL에서는 카멜케이스 컬럼(imageUrl) 생략 — snake_case만 선택해 조회 안정화 */
   const cols =
-    "slug,person_name,brand_name,job_title,tagline,intro,og_image_url,image_url,profile_image_url,imageUrl,brand_image_url,gallery_urls";
+    "slug,person_name,brand_name,job_title,tagline,intro,og_image_url,image_url,profile_image_url,brand_image_url,gallery_urls";
   const rest = `${supabaseUrl.replace(/\/$/, "")}/rest/v1/business_cards?slug=eq.${encodeURIComponent(
     slug,
   )}&is_public=eq.true&select=${cols}&limit=1`;
