@@ -495,8 +495,8 @@ export function CardForm({
     <div className="space-y-6">
       {isStudio ? (
         <StudioSection
-          title="명함을 다듬어 보세요"
-          subtitle="입력하는 순간, 위 미리보기와 똑같이 바뀝니다. 폼이 아니라 실시간 완성 화면이라고 생각해 주세요."
+          title="② 최소 입력으로 채우기"
+          subtitle="이름·직함·한 줄 소개만 있어도 저장 후 공유할 수 있어요. 입력할 때마다 위 미리보기와 동일하게 반영됩니다."
         >
           {basicBlock}
         </StudioSection>

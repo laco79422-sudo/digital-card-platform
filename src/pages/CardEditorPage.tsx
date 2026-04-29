@@ -6,11 +6,19 @@ import { CardForm } from "@/components/card-editor/CardForm";
 import { CardEditorGrowthLadder } from "@/components/card-editor/CardEditorGrowthLadder";
 import { CardEditorSaveCompletionPanel } from "@/components/card-editor/CardEditorSaveCompletionPanel";
 import { CardPreview } from "@/components/card-editor/CardPreview";
+import { RevenueTemplateSection } from "@/components/card-editor/RevenueTemplateSection";
 import { Button } from "@/components/ui/Button";
 import { linkButtonClassName } from "@/components/ui/buttonStyles";
 import { Card, CardContent, CardHeader } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
+import { buildCardPromoShareText } from "@/lib/cardPromoShareText";
+import {
+  buildRevenueCardDraft,
+  buildRevenueTemplateLinkRows,
+  parseRevenueTemplateSearch,
+} from "@/data/revenueCardTemplates";
+import { getCardHeroImageUrl } from "@/lib/businessCardHeroImage";
 import { buildCardShareUrl, buildTempPreviewUrl, editorOriginFallback } from "@/lib/cardShareUrl";
 import { parseCardEditorDraft, zodIssuesToFieldErrors } from "@/lib/cardEditorSchema";
 import { shareCardLinkNativeOrder } from "@/lib/kakaoWebShare";
@@ -119,13 +127,13 @@ function EditorFlowHint({
     );
   }
 
-  return (
+    return (
     <div className="rounded-2xl border border-slate-200 bg-slate-50/90 px-4 py-5 sm:px-6 sm:py-6">
       <p className="text-center text-sm font-semibold text-slate-800">
-        {phase === "mid" ? "아래에서 내용을 마저 입력해 주세요" : "입력을 마친 뒤 맨 아래에서 저장할 수 있어요"}
+        {phase === "mid" ? "아래만 채우면 공유할 준비가 됩니다" : "맨 아래에서 저장하면 공유·복사 화면으로 바로 이어져요"}
       </p>
       <p className="mt-2 text-center text-sm leading-relaxed text-slate-600">
-        가입은 저장 단계에서 이어집니다. 먼저 미리보기 링크로 결과를 확인해 보세요.
+        게스트는 저장 단계에서 가입으로 연결됩니다. 미리보기 링크로 먼저 결과를 확인해 보세요.
       </p>
     </div>
   );
@@ -185,11 +193,17 @@ export function CardEditorPage() {
   const isNew = !id || id === "new";
   const wantsSample = useMemo(() => parseWantsSample(location.search), [location.search]);
 
+  const revenueTemplateId = useMemo(
+    () => (!isGuestRoute && isNew ? parseRevenueTemplateSearch(location.search) : null),
+    [isGuestRoute, isNew, location.search],
+  );
+
   const routeKey = useMemo(() => {
     if (isGuestRoute) return wantsSample ? "create-card-sample" : "create-card";
     if (!isNew && id) return id;
+    if (revenueTemplateId) return `new-revenue-${revenueTemplateId}`;
     return wantsSample ? "new-sample" : "new";
-  }, [isGuestRoute, isNew, id, wantsSample]);
+  }, [isGuestRoute, isNew, id, wantsSample, revenueTemplateId]);
 
   const existing = useMemo(
     () => (!isNew && id ? businessCards.find((c) => c.id === id) : undefined),
@@ -249,6 +263,7 @@ export function CardEditorPage() {
 
   const [searchParams] = useSearchParams();
   const savedHighlight = searchParams.get("saved") === "1";
+  const welcomeHighlight = searchParams.get("welcome") === "1";
 
   const [guestTempId, setGuestTempId] = useState<string | null>(null);
 
@@ -256,6 +271,22 @@ export function CardEditorPage() {
     const o = editorOriginFallback(shareOrigin);
     return buildCardShareUrl(o, draft.slug.trim());
   }, [draft.slug, shareOrigin]);
+
+  const promoShareText = useMemo(
+    () => (completionShareUrl ? buildCardPromoShareText(completionShareUrl, draft) : ""),
+    [completionShareUrl, draft],
+  );
+
+  const assetPreviewCard = useMemo(() => {
+    if (!user || !id || id === "new") return null;
+    return draftToBusinessCard(draft, {
+      id,
+      user_id: user.id,
+      created_at: existing?.created_at ?? new Date().toISOString(),
+    });
+  }, [draft, existing?.created_at, id, user]);
+
+  const heroImageUrlForDownload = assetPreviewCard ? getCardHeroImageUrl(assetPreviewCard) : "";
 
   useEffect(() => {
     setShareOrigin(typeof window !== "undefined" ? window.location.origin : "");
@@ -272,11 +303,11 @@ export function CardEditorPage() {
   }, [growthFlash]);
 
   useEffect(() => {
-    if (!savedHighlight || !draft.is_public || !completionShareUrl) return;
+    if (!savedHighlight || !welcomeHighlight || !draft.is_public || !completionShareUrl) return;
     const el = document.getElementById("card-save-complete");
     if (!el) return;
     requestAnimationFrame(() => el.scrollIntoView({ behavior: "smooth", block: "start" }));
-  }, [savedHighlight, draft.is_public, completionShareUrl]);
+  }, [savedHighlight, welcomeHighlight, draft.is_public, completionShareUrl]);
 
   useEffect(() => {
     if (isGuestRoute) return;
@@ -354,6 +385,28 @@ export function CardEditorPage() {
       location.pathname === "/cards/new" &&
       isNew &&
       user &&
+      revenueTemplateId &&
+      !wantsSample &&
+      !existing
+    ) {
+      const st = useCardEditorDraftStore.getState();
+      if (st.hydratedKey === routeKey) return;
+      replaceDraft(
+        buildRevenueCardDraft(revenueTemplateId, {
+          person_name: user.name?.trim() || DEFAULT_CARD_PERSON_NAME,
+          email: user.email ?? "",
+        }),
+      );
+      setLinkRows(buildRevenueTemplateLinkRows(revenueTemplateId));
+      setHydratedKey(routeKey);
+      return;
+    }
+
+    if (
+      !isGuestRoute &&
+      location.pathname === "/cards/new" &&
+      isNew &&
+      user &&
       wantsSample &&
       !existing
     ) {
@@ -397,6 +450,7 @@ export function CardEditorPage() {
     user?.email,
     replaceDraft,
     setHydratedKey,
+    revenueTemplateId,
   ]);
 
   useEffect(() => {
@@ -899,7 +953,7 @@ export function CardEditorPage() {
         clearGuestTempId();
         pendingTempIdRef.current = null;
       }
-      navigate(`/cards/${cardId}/edit?saved=1`, { replace: true });
+      navigate(`/cards/${cardId}/edit?saved=1${!existing ? "&welcome=1" : ""}`, { replace: true });
     } finally {
       setSubmitting(false);
     }
@@ -926,12 +980,17 @@ export function CardEditorPage() {
             {isGuestRoute
               ? "지금 만들어서 바로 보내는 도구"
               : isNew
-                ? "새 디지털 명함"
+                ? "명함 만들기"
                 : "명함 수정"}
           </p>
+          {!isGuestRoute && isNew && location.pathname === "/cards/new" && !wantsSample ? (
+            <p className="mt-1 max-w-xl text-xs leading-relaxed text-slate-600 sm:text-sm">
+              ① 업종·템플릿 → ② 이름·연락처 등 최소 입력 → ③ 저장하면 바로 공유 화면으로 이어집니다.
+            </p>
+          ) : null}
           {isGuestRoute ? (
             <p className="mt-1 max-w-md text-xs leading-relaxed text-slate-500 sm:text-sm">
-              입력만으로 자동 저장되고, 링크 하나로 고객·SNS까지 이어져요. 가입은 나중에 해도 됩니다.
+              입력만으로 자동 저장되고, 링크 하나로 고객에게 바로 보냅니다. 가입은 저장할 때 이어집니다.
             </p>
           ) : null}
           <p
@@ -962,12 +1021,28 @@ export function CardEditorPage() {
         </Link>
       </div>
 
-      {savedHighlight && user && !isGuestRoute && id ? (
+      {user && !isGuestRoute && isNew && location.pathname === "/cards/new" && !wantsSample ? (
+        <div className="mb-8 space-y-4">
+          <RevenueTemplateSection
+            selectedId={revenueTemplateId}
+            disabled={submitting}
+            onSelectTemplate={(tid) =>
+              navigate(`/cards/new?template=${encodeURIComponent(tid)}`, { replace: true })
+            }
+          />
+        </div>
+      ) : null}
+
+      {savedHighlight && welcomeHighlight && user && !isGuestRoute && id ? (
         draft.is_public && completionShareUrl ? (
           <div className="space-y-6">
             <CardEditorSaveCompletionPanel
               shareUrl={completionShareUrl}
+              promoShareText={promoShareText}
               cardTitle={`${draft.person_name || draft.brand_name || "내"} 디지털 명함`}
+              qrImageUrl={existing?.qr_image_url ?? null}
+              heroImageUrl={heroImageUrlForDownload || null}
+              slug={draft.slug.trim()}
               onDismiss={dismissSaveBanner}
             />
             <PostSaveGrowthPanel />

@@ -56,6 +56,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { useAppDataStore } from "@/stores/appDataStore";
 import type { BusinessCard, CardVisitLog, PromotionApplication, User } from "@/types/domain";
 import QRCode from "qrcode";
+import { Share2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState, type MouseEvent } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 
@@ -105,6 +106,25 @@ function StatBlock({
     );
   }
   return <div className={cls}>{inner}</div>;
+}
+
+/** 내 공간 — 성과 대시보드 지표 카드 */
+function PerformanceStatCard({
+  label,
+  hint,
+  value,
+}: {
+  label: string;
+  hint: string;
+  value: number;
+}) {
+  return (
+    <div className="rounded-2xl border border-slate-200/90 bg-gradient-to-b from-white to-slate-50/90 p-4 shadow-sm ring-1 ring-slate-900/[0.04] sm:p-5">
+      <p className="text-sm font-bold text-slate-900">{label}</p>
+      <p className="mt-1 text-[11px] font-medium leading-snug text-slate-500 sm:text-xs">{hint}</p>
+      <p className="mt-3 text-3xl font-extrabold tabular-nums tracking-tight text-brand-900">{value}</p>
+    </div>
+  );
 }
 
 function cardDisplayName(card: BusinessCard): string {
@@ -408,6 +428,21 @@ export function DashboardPage() {
 
   const viewsCount = cardViews.filter((v) => myCardIds.has(v.card_id)).length;
   const clicksCount = cardClicks.filter((c) => myCardIds.has(c.card_id)).length;
+
+  /** 전화·메일·카카오 등 상담 성격 클릭 */
+  const inquiryClickCount = useMemo(
+    () =>
+      cardClicks.filter(
+        (c) => myCardIds.has(c.card_id) && ["phone", "email", "kakao"].includes(c.action_type),
+      ).length,
+    [cardClicks, myCardIds],
+  );
+
+  /** Supabase 등 서버에 남는 공개 명함 방문 로그 */
+  const serverVisitCount = useMemo(
+    () => visitLogs.filter((l) => myCardIds.has(l.card_id)).length,
+    [visitLogs, myCardIds],
+  );
 
   const myOpenRequests = uid
     ? requests.filter((r) => r.client_user_id === uid && r.status === "open").length
@@ -819,6 +854,9 @@ export function DashboardPage() {
           <p className="text-base leading-relaxed text-slate-600">
             안녕하세요, <span className="font-medium text-slate-900">{displayName}</span>님
           </p>
+          <p className="mt-2 text-base leading-relaxed text-slate-600">
+            만들고 · 공유하고 · 성과를 확인하고 · 다시 공유하는 흐름이 여기서 이어집니다.
+          </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Link
@@ -887,6 +925,53 @@ export function DashboardPage() {
           />
         )}
       </div>
+
+      {uid ? (
+        <section
+          className="mt-10 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7"
+          aria-labelledby="dashboard-performance-heading"
+        >
+          <h2 id="dashboard-performance-heading" className="text-lg font-bold text-slate-900 sm:text-xl">
+            내 명함 성과
+          </h2>
+          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-600 sm:text-base">
+            공유가 있어야 숫자가 쌓입니다. 조회·클릭·문의·방문을 확인한 뒤 아래에서 바로 다시 공유해 보세요.
+          </p>
+          <div className="mt-6 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+            <PerformanceStatCard label="조회수" hint="명함 페이지가 연 횟수" value={viewsCount} />
+            <PerformanceStatCard label="클릭수" hint="명함 속 버튼 클릭" value={clicksCount} />
+            <PerformanceStatCard label="문의 수" hint="전화·메일·카카오 등 상담 클릭" value={inquiryClickCount} />
+            <PerformanceStatCard label="방문 수" hint="기록된 방문 로그" value={serverVisitCount} />
+          </div>
+        </section>
+      ) : null}
+
+      {uid && myCards.length > 0 ? (
+        <section
+          id="dashboard-share-loop"
+          className="mt-6 rounded-2xl border-2 border-cta-400/55 bg-gradient-to-br from-cta-50 via-white to-emerald-50/85 p-5 shadow-lg shadow-cta-900/10 sm:p-6"
+          aria-labelledby="dashboard-share-loop-heading"
+        >
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+            <div className="min-w-0">
+              <p id="dashboard-share-loop-heading" className="text-lg font-extrabold tracking-tight text-slate-900 sm:text-xl">
+                지금 공유하면 더 많은 고객이 들어옵니다
+              </p>
+              <p className="mt-1 text-sm leading-relaxed text-slate-600 sm:text-base">
+                성과를 잠깐 확인했다면, 같은 명함 링크를 카카오·당근·문자로 한 번 더 보내 보세요.
+              </p>
+            </div>
+            <button
+              type="button"
+              className="inline-flex min-h-[52px] shrink-0 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cta-500 to-cta-600 px-5 text-base font-extrabold text-white shadow-md shadow-cta-900/20 hover:from-cta-400 hover:to-cta-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cta-400 focus-visible:ring-offset-2"
+              onClick={scrollToMyCardsSection}
+            >
+              <Share2 className="h-5 w-5 shrink-0" aria-hidden />
+              내 명함에서 공유하기
+            </button>
+          </div>
+        </section>
+      ) : null}
 
       <section id="dashboard-section-my-cards" className="mt-10 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
