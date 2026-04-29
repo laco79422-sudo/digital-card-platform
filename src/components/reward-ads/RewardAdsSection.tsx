@@ -128,7 +128,7 @@ export function RewardAdsSection({
 }) {
   const user = useAuthStore((s) => s.user);
   const [ads, setAds] = useState<PublicRewardAd[]>([]);
-  const [loadErr, setLoadErr] = useState<string | null>(null);
+  const [loadingAds, setLoadingAds] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; ok: boolean } | null>(null);
   const [points, setPoints] = useState<number | null>(null);
@@ -147,11 +147,15 @@ export function RewardAdsSection({
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      if (!isSupabaseConfigured) return;
-      const { ads: rows, error } = await fetchPublicRewardAds();
+      if (!isSupabaseConfigured) {
+        setLoadingAds(false);
+        return;
+      }
+      setLoadingAds(true);
+      const { ads: rows } = await fetchPublicRewardAds();
       if (cancelled) return;
-      if (error) setLoadErr(error);
       setAds(rows);
+      setLoadingAds(false);
     })();
     return () => {
       cancelled = true;
@@ -222,10 +226,14 @@ export function RewardAdsSection({
           ))}
         </ul>
 
-        {loadErr ? (
-          <p className="mt-6 text-sm text-amber-800">{loadErr}</p>
+        {loadingAds ? (
+          <div className="mt-8 flex justify-center py-6 text-slate-500" aria-busy="true" aria-live="polite">
+            <Loader2 className="h-7 w-7 animate-spin" aria-hidden />
+          </div>
         ) : ads.length === 0 ? (
-          <p className="mt-6 text-sm text-slate-500">표시할 광고가 없습니다.</p>
+          <p className="mt-8 rounded-xl border border-slate-100 bg-slate-50/90 px-4 py-6 text-center text-sm font-medium text-slate-600">
+            광고 준비중입니다
+          </p>
         ) : (
           <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {ads.map((ad) => (

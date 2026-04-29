@@ -11,8 +11,19 @@ export interface PublicRewardAd {
 
 export async function fetchPublicRewardAds(): Promise<{ ads: PublicRewardAd[]; error: string | null }> {
   if (!isSupabaseConfigured || !supabase) return { ads: [], error: null };
-  const { data, error } = await supabase.rpc("list_public_reward_ads");
-  if (error) return { ads: [], error: error.message };
+  const { data, error } = await supabase
+    .from("ads")
+    .select("id,title,description,image_url,target_url,ad_type")
+    .eq("status", "active")
+    .in("ad_type", ["banner", "click_reward"])
+    .order("created_at", { ascending: false })
+    .limit(10);
+
+  if (error) {
+    console.error("광고 로드 실패", error);
+    return { ads: [], error: error.message };
+  }
+
   return { ads: (data ?? []) as PublicRewardAd[], error: null };
 }
 
