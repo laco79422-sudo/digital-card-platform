@@ -25,18 +25,43 @@ export async function fetchReferralSignupCount(referrerUserId: string): Promise<
   return count ?? 0;
 }
 
-/** 수익 링크(`/?ref=`) 클릭 기록 수 — 유효한 코드로 프로필과 매칭된 행만 집계 */
-export async function fetchReferralClickCount(referrerUserId: string): Promise<number> {
+/** 추천 링크 메인 유입(`referral_link_visits`) 건수 */
+export async function fetchReferralLinkVisitCount(referrerUserId: string): Promise<number> {
   if (!isSupabaseConfigured || !supabase) return 0;
+  const code = await fetchProfileReferralCode(referrerUserId);
+  if (!code) return 0;
   const { count, error } = await supabase
-    .from("referral_clicks")
+    .from("referral_link_visits")
     .select("*", { count: "exact", head: true })
-    .eq("referrer_user_id", referrerUserId);
+    .eq("referral_code", code.trim().toUpperCase());
   if (error) {
-    console.warn("[referralService] fetchReferralClickCount", error.message);
+    console.warn("[referralService] fetchReferralLinkVisitCount", error.message);
     return 0;
   }
   return count ?? 0;
+}
+
+/** @deprecated {@link fetchReferralLinkVisitCount} 사용 */
+export async function fetchReferralClickCount(referrerUserId: string): Promise<number> {
+  return fetchReferralLinkVisitCount(referrerUserId);
+}
+
+export type ReferrerPreviewRow = { referral_code: string; display_name: string };
+
+export async function fetchReferrerPreviewForSignup(rawCode: string | null): Promise<ReferrerPreviewRow | null> {
+  if (!rawCode?.trim() || !isSupabaseConfigured || !supabase) return null;
+  const { data, error } = await supabase.rpc("preview_referrer_for_signup", { p_code: rawCode.trim() });
+  if (error) {
+    console.warn("[referralService] preview_referrer_for_signup", error.message);
+    return null;
+  }
+  const row = Array.isArray(data) ? data[0] : null;
+  if (!row || typeof row !== "object") return null;
+  const rec = row as Record<string, unknown>;
+  const referral_code = typeof rec.referral_code === "string" ? rec.referral_code : null;
+  if (!referral_code) return null;
+  const display_name = typeof rec.display_name === "string" ? rec.display_name : "";
+  return { referral_code, display_name };
 }
 
 /** 세션이 있는 상태에서 추천 관계를 서버에 저장합니다. 성공 시 로컬 저장 코드를 제거합니다. */

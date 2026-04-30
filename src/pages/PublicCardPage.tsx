@@ -250,7 +250,7 @@ export function PublicCardPage() {
         links={links}
         onLinkClick={handleLink}
         qrDataUrl={qr}
-        referralLanding={Boolean(referralCode || partnerIdFromUrl)}
+        referralLanding={Boolean(partnerIdFromUrl)}
         editableName={canEditName}
         namePlaceholder="이름을 입력하세요"
         onNameChange={(name) => void saveCardName(name)}

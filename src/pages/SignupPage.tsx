@@ -15,7 +15,7 @@ import { isSupabaseConfigured, supabase } from "@/lib/supabase/client";
 import { getStoredLinkoReferralCode } from "@/lib/linkoReferralStorage";
 import { getReferralCodeFromSearch } from "@/lib/referrals";
 import { getPromotionReferralCode } from "@/lib/promotionReferralStorage";
-import { claimReferralForAuthenticatedUser } from "@/services/referralService";
+import { claimReferralForAuthenticatedUser, fetchReferrerPreviewForSignup } from "@/services/referralService";
 import { useAppDataStore } from "@/stores/appDataStore";
 import { useAuthStore } from "@/stores/authStore";
 import {
@@ -64,6 +64,8 @@ export function SignupPage() {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [verificationSentEmail, setVerificationSentEmail] = useState("");
+  const [referrerPreview, setReferrerPreview] = useState<{ referral_code: string; display_name: string } | null>(null);
+  const [referrerPreviewLoading, setReferrerPreviewLoading] = useState(false);
 
   const {
     register,
@@ -78,13 +80,32 @@ export function SignupPage() {
 
   const emailValue = watch("email") ?? "";
   const emailFieldStatus = useMemo(() => getSignupEmailFieldStatus(emailValue), [emailValue]);
-  const referralCode = useMemo(() => {
+
+  const platformReferralCode = useMemo(() => {
     const fromUrl = getReferralCodeFromSearch(location.search);
     if (fromUrl) return fromUrl;
-    const stored = getStoredLinkoReferralCode();
-    if (stored) return stored;
-    return getPromotionReferralCode();
+    return getStoredLinkoReferralCode();
   }, [location.search]);
+
+  const referralCode = useMemo(() => platformReferralCode ?? getPromotionReferralCode(), [platformReferralCode]);
+
+  useEffect(() => {
+    if (!platformReferralCode?.trim()) {
+      setReferrerPreview(null);
+      setReferrerPreviewLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setReferrerPreviewLoading(true);
+    void fetchReferrerPreviewForSignup(platformReferralCode).then((row) => {
+      if (cancelled) return;
+      setReferrerPreview(row);
+      setReferrerPreviewLoading(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [platformReferralCode]);
 
   /** 이메일 칸 아래: 형식 안내만 (서버 중복 메시지는 errorMessage로만 표시) */
   const emailFormatHint = useMemo(() => {
@@ -240,6 +261,27 @@ export function SignupPage() {
             >
               {signupNoticeFromNav}
             </p>
+          ) : null}
+          {platformReferralCode ? (
+            <div
+              role="status"
+              className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50/90 px-4 py-3 text-sm text-emerald-950"
+            >
+              <p className="font-semibold text-emerald-900">추천인 코드가 감지되었습니다.</p>
+              <div className="mt-3 flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3">
+                <span className="shrink-0 font-medium text-emerald-900">추천인</span>
+                <div className="inline-flex min-h-10 items-center rounded-lg bg-white px-3 py-2 font-semibold text-slate-900 ring-1 ring-emerald-200">
+                  {referrerPreviewLoading
+                    ? "확인 중…"
+                    : referrerPreview?.display_name?.trim() ||
+                      referrerPreview?.referral_code ||
+                      platformReferralCode}
+                </div>
+              </div>
+              <p className="mt-2 text-xs leading-relaxed text-emerald-800/90">
+                추천 링크로 연결된 정보입니다. 수정하지 않아도 가입 시 자동 반영됩니다.
+              </p>
+            </div>
           ) : null}
           {!isSupabaseConfigured ? (
             <div

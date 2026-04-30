@@ -1,9 +1,5 @@
 import { canonicalSiteOrigin } from "@/lib/siteOrigin";
-import {
-  SITE_OG_DESCRIPTION,
-  SITE_OG_REFERRAL_IMAGE_URL,
-  SITE_OG_TITLE,
-} from "@/lib/siteLinkPreview";
+import { SITE_OG_DESCRIPTION, SITE_OG_IMAGE_URL, SITE_OG_TITLE } from "@/lib/siteLinkPreview";
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 
@@ -26,12 +22,9 @@ export function SignupSeo() {
   useEffect(() => {
     const origin = canonicalSiteOrigin();
     const url = `${origin}/signup${location.search}`;
-    const ref = new URLSearchParams(location.search).get("ref")?.trim();
     const title = "린코 디지털 명함 — 회원가입";
-    const desc = ref
-      ? "수익 링크로 린코에 가입하고 디지털 명함을 시작해 보세요."
-      : SITE_OG_DESCRIPTION;
-    const image = SITE_OG_REFERRAL_IMAGE_URL;
+    const desc = SITE_OG_DESCRIPTION;
+    const image = SITE_OG_IMAGE_URL;
 
     document.title = title;
 

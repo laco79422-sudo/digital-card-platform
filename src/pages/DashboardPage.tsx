@@ -655,7 +655,7 @@ export function DashboardPage() {
       setReferralLinkCopiedFlash(true);
       window.setTimeout(() => setReferralLinkCopiedFlash(false), 4000);
     } catch {
-      window.prompt("수익 링크를 복사해 주세요", referralLink);
+      window.prompt("추천 링크를 복사해 주세요", referralLink);
     }
   };
 
@@ -1445,7 +1445,7 @@ export function DashboardPage() {
             <PerformanceStatCard label="헬퍼링크 유입 수" hint="헬퍼링크로 명함 페이지에 들어온 횟수" value={promoLinkInboundCount} />
           </div>
           <div className="mt-4 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
-            <PerformanceStatCard label="수익 링크 가입자 수" hint="수익 링크(?ref)로 가입한 사용자" value={referredCount} />
+            <PerformanceStatCard label="추천 링크 가입자 수" hint="내 추천 링크 경로로 가입한 사용자" value={referredCount} />
             <PerformanceStatCard
               label="결제 전환 수"
               hint="추천 보상이 적립된 결제 건수"
@@ -1649,11 +1649,11 @@ export function DashboardPage() {
       {!isCreator ? (
         <section className="mt-10 rounded-2xl border border-brand-200/80 bg-gradient-to-br from-brand-50 via-white to-sky-50 p-4 shadow-sm sm:p-6">
           <div className="rounded-xl border border-brand-100 bg-white/70 px-4 py-4">
-            <p className="text-sm font-bold text-brand-900">추천인 보상 · 수익 링크</p>
-            <h2 className="mt-1 text-lg font-semibold text-slate-900">수익 링크로 가입을 유도하면 보상이 쌓입니다</h2>
+            <p className="text-sm font-bold text-brand-900">추천인 보상</p>
+            <h2 className="mt-1 text-lg font-semibold text-slate-900">지인에게 보낸 링크로 성과가 쌓입니다</h2>
             <p className="mt-2 text-sm leading-relaxed text-slate-600">
-              내 수익 링크로 가입한 사용자가 유료 결제를 하면, 결제 금액의 10%가 추천 보상으로 적립됩니다. 적립된 보상은 출금
-              신청을 통해 받을 수 있습니다.
+              이 링크를 지인에게 보내면 린코를 소개할 수 있습니다. 이 링크로 가입하고 결제하면 추천 성과로 기록됩니다.
+              적립된 보상은 출금 신청을 통해 받을 수 있습니다.
             </p>
             <p className="mt-3 text-sm font-medium text-slate-800">보상 예시</p>
             <ul className="mt-1 list-inside list-disc text-sm text-slate-600">
@@ -1664,23 +1664,26 @@ export function DashboardPage() {
 
           <div className="mt-8 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div className="max-w-2xl">
-              <h3 className="text-lg font-semibold text-slate-900 sm:text-xl">내 수익 링크</h3>
+              <h3 className="text-lg font-semibold text-slate-900 sm:text-xl">내가 추천할 링크</h3>
               <p className="mt-2 text-sm leading-relaxed text-slate-600 sm:text-base">
-                가입하면 나만의 수익 링크가 만들어집니다. 이 링크는 린코 가입 유도 전용이며, 명함 연결용 명함 링크·고객 유입용
-                헬퍼링크와 목적이 다릅니다.
+                이 링크를 지인에게 보내면 린코를 소개할 수 있습니다. 가입과 결제가 발생하면 내 추천 성과로 기록됩니다.
               </p>
               <p className="mt-3 text-xs leading-relaxed text-slate-500">
-                명함 주소(<span className="font-mono">/c/···</span>)와 수익 링크(<span className="font-mono">/?ref=···</span>)를
-                헷갈리지 마세요. 플랫폼 소개·가입 유도에는 수익 링크만 사용합니다.
+                명함 주소(<span className="font-mono">/c/···</span>)와 추천용 주소(<span className="font-mono">/?ref=···</span>)는
+                목적이 다릅니다. 고객에게 보여 줄 때는 명함 링크, 플랫폼 소개에는 추천 링크를 사용하세요.
+              </p>
+              <p className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs leading-relaxed text-slate-600">
+                추천 링크가 외부 방문자에게 어떻게 보이는지 정확히 확인하려면 시크릿 창에서 열어 보세요. 로그인된 상태에서는 내
+                공간 메뉴가 함께 보일 수 있습니다.
               </p>
             </div>
             <div className="rounded-xl bg-white px-4 py-3 text-sm font-semibold text-slate-900 shadow-sm ring-1 ring-slate-200">
-              수익 링크 가입자 {referredCount}명 / 5명
+              추천으로 연결된 가입 {referredCount}명 / 5명
             </div>
           </div>
 
           <div className="mt-5">
-            <p className="text-sm font-semibold text-slate-800">내 수익 링크 주소</p>
+            <p className="text-sm font-semibold text-slate-800">내가 추천할 링크 주소</p>
             {referralLink ? (
               <a
                 href={referralLink}
@@ -1693,11 +1696,11 @@ export function DashboardPage() {
               </a>
             ) : (
               <p className="mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3 font-mono text-sm font-semibold text-slate-500">
-                수익 링크를 불러오는 중입니다.
+                링크를 불러오는 중입니다.
               </p>
             )}
             <p className="mt-3 text-xs leading-relaxed text-slate-600">
-              이 링크로 가입하면 수익이 쌓입니다. 미리 보기는 아래 버튼으로 확인할 수 있어요.
+              지인에게 보낼 주소입니다. 미리 보기는 아래 버튼으로 확인할 수 있어요.
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
               <button
@@ -1706,10 +1709,10 @@ export function DashboardPage() {
                 disabled={!referralLink}
                 onClick={(e) => {
                   e.stopPropagation();
-                  if (referralLink) window.open(referralLink, "_blank", "noopener,noreferrer");
+                  window.open(`${canonicalSiteOrigin()}/`, "_blank", "noopener,noreferrer");
                 }}
               >
-                수익 링크 미리보기
+                추천 링크 확인하기
               </button>
               <button
                 type="button"
@@ -1720,12 +1723,12 @@ export function DashboardPage() {
                 }}
                 disabled={!referralLink}
               >
-                수익 링크 복사하기
+                추천 링크 복사하기
               </button>
             </div>
             {referralLinkCopiedFlash ? (
               <p className="mt-3 text-xs leading-relaxed text-emerald-800">
-                <span className="font-semibold">수익 링크가 복사되었습니다.</span>
+                <span className="font-semibold">추천 링크가 복사되었습니다.</span>
                 <br />
                 카카오톡, 문자, SNS에 붙여넣어 린코를 소개해 주세요.
               </p>
@@ -1733,29 +1736,32 @@ export function DashboardPage() {
           </div>
 
           <div className="mt-8 rounded-xl border border-slate-200 bg-white px-4 py-5 shadow-sm">
-            <p className="text-sm font-bold text-slate-900">수익 링크 성과</p>
+            <p className="text-sm font-bold text-slate-900">추천한 링크 성과</p>
+            <p className="mt-1 text-xs leading-relaxed text-slate-500">
+              내가 보낸 링크로 얼마나 많은 사람이 들어오고 가입했는지 확인할 수 있습니다.
+            </p>
             <dl className="mt-4 grid gap-5 sm:grid-cols-2">
               <div>
-                <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">조회수</dt>
+                <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">방문 수</dt>
                 <dd className="mt-1 text-xl font-bold tabular-nums text-slate-900">
                   {(referralClickCountDb ?? 0).toLocaleString()}
                 </dd>
-                <p className="mt-1 text-xs leading-relaxed text-slate-500">수익 링크가 열린 횟수입니다.</p>
+                <p className="mt-1 text-xs leading-relaxed text-slate-500">추천 링크(메인)가 열린 횟수입니다.</p>
               </div>
               <div>
-                <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">수익 링크 가입</dt>
+                <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">가입 수</dt>
                 <dd className="mt-1 text-xl font-bold tabular-nums text-slate-900">{referredCount}명</dd>
                 <p className="mt-1 text-xs leading-relaxed text-slate-500">
-                  수익 링크로 가입한 사람입니다.
+                  추천 관계로 가입 완료한 사람입니다.
                 </p>
               </div>
               <div>
-                <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">결제 전환</dt>
+                <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">결제 수</dt>
                 <dd className="mt-1 text-xl font-bold tabular-nums text-slate-900">
                   {referralPaymentConversionCount}건
                 </dd>
                 <p className="mt-1 text-xs leading-relaxed text-slate-500">
-                  수익 링크로 가입한 사용자가 유료 결제한 횟수입니다.
+                  추천으로 연결된 가입자가 유료 결제한 횟수입니다.
                 </p>
               </div>
               <div>
@@ -1793,7 +1799,7 @@ export function DashboardPage() {
           <div className="mt-8 rounded-xl border border-brand-200 bg-white px-4 py-5 shadow-sm">
             <p className="text-sm font-bold text-brand-900">추천 보상</p>
             <p className="mt-2 text-sm leading-relaxed text-slate-600">
-              내 수익 링크로 가입한 사용자가 결제하면 결제 금액의 10%가 보상으로 적립됩니다. 추천 보상은 실제 결제 완료 건에 대해서만 적립되며, 환불 시 보상은 취소되거나 조정될 수 있습니다. 출금은 관리자 확인 후 지급됩니다.
+              내가 추천할 링크로 가입한 사용자가 결제하면 결제 금액의 10%가 보상으로 적립됩니다. 추천 보상은 실제 결제 완료 건에 대해서만 적립되며, 환불 시 보상은 취소되거나 조정될 수 있습니다. 출금은 관리자 확인 후 지급됩니다.
             </p>
             <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <StatBlock label="총 적립 보상" value={`${referralRewardBalances.totalAccrued.toLocaleString()}원`} />

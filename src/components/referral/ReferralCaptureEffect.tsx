@@ -1,4 +1,4 @@
-import { maybeRecordReferralClickFromUrl } from "@/lib/referralClickTracking";
+import { maybeRecordReferralLinkVisit } from "@/lib/referralClickTracking";
 import { saveLinkoReferralCodeFromUrl } from "@/lib/linkoReferralStorage";
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
@@ -6,7 +6,7 @@ import { useLocation } from "react-router-dom";
 /**
  * 추천 코드 저장 (`linko_referral_code`).
  * 홈 `/`, 회원가입·로그인 등 정식 추천 진입 경로에서만 저장합니다.
- * 명함 공개 URL(`/c/...`)의 `?ref=`는 추천 초대 링크가 아니므로 저장하지 않습니다.
+ * 명함 공개 URL(`/c/...`)의 `?ref=`는 플랫폼 추천 링크가 아니므로 저장하지 않습니다.
  */
 const REF_CAPTURE_PATH_PREFIXES = ["/signup", "/login"];
 
@@ -24,7 +24,8 @@ export function ReferralCaptureEffect() {
 
     if (landing) {
       saveLinkoReferralCodeFromUrl(ref);
-      void maybeRecordReferralClickFromUrl(ref);
+      const landingPath = `${location.pathname}${location.search}`;
+      void maybeRecordReferralLinkVisit(ref, landingPath);
     }
   }, [location.pathname, location.search]);
 

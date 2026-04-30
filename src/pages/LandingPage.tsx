@@ -5,16 +5,16 @@ import { SiteLinkPreviewSeo } from "@/components/seo/SiteLinkPreviewSeo";
 import { CreatorCard } from "@/components/ui/CreatorCard";
 import { PricingCard } from "@/components/ui/PricingCard";
 import { useDevMountLog } from "@/dev/renderDiagnostics";
-import { useReferralLanding } from "@/hooks/useReferralLandingMode";
 import { PRO_PLAN, STARTER_PLAN } from "@/data/businessCardPlans";
 import { LANDING_FAQ, LANDING_TESTIMONIALS } from "@/data/sampleData";
 import { layout, section, type } from "@/lib/ui-classes";
+import { canonicalSiteOrigin } from "@/lib/siteOrigin";
 import { cn } from "@/lib/utils";
 import { useAppDataStore } from "@/stores/appDataStore";
 import { useAuthStore } from "@/stores/authStore";
 import { ArrowRight, Eye, IdCard, MousePointerClick, Share2 } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 
 const CREATE_CARD_HREF = "/create-card";
 const LOGIN_SUCCESS_NOTICE = "로그인되었습니다. 이제 메인화면에서 명함 만들기와 내 공간을 이용할 수 있어요.";
@@ -56,9 +56,7 @@ function FlowCtaLink({
 
 export function LandingPage() {
   useDevMountLog("LandingPage");
-  const navigate = useNavigate();
   const location = useLocation();
-  const { isReferralLanding, referralCode } = useReferralLanding();
   const loginNotice =
     (location.state as { loginNotice?: string } | null)?.loginNotice ??
     (new URLSearchParams(location.search).get("login") === "success" ? LOGIN_SUCCESS_NOTICE : null);
@@ -82,6 +80,11 @@ export function LandingPage() {
     requestAnimationFrame(() => el.scrollIntoView({ behavior: "smooth", block: "start" }));
   }, [location.pathname, location.hash]);
 
+  const openReferralLinkPreview = () => {
+    const url = `${canonicalSiteOrigin()}/`;
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
+
   const platformSteps = [
     { icon: IdCard, title: "명함 만들기", description: "몇 초 만에 고객에게 보낼 링크가 생깁니다." },
     { icon: Share2, title: "링크 보내기", description: "카톡·문자로 한 번에 전달합니다." },
@@ -92,8 +95,6 @@ export function LandingPage() {
       description: "상담부터 결제까지 이어지는 다음 행동을 받습니다.",
     },
   ] as const;
-
-  const referralHref = user ? "/dashboard" : "/signup";
 
   return (
     <>
@@ -108,106 +109,61 @@ export function LandingPage() {
         </div>
       ) : null}
 
-      {!user && !isReferralLanding ? (
+      {!user ? (
         <section className="border-b border-slate-100 bg-slate-50/90">
           <div className={cn(layout.page, "py-5")}>
             <div className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white px-4 py-5 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:px-6">
               <p className="text-sm leading-relaxed text-slate-700">
-                추천인 보상은 가입 후 만들어지는 <span className="font-semibold text-slate-900">수익 링크</span>로 적립됩니다.
-                <span className="mt-1 block text-slate-600">내 명함 주소와는 다른 링크예요.</span>
+                가입 후에는 지인에게 보낼 수 있는 <span className="font-semibold text-slate-900">내가 추천할 링크</span>가
+                만들어집니다.
+                <span className="mt-1 block text-slate-600">고객용 명함 주소와는 다른 목적의 링크예요.</span>
               </p>
               <Link
                 to="/signup"
                 className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-xl bg-cta-500 px-5 text-center text-sm font-bold text-white shadow-sm hover:bg-cta-600"
               >
-                가입하고 수익 링크 받기
+                시작하기
               </Link>
             </div>
           </div>
         </section>
       ) : null}
 
-      {isReferralLanding ? (
-        <section className="hero-section border-b border-slate-200 bg-gradient-to-b from-brand-50/90 via-white to-white">
-          <div className={cn("relative z-10", layout.page, section.yHero)}>
-            <div className="mx-auto flex max-w-2xl flex-col items-center text-center">
-              <p className="mb-2 text-xs font-bold uppercase tracking-wide text-brand-800">수익 링크로 방문하셨어요</p>
-              <h1 className="mb-4 text-balance text-3xl font-bold leading-snug tracking-tight text-slate-950 sm:text-4xl md:text-[2.5rem]">
-                수익 링크로 안내받은 린코 디지털 명함
-              </h1>
-              <p className="text-lg leading-relaxed text-slate-700">명함을 만들고 공유하면 고객과 연결됩니다.</p>
-              <p className="mt-2 text-base leading-relaxed text-slate-600">수익 링크로 가입하면 혜택이 적용됩니다.</p>
-              <div className="mt-8 flex w-full max-w-md justify-center px-4">
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (!referralCode) return;
-                    void navigate(`/signup?ref=${encodeURIComponent(referralCode)}`);
-                  }}
-                  className={cn(
-                    "inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cta-500 to-cta-600 px-8 py-4 text-lg font-bold text-white shadow-lg shadow-cta-900/15 ring-2 ring-cta-300/40 transition-colors hover:from-cta-400 hover:to-cta-500",
-                    "focus:outline-none focus:ring-2 focus:ring-cta-400 focus:ring-offset-2",
-                  )}
-                >
-                  수익 링크로 가입하기
-                  <ArrowRight className="h-5 w-5 shrink-0" aria-hidden />
-                </button>
-              </div>
-              <p className="mt-6 max-w-md text-sm leading-relaxed text-slate-600">
-                이미 회원이라면{" "}
-                <Link to="/space" className="font-semibold text-brand-800 underline-offset-4 hover:underline">
-                  내 공간
-                </Link>
-                에서 명함을 관리할 수 있습니다.
-              </p>
-              {!user ? (
-                <p className="mt-3 text-sm text-slate-500">
-                  계정이 없으시면 위 버튼으로 가입할 수 있어요.{" "}
-                  <Link to="/login" className="font-semibold text-brand-800 underline-offset-4 hover:underline">
-                    로그인
-                  </Link>
-                </p>
-              ) : null}
-            </div>
-          </div>
-        </section>
-      ) : (
-        <section className="hero-section">
-          <div className={cn("relative z-10", layout.page, section.yHero)}>
-            <div className="mx-auto flex max-w-3xl flex-col items-center text-center">
-              <h1 className="text-balance text-center text-4xl font-bold leading-snug tracking-tight text-slate-950 sm:text-4xl md:text-[2.65rem]">
-                명함 하나 보내면 고객이 바로 연락합니다
-              </h1>
-              <p className="mt-5 text-center text-lg font-medium text-slate-800">링크만 보내세요, 상담이 시작됩니다.</p>
-              <p className="mx-auto mt-4 max-w-xl text-center text-base leading-relaxed text-slate-600">
-                만들고 공유하면 고객이 들어오고, 결과를 보며 고객 유입을 넓히거나 다시 공유할 수 있습니다.
-              </p>
+      <section className="hero-section">
+        <div className={cn("relative z-10", layout.page, section.yHero)}>
+          <div className="mx-auto flex max-w-3xl flex-col items-center text-center">
+            <h1 className="text-balance text-center text-4xl font-bold leading-snug tracking-tight text-slate-950 sm:text-4xl md:text-[2.65rem]">
+              명함 하나 보내면 고객이 바로 연락합니다
+            </h1>
+            <p className="mt-5 text-center text-lg font-medium text-slate-800">링크만 보내세요, 상담이 시작됩니다.</p>
+            <p className="mx-auto mt-4 max-w-xl text-center text-base leading-relaxed text-slate-600">
+              만들고 공유하면 고객이 들어오고, 결과를 보며 고객 유입을 넓히거나 다시 공유할 수 있습니다.
+            </p>
 
-              <div className="mt-8 flex w-full justify-center px-4">
-                <Link
-                  to={CREATE_CARD_HREF}
-                  className={cn(
-                    "inline-flex min-h-[52px] w-full max-w-md items-center justify-center gap-2 rounded-xl bg-orange-500 px-10 py-4 text-lg font-bold text-white shadow-md transition-colors hover:bg-orange-600",
-                    "focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-offset-2",
-                  )}
-                >
-                  3초 만에 내 명함 만들기
-                  <ArrowRight className="h-5 w-5 shrink-0" aria-hidden />
-                </Link>
-              </div>
-
-              <p className="mt-6 text-center text-sm text-slate-600 sm:text-base">
-                <Link
-                  to="/request"
-                  className="font-semibold text-blue-600 underline-offset-4 hover:text-blue-700 hover:underline"
-                >
-                  혼자 만들기 어렵다면 전문가가 도와드려요
-                </Link>
-              </p>
+            <div className="mt-8 flex w-full justify-center px-4">
+              <Link
+                to={CREATE_CARD_HREF}
+                className={cn(
+                  "inline-flex min-h-[52px] w-full max-w-md items-center justify-center gap-2 rounded-xl bg-orange-500 px-10 py-4 text-lg font-bold text-white shadow-md transition-colors hover:bg-orange-600",
+                  "focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-offset-2",
+                )}
+              >
+                3초 만에 내 명함 만들기
+                <ArrowRight className="h-5 w-5 shrink-0" aria-hidden />
+              </Link>
             </div>
+
+            <p className="mt-6 text-center text-sm text-slate-600 sm:text-base">
+              <Link
+                to="/request"
+                className="font-semibold text-blue-600 underline-offset-4 hover:text-blue-700 hover:underline"
+              >
+                혼자 만들기 어렵다면 전문가가 도와드려요
+              </Link>
+            </p>
           </div>
-        </section>
-      )}
+        </div>
+      </section>
 
       {/* 2. 이렇게 고객이 들어옵니다 */}
       <section className={cn("border-b border-slate-200 bg-white", section.y)}>
@@ -249,43 +205,58 @@ export function LandingPage() {
           </div>
         </section>
 
-      {/* 3. 추천인 · 수익 링크 */}
-      {!isReferralLanding ? (
-        <section className={cn("border-b border-slate-200 bg-gradient-to-b from-brand-50/70 to-white", section.y)}>
-          <div className={layout.page}>
-            <div className="mx-auto max-w-2xl text-center">
-              <h2 className={cn(type.sectionTitleCenter, "text-slate-900")}>수익 링크로 가입을 유도하면 보상이 쌓입니다</h2>
-              <p className="mx-auto mt-4 max-w-lg text-lg leading-relaxed text-slate-700">
-                내 수익 링크로 가입한 사용자가 유료 결제를 하면,
-                <br />
-                결제 금액의 10%가 추천 보상으로 적립됩니다.
-              </p>
-              <div className="mx-auto mt-8 grid max-w-md gap-3 text-left sm:grid-cols-2">
-                <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
-                  <p className="text-sm text-slate-600">14,900원 결제 시</p>
-                  <p className="text-lg font-bold text-brand-900">1,490원 적립</p>
-                </div>
-                <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
-                  <p className="text-sm text-slate-600">59,000원 결제 시</p>
-                  <p className="text-lg font-bold text-brand-900">5,900원 적립</p>
-                </div>
+      {/* 3. 추천 성과 · 내가 추천할 링크 */}
+      <section className={cn("border-b border-slate-200 bg-gradient-to-b from-brand-50/70 to-white", section.y)}>
+        <div className={layout.page}>
+          <div className="mx-auto max-w-2xl text-center">
+            <h2 className={cn(type.sectionTitleCenter, "text-slate-900")}>내가 추천할 링크</h2>
+            <p className="mx-auto mt-4 max-w-lg text-lg leading-relaxed text-slate-700">
+              이 링크를 지인에게 보내면 린코를 소개할 수 있습니다.
+              <br />
+              가입과 결제가 발생하면 추천 성과로 기록됩니다.
+            </p>
+            <div className="mx-auto mt-8 grid max-w-md gap-3 text-left sm:grid-cols-2">
+              <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+                <p className="text-sm text-slate-600">14,900원 결제 시</p>
+                <p className="text-lg font-bold text-brand-900">1,490원 적립</p>
               </div>
-              <p className="mx-auto mt-6 max-w-lg text-sm leading-relaxed text-slate-600">
-                수익 링크는 가입 후에만 만들 수 있습니다. 비회원에게 린코 가입을 안내할 때 쓰는 링크이며, 고객에게 보여 줄 명함 링크와는
-                별개예요.
-              </p>
-              <p className="mx-auto mt-3 break-all rounded-xl border border-brand-200 bg-white px-4 py-3 font-mono text-sm text-slate-800">
-                {REF_LINK_FORMAT}
-              </p>
-              <div className="mt-8 flex justify-center">
-                <FlowCtaLink to={referralHref} className="max-w-md">
-                  수익 링크 미리보기
-                </FlowCtaLink>
+              <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+                <p className="text-sm text-slate-600">59,000원 결제 시</p>
+                <p className="text-lg font-bold text-brand-900">5,900원 적립</p>
               </div>
             </div>
+            <p className="mx-auto mt-6 max-w-lg text-sm leading-relaxed text-slate-600">
+              가입 후에만 내 추천 주소를 만들 수 있어요. 지인에게 보여 주는 화면은 일반 메인과 같으며, 주소에 포함된 코드만
+              내부적으로 연결됩니다.
+            </p>
+            <p className="mx-auto mt-3 break-all rounded-xl border border-brand-200 bg-white px-4 py-3 font-mono text-sm text-slate-800">
+              {REF_LINK_FORMAT}
+            </p>
+            <div className="mx-auto mt-8 flex max-w-md flex-col gap-3 sm:flex-row sm:justify-center">
+              <button
+                type="button"
+                onClick={() => openReferralLinkPreview()}
+                className={cn(
+                  "inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-xl px-6 text-base font-bold shadow-lg focus:outline-none focus:ring-2 focus:ring-cta-400 focus:ring-offset-2",
+                  "bg-gradient-to-r from-cta-500 to-cta-600 text-white ring-2 ring-cta-300/45 hover:from-cta-400 hover:to-cta-500",
+                )}
+              >
+                추천 링크 확인하기
+                <ArrowRight className="h-5 w-5 shrink-0" aria-hidden />
+              </button>
+              {user ? (
+                <FlowCtaLink to="/dashboard" variant="outline" className="max-w-md sm:w-auto sm:flex-1">
+                  내 공간에서 링크 복사
+                </FlowCtaLink>
+              ) : (
+                <FlowCtaLink to="/signup" variant="outline" className="max-w-md sm:w-auto sm:flex-1">
+                  가입하고 링크 받기
+                </FlowCtaLink>
+              )}
+            </div>
           </div>
-        </section>
-      ) : null}
+        </div>
+      </section>
 
       {/* 4. 명함 예시 */}
       <section className={cn("bg-slate-50", section.y)}>
@@ -507,7 +478,7 @@ export function LandingPage() {
             </div>
           </div>
         </section>
-      {!isReferralLanding ? <RewardAdsSection placement="landing" /> : null}
+      <RewardAdsSection placement="landing" />
     </>
   );
 }

@@ -5,7 +5,6 @@ import { BRAND_DISPLAY_NAME } from "@/lib/brand";
 import { layout } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
 import { useDevMountLog } from "@/dev/renderDiagnostics";
-import { useReferralLanding } from "@/hooks/useReferralLandingMode";
 import { useAuthStore } from "@/stores/authStore";
 import { LogOut, Menu, X } from "lucide-react";
 import { useState } from "react";
@@ -29,7 +28,6 @@ const links = [
 export function Navbar() {
   useDevMountLog("Navbar");
   const navigate = useNavigate();
-  const { isReferralLanding, referralCode } = useReferralLanding();
   const user = useAuthStore((s) => s.user);
   const authLoading = useAuthStore((s) => s.authLoading);
   const [open, setOpen] = useState(false);
@@ -85,14 +83,7 @@ export function Navbar() {
             )}
             aria-hidden={authLoading}
           >
-            {isReferralLanding && referralCode ? (
-              <Link
-                to={`/signup?ref=${encodeURIComponent(referralCode)}`}
-                className={linkButtonClassName({ size: "sm", className: "shadow-sm" })}
-              >
-                수익 링크로 가입하기
-              </Link>
-            ) : user ? (
+            {user ? (
               <>
                 {user.role === "admin" ? (
                   <Link to="/admin" className={linkButtonClassName({ variant: "ghost", size: "sm" })}>
@@ -125,7 +116,7 @@ export function Navbar() {
                   로그인
                 </Link>
                 <Link to="/signup" className={linkButtonClassName({ size: "sm" })}>
-                  회원가입
+                  시작하기
                 </Link>
               </>
             )}
@@ -169,17 +160,7 @@ export function Navbar() {
               className={cn(authLoading && "pointer-events-none invisible absolute h-0 w-0 overflow-hidden")}
               aria-hidden={authLoading}
             >
-              {isReferralLanding && referralCode ? (
-                <Link
-                  to={`/signup?ref=${encodeURIComponent(referralCode)}`}
-                  className={linkButtonClassName({ size: "lg", className: "mt-3 w-full" })}
-                  onClick={() => setOpen(false)}
-                >
-                  수익 링크로 가입하기
-                </Link>
-              ) : (
-                <>
-                  {user?.role === "admin" ? (
+              {user?.role === "admin" ? (
                     <Link
                       to="/admin"
                       className="rounded-lg px-3 py-3 text-base font-medium text-brand-800 hover:bg-slate-50"
@@ -235,12 +216,10 @@ export function Navbar() {
                         className={linkButtonClassName({ size: "lg", className: "w-full" })}
                         onClick={() => setOpen(false)}
                       >
-                        회원가입
+                        시작하기
                       </Link>
                     </div>
                   )}
-                </>
-              )}
             </div>
           </nav>
         </div>

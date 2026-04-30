@@ -12,7 +12,7 @@
  * 카카오톡은 같은 URL의 미리보기 이미지를 캐시합니다.
  * 테스트 후 썸네일이 바로 안 바뀌면 카카오 디버거에서 URL별 캐시 초기화가 필요합니다.
  * - 내 명함: https://linkoapp.kr/c/{slug}
- * - 수익 링크: https://linkoapp.kr/?ref={referralCode}
+ * - 추천 주소: https://linkoapp.kr/?ref={referralCode}
  */
 import { canonicalSiteOrigin } from "@/lib/siteOrigin";
 import type { BusinessCard } from "@/types/domain";
@@ -20,7 +20,7 @@ import type { BusinessCard } from "@/types/domain";
 /** 공유 플로 구분 (문서·디버깅용) */
 export type KakaoShareType = "cardShare" | "referralShare";
 
-/** public 폴더 OG 에셋 (내 명함 기본 / 수익 링크 / 서비스 기본) */
+/** public 폴더 OG 에셋 (내 명함 기본 / 추천 공유 / 서비스 기본) */
 export const OG_CARD_DEFAULT_PATH = "/og-card-default.png";
 export const OG_REFERRAL_PATH = "/og-referral.png";
 export const OG_SERVICE_DEFAULT_PATH = "/og-default.png";
@@ -85,7 +85,7 @@ function resolveHttpsImageUrl(raw: string | null | undefined, origin: string): s
   return `${origin.replace(/\/$/, "")}/${u}`;
 }
 
-/** 내 명함 공유 전용 — 수익 링크용 OG 이미지 사용 안 함 */
+/** 내 명함 공유 전용 — 추천 공유용 OG 이미지 사용 안 함 */
 function resolveMyCardShareImageUrl(card: BusinessCard): string {
   const origin = canonicalSiteOrigin();
   const fallbackCard = absoluteSiteUrl(OG_CARD_DEFAULT_PATH);
@@ -169,7 +169,7 @@ export async function shareMyCardToKakao(card: BusinessCard): Promise<void> {
 }
 
 /**
- * 수익 링크 공유 (referralShare)
+ * 추천 공유 URL 공유 (referralShare)
  * 서비스 소개 OG 이미지·문구만 사용 (개인 명함 이미지·이름 없음)
  * @returns true 이면 Kakao 공유창 호출 성공, false 이면 클립보드 폴백
  */
@@ -178,7 +178,7 @@ export async function shareReferralToKakao(referralUrl: string): Promise<boolean
   const imageUrl = `${origin.replace(/\/$/, "")}${OG_REFERRAL_PATH}`;
   const title = "린코 디지털 명함";
   const description =
-    "명함 하나로 고객이 먼저 찾아옵니다. 내 수익 링크로 가입하면 이용권 혜택을 받을 수 있어요.";
+    "명함 하나로 고객이 먼저 찾아옵니다. 이 링크로 가입하면 디지털 명함을 시작할 수 있어요.";
 
   try {
     const ready = initKakao();
