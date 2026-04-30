@@ -15,6 +15,7 @@ import { isSupabaseConfigured, supabase } from "@/lib/supabase/client";
 import { getStoredLinkoReferralCode } from "@/lib/linkoReferralStorage";
 import { getReferralCodeFromSearch } from "@/lib/referrals";
 import { getPromotionReferralCode } from "@/lib/promotionReferralStorage";
+import { claimReferralForAuthenticatedUser } from "@/services/referralService";
 import { useAppDataStore } from "@/stores/appDataStore";
 import { useAuthStore } from "@/stores/authStore";
 import {
@@ -143,6 +144,9 @@ export function SignupPage() {
       }
 
       if (data.session?.user) {
+        if (referralCode) {
+          await claimReferralForAuthenticatedUser(referralCode);
+        }
         useAppDataStore.getState().ensureReferralRecord(data.session.user.id, referralCode);
         await supabase?.auth.signOut();
         setSession(null);

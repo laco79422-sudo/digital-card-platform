@@ -36,6 +36,7 @@ import { StructureBlueprintPage } from "@/pages/StructureBlueprintPage";
 import { AdsCreatePage } from "@/pages/AdsCreatePage";
 import { AdvertiserDashboardPage } from "@/pages/AdvertiserDashboardPage";
 import { ReferralCaptureEffect } from "@/components/referral/ReferralCaptureEffect";
+import { ReferralLandingRouteSync } from "@/components/referral/ReferralLandingRouteSync";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { useParams } from "react-router-dom";
 
@@ -199,6 +200,7 @@ function AppRoutes() {
 export default function App() {
   return (
     <BrowserRouter>
+      <ReferralLandingRouteSync />
       <ReferralCaptureEffect />
       <AppRoutes />
     </BrowserRouter>

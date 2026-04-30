@@ -39,6 +39,18 @@ export async function fetchReferralClickCount(referrerUserId: string): Promise<n
   return count ?? 0;
 }
 
+/** 세션이 있는 상태에서 추천 관계를 서버에 저장합니다. 성공 시 로컬 저장 코드를 제거합니다. */
+export async function claimReferralForAuthenticatedUser(rawCode: string | null): Promise<boolean> {
+  if (!rawCode?.trim() || !isSupabaseConfigured || !supabase) return false;
+  const { error } = await supabase.rpc("claim_referral", { p_code: rawCode.trim().toUpperCase() });
+  if (error) {
+    console.warn("[referralService] claim_referral (authenticated)", error.message);
+    return false;
+  }
+  clearStoredLinkoReferralCode();
+  return true;
+}
+
 /** 로그인 세션 기준으로 저장된 추천 코드를 서버에 반영합니다. 성공 시 로컬 저장값을 지웁니다. */
 export async function claimPendingReferral(): Promise<boolean> {
   if (!isSupabaseConfigured || !supabase) return false;

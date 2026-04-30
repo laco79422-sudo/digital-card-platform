@@ -14,7 +14,7 @@ import { useAppDataStore } from "@/stores/appDataStore";
 import { useAuthStore } from "@/stores/authStore";
 import { ArrowRight, Eye, IdCard, MousePointerClick, Share2 } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 
 const CREATE_CARD_HREF = "/create-card";
 const LOGIN_SUCCESS_NOTICE = "로그인되었습니다. 이제 메인화면에서 명함 만들기와 내 공간을 이용할 수 있어요.";
@@ -56,6 +56,7 @@ function FlowCtaLink({
 
 export function LandingPage() {
   useDevMountLog("LandingPage");
+  const navigate = useNavigate();
   const location = useLocation();
   const { isReferralLanding, referralCode } = useReferralLanding();
   const loginNotice =
@@ -130,19 +131,19 @@ export function LandingPage() {
         <section className="hero-section border-b border-slate-200 bg-gradient-to-b from-brand-50/90 via-white to-white">
           <div className={cn("relative z-10", layout.page, section.yHero)}>
             <div className="mx-auto flex max-w-2xl flex-col items-center text-center">
-              <p className="mb-2 text-xs font-bold uppercase tracking-wide text-brand-800">추천 링크로 방문하셨어요</p>
+              <p className="mb-2 text-xs font-bold uppercase tracking-wide text-brand-800">추천링크로 방문하셨어요</p>
               <h1 className="mb-4 text-balance text-3xl font-bold leading-snug tracking-tight text-slate-950 sm:text-4xl md:text-[2.5rem]">
                 추천받은 린코 디지털 명함
               </h1>
               <p className="text-lg leading-relaxed text-slate-700">명함을 만들고 공유하면 고객과 연결됩니다.</p>
               <p className="mt-2 text-base leading-relaxed text-slate-600">추천링크로 가입하면 혜택이 적용됩니다.</p>
               <div className="mt-8 flex w-full max-w-md justify-center px-4">
-                <Link
-                  to={
-                    referralCode
-                      ? `/signup?ref=${encodeURIComponent(referralCode)}`
-                      : "/signup"
-                  }
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!referralCode) return;
+                    void navigate(`/signup?ref=${encodeURIComponent(referralCode)}`);
+                  }}
                   className={cn(
                     "inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cta-500 to-cta-600 px-8 py-4 text-lg font-bold text-white shadow-lg shadow-cta-900/15 ring-2 ring-cta-300/40 transition-colors hover:from-cta-400 hover:to-cta-500",
                     "focus:outline-none focus:ring-2 focus:ring-cta-400 focus:ring-offset-2",
@@ -150,7 +151,7 @@ export function LandingPage() {
                 >
                   추천받고 시작하기
                   <ArrowRight className="h-5 w-5 shrink-0" aria-hidden />
-                </Link>
+                </button>
               </div>
               <p className="mt-6 max-w-md text-sm leading-relaxed text-slate-600">
                 이미 회원이라면{" "}
