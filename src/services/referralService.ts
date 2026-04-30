@@ -25,7 +25,7 @@ export async function fetchReferralSignupCount(referrerUserId: string): Promise<
   return count ?? 0;
 }
 
-/** 추천 링크(`/?ref=`) 클릭 기록 수 — 유효한 코드로 프로필과 매칭된 행만 집계 */
+/** 수익 링크(`/?ref=`) 클릭 기록 수 — 유효한 코드로 프로필과 매칭된 행만 집계 */
 export async function fetchReferralClickCount(referrerUserId: string): Promise<number> {
   if (!isSupabaseConfigured || !supabase) return 0;
   const { count, error } = await supabase

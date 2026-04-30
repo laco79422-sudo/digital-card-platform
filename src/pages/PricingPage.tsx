@@ -12,7 +12,7 @@ export function PricingPage() {
     <div className={cn(layout.page, "py-12 sm:py-16")}>
       <div className="mx-auto max-w-2xl text-center">
         <h1 className="break-keep text-center text-2xl font-bold leading-snug tracking-tight text-slate-900 md:text-4xl">
-          요금·홍보 안내
+          요금·마케팅 패키지 안내
         </h1>
         <p className={cn("mt-3 sm:mt-4", type.sectionLead)}>
           명함으로 고객이 들어오는 구조와 요금은 메인 페이지에서 먼저 안내됩니다. 무료·스타터·프로 비교는 한곳만

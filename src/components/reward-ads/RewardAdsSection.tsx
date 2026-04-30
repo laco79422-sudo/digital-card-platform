@@ -15,11 +15,11 @@ import { Link } from "react-router-dom";
 
 const SECTION_COPY = {
   description:
-    "광고를 확인하면 홍보 포인트를 받을 수 있습니다. 적립된 포인트는 명함 홍보와 추가 기능에 사용할 수 있어요.",
+    "광고를 확인하면 리워드 포인트를 받을 수 있습니다. 적립된 포인트는 헬퍼링크 추가·명함 추가 등에 사용할 수 있어요.",
   button: "광고 보고 포인트 받기",
   success: "포인트가 적립되었습니다.",
   pointsUsage: [
-    "홍보 링크 추가 할인",
+    "헬퍼링크 추가 할인",
     "명함 추가 할인",
     "광고 노출 구매",
     "제작 의뢰 할인",
@@ -27,9 +27,9 @@ const SECTION_COPY = {
 };
 
 function placementHeading(placement: "landing" | "dashboard" | "card_complete"): string {
-  if (placement === "landing") return "추천 광고";
+  if (placement === "landing") return "리워드 광고";
   if (placement === "dashboard") return "리워드 광고 보고 포인트 받기";
-  return "광고 보고 홍보 포인트 받기";
+  return "광고 보고 리워드 포인트 받기";
 }
 
 function AdCard({
@@ -206,7 +206,7 @@ export function RewardAdsSection({
             </p>
             {loggedIn && points !== null ? (
               <p className="mt-2 text-sm font-semibold text-brand-800">
-                내 홍보 포인트(광고 리워드): {points.toLocaleString("ko-KR")} P
+                내 리워드 포인트: {points.toLocaleString("ko-KR")} P
               </p>
             ) : null}
             {!loggedIn ? (

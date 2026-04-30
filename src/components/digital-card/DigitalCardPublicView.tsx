@@ -102,7 +102,7 @@ type Props = {
   tempPreview?: boolean;
   /** /preview 유형별 카드 레이아웃 분기 */
   previewVariant?: PreviewCardType;
-  /** 추천 링크로 들어온 방문자에게 가입 전 가치 확인 흐름을 안내 */
+  /** 수익 링크(`/?ref=`) 진입 방문자에게 가입 전 가치 확인 흐름을 안내 */
   referralLanding?: boolean;
   /** 편집기 미리보기: 이미지 미등록 영역 클릭 처리 */
   onEmptyImageClick?: () => void;
@@ -905,7 +905,7 @@ export function DigitalCardPublicView({
             className="rounded-2xl border border-cta-200 bg-gradient-to-br from-cta-50 via-white to-brand-50 p-5 shadow-[0_18px_45px_-26px_rgba(15,23,42,0.28)] sm:p-7"
             aria-label="명함을 본 뒤 시작하기"
           >
-            <p className="text-center text-sm font-bold text-cta-700">추천 링크로 들어오셨나요?</p>
+            <p className="text-center text-sm font-bold text-cta-700">수익 링크로 들어오셨나요?</p>
             <h2 className="mt-2 break-keep text-center text-xl font-extrabold leading-snug tracking-tight text-slate-900 sm:text-2xl">
               먼저 명함을 확인하고, 필요할 때만 시작하세요
             </h2>

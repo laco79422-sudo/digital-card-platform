@@ -18,7 +18,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 
 const CREATE_CARD_HREF = "/create-card";
 const LOGIN_SUCCESS_NOTICE = "로그인되었습니다. 이제 메인화면에서 명함 만들기와 내 공간을 이용할 수 있어요.";
-const REF_LINK_FORMAT = "https://linkoapp.kr/?ref=추천코드";
+const REF_LINK_FORMAT = "https://linkoapp.kr/?ref=내코드";
 
 const LANDING_SAMPLE_TYPES: Array<{ id: LandingSampleType; label: string }> = [
   { id: "personal", label: "개인형" },
@@ -113,14 +113,14 @@ export function LandingPage() {
           <div className={cn(layout.page, "py-5")}>
             <div className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white px-4 py-5 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:px-6">
               <p className="text-sm leading-relaxed text-slate-700">
-                추천 보상은 가입 후 만들어지는 <span className="font-semibold text-slate-900">추천 전용 링크</span>로 적립됩니다.
+                추천인 보상은 가입 후 만들어지는 <span className="font-semibold text-slate-900">수익 링크</span>로 적립됩니다.
                 <span className="mt-1 block text-slate-600">내 명함 주소와는 다른 링크예요.</span>
               </p>
               <Link
                 to="/signup"
                 className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-xl bg-cta-500 px-5 text-center text-sm font-bold text-white shadow-sm hover:bg-cta-600"
               >
-                가입하고 추천링크 받기
+                가입하고 수익 링크 받기
               </Link>
             </div>
           </div>
@@ -131,12 +131,12 @@ export function LandingPage() {
         <section className="hero-section border-b border-slate-200 bg-gradient-to-b from-brand-50/90 via-white to-white">
           <div className={cn("relative z-10", layout.page, section.yHero)}>
             <div className="mx-auto flex max-w-2xl flex-col items-center text-center">
-              <p className="mb-2 text-xs font-bold uppercase tracking-wide text-brand-800">추천링크로 방문하셨어요</p>
+              <p className="mb-2 text-xs font-bold uppercase tracking-wide text-brand-800">수익 링크로 방문하셨어요</p>
               <h1 className="mb-4 text-balance text-3xl font-bold leading-snug tracking-tight text-slate-950 sm:text-4xl md:text-[2.5rem]">
-                추천받은 린코 디지털 명함
+                수익 링크로 안내받은 린코 디지털 명함
               </h1>
               <p className="text-lg leading-relaxed text-slate-700">명함을 만들고 공유하면 고객과 연결됩니다.</p>
-              <p className="mt-2 text-base leading-relaxed text-slate-600">추천링크로 가입하면 혜택이 적용됩니다.</p>
+              <p className="mt-2 text-base leading-relaxed text-slate-600">수익 링크로 가입하면 혜택이 적용됩니다.</p>
               <div className="mt-8 flex w-full max-w-md justify-center px-4">
                 <button
                   type="button"
@@ -149,7 +149,7 @@ export function LandingPage() {
                     "focus:outline-none focus:ring-2 focus:ring-cta-400 focus:ring-offset-2",
                   )}
                 >
-                  추천받고 시작하기
+                  수익 링크로 가입하기
                   <ArrowRight className="h-5 w-5 shrink-0" aria-hidden />
                 </button>
               </div>
@@ -180,7 +180,7 @@ export function LandingPage() {
               </h1>
               <p className="mt-5 text-center text-lg font-medium text-slate-800">링크만 보내세요, 상담이 시작됩니다.</p>
               <p className="mx-auto mt-4 max-w-xl text-center text-base leading-relaxed text-slate-600">
-                만들고 공유하면 고객이 들어오고, 결과를 보며 다시 홍보할 수 있습니다.
+                만들고 공유하면 고객이 들어오고, 결과를 보며 고객 유입을 넓히거나 다시 공유할 수 있습니다.
               </p>
 
               <div className="mt-8 flex w-full justify-center px-4">
@@ -249,14 +249,14 @@ export function LandingPage() {
           </div>
         </section>
 
-      {/* 3. 추천 수익 */}
+      {/* 3. 추천인 · 수익 링크 */}
       {!isReferralLanding ? (
         <section className={cn("border-b border-slate-200 bg-gradient-to-b from-brand-50/70 to-white", section.y)}>
           <div className={layout.page}>
             <div className="mx-auto max-w-2xl text-center">
-              <h2 className={cn(type.sectionTitleCenter, "text-slate-900")}>추천만 해도 수익이 생깁니다</h2>
+              <h2 className={cn(type.sectionTitleCenter, "text-slate-900")}>수익 링크로 가입을 유도하면 보상이 쌓입니다</h2>
               <p className="mx-auto mt-4 max-w-lg text-lg leading-relaxed text-slate-700">
-                내 추천링크로 가입한 사용자가 유료 결제를 하면,
+                내 수익 링크로 가입한 사용자가 유료 결제를 하면,
                 <br />
                 결제 금액의 10%가 추천 보상으로 적립됩니다.
               </p>
@@ -271,7 +271,7 @@ export function LandingPage() {
                 </div>
               </div>
               <p className="mx-auto mt-6 max-w-lg text-sm leading-relaxed text-slate-600">
-                추천링크는 가입자만 만들 수 있습니다. 비회원에게 린코를 소개할 때 쓰는 링크이며, 내 명함 주소와는
+                수익 링크는 가입 후에만 만들 수 있습니다. 비회원에게 린코 가입을 안내할 때 쓰는 링크이며, 고객에게 보여 줄 명함 링크와는
                 별개예요.
               </p>
               <p className="mx-auto mt-3 break-all rounded-xl border border-brand-200 bg-white px-4 py-3 font-mono text-sm text-slate-800">
@@ -279,7 +279,7 @@ export function LandingPage() {
               </p>
               <div className="mt-8 flex justify-center">
                 <FlowCtaLink to={referralHref} className="max-w-md">
-                  추천링크 확인하기
+                  수익 링크 미리보기
                 </FlowCtaLink>
               </div>
             </div>

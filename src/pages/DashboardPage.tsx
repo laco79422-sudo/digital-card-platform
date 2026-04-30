@@ -655,7 +655,7 @@ export function DashboardPage() {
       setReferralLinkCopiedFlash(true);
       window.setTimeout(() => setReferralLinkCopiedFlash(false), 4000);
     } catch {
-      window.prompt("추천링크를 복사해 주세요", referralLink);
+      window.prompt("수익 링크를 복사해 주세요", referralLink);
     }
   };
 
@@ -817,7 +817,7 @@ export function DashboardPage() {
   const applicantLabel = (application: PromotionApplication): { name: string; email: string } => {
     const platformUser = platformUsers.find((u) => u.id === application.applicant_user_id);
     return {
-      name: application.applicant_name ?? platformUser?.name ?? "홍보 신청자",
+      name: application.applicant_name ?? platformUser?.name ?? "헬퍼링크 신청자",
       email: application.applicant_email ?? platformUser?.email ?? application.applicant_user_id,
     };
   };
@@ -850,7 +850,7 @@ export function DashboardPage() {
     const app = ownerPromotionApplications.find((a) => a.promoter_code === code);
     if (!app) return `${code} (${visitOwnerStats.topCount}회)`;
     const platformUser = platformUsers.find((u) => u.id === app.applicant_user_id);
-    const name = app.applicant_name ?? platformUser?.name ?? "홍보 신청자";
+    const name = app.applicant_name ?? platformUser?.name ?? "헬퍼링크 신청자";
     return `${name} (${visitOwnerStats.topCount}회)`;
   }, [visitOwnerStats, ownerPromotionApplications, platformUsers]);
 
@@ -877,7 +877,7 @@ export function DashboardPage() {
     try {
       await navigator.clipboard.writeText(promoUrl);
     } catch {
-      window.prompt("홍보 링크를 복사해 주세요", promoUrl);
+      window.prompt("헬퍼링크를 복사해 주세요", promoUrl);
     }
     setPromoCopyId(key);
     window.setTimeout(() => setPromoCopyId(null), 2200);
@@ -1109,13 +1109,13 @@ export function DashboardPage() {
               const canEditCard = cardBelongsToUser(card, user);
               const access = cardAccessInfo(card);
               const promotionLinks = [
-                { id: `base-${card.id}`, ref_code: refCode, label: "기본 홍보 링크" },
+                { id: `base-${card.id}`, ref_code: refCode, label: "기본 헬퍼링크" },
                 ...cardPromotionLinks
                   .filter((link) => link.card_id === card.id)
                   .map((link, index) => ({
                     id: link.id,
                     ref_code: link.ref_code,
-                    label: `추가 홍보 링크 ${index + 1}`,
+                    label: `추가 헬퍼링크 ${index + 1}`,
                   })),
               ].filter((link) => link.ref_code);
 
@@ -1185,6 +1185,9 @@ export function DashboardPage() {
                   <div data-dashboard-card-stop className="space-y-4 border-t border-slate-100 p-4">
                     <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3">
                       <p className="text-xs font-bold text-slate-700">내 명함 링크</p>
+                      <p className="mt-1 text-[11px] font-medium leading-snug text-slate-500">
+                        고객 연결용 · 상담·문의가 이 주소로 이어집니다.
+                      </p>
                       {cardPublicHref ? (
                         <a
                           href={cardPublicHref}
@@ -1308,7 +1311,7 @@ export function DashboardPage() {
                           openPromotionPayment(card);
                         }}
                       >
-                        홍보 링크 추가
+                        헬퍼링크 추가
                       </button>
                     </div>
                   {cardShareHintId === card.id ? (
@@ -1317,9 +1320,10 @@ export function DashboardPage() {
                     </p>
                   ) : null}
                   <div className="mt-4 rounded-2xl border border-brand-100 bg-brand-50/50 px-4 py-4">
-                    <p className="text-sm font-bold text-slate-900">내 홍보 링크 (추천용)</p>
+                    <p className="text-sm font-bold text-slate-900">내 헬퍼링크</p>
                     <p className="mt-1 text-xs font-medium text-slate-600">
-                      이 링크로 가입하면 혜택을 받을 수 있어요. 명함은 하나이고, 링크만 목적별로 나뉩니다.
+                      고객 유입 확장용입니다. 이 링크를 보내면 고객이 내 명함을 보고 연락합니다. 홍보 파트너와 함께 쓸 수
+                      있는 주소예요.
                     </p>
                     <div className="mt-3 space-y-3">
                       {promotionLinks.map((link) => {
@@ -1327,14 +1331,11 @@ export function DashboardPage() {
                         const visitCount = cardLinkVisits.filter(
                           (visit) => visit.card_id === card.id && visit.ref_code === link.ref_code,
                         ).length;
-                        const signupCount = referralRecords.filter((record) => record.referred_by === link.ref_code).length;
                         return (
                           <div key={link.id} className="rounded-2xl border border-brand-100 bg-white px-3 py-3">
                             <div className="flex flex-wrap items-center justify-between gap-2">
                               <p className="text-xs font-bold text-slate-800">{link.label}</p>
-                              <p className="text-xs font-semibold text-slate-500">
-                                조회수 {visitCount} · 가입수 {signupCount}
-                              </p>
+                              <p className="text-xs font-semibold text-slate-500">방문 {visitCount}회</p>
                             </div>
                             <p className="mt-2 break-all text-xs font-semibold text-brand-900">{linkUrl}</p>
                             <div className="mt-3 grid gap-2 sm:grid-cols-3">
@@ -1343,14 +1344,14 @@ export function DashboardPage() {
                                 className="inline-flex min-h-10 items-center justify-center rounded-xl bg-slate-50 px-3 text-sm font-bold text-slate-900 ring-1 ring-slate-200 hover:bg-slate-100"
                                 onClick={() => void copyPromotionLink(linkUrl, link.id)}
                               >
-                                {promoCopyId === link.id ? "복사됨" : "홍보 링크 복사"}
+                                {promoCopyId === link.id ? "복사됨" : "헬퍼링크 복사"}
                               </button>
                               <button
                                 type="button"
                                 className="inline-flex min-h-10 items-center justify-center rounded-xl bg-slate-50 px-3 text-sm font-bold text-slate-900 ring-1 ring-slate-200 hover:bg-slate-100"
                                 onClick={() => void sharePromotionLink(card, linkUrl)}
                               >
-                                카카오톡으로 홍보하기
+                                카카오톡 공유
                               </button>
                               <button
                                 type="button"
@@ -1369,7 +1370,7 @@ export function DashboardPage() {
                       className="mt-3 inline-flex min-h-10 items-center justify-center rounded-xl bg-cta-500 px-4 text-sm font-bold text-white shadow-sm shadow-cta-900/20 hover:bg-cta-600"
                       onClick={() => openPromotionPayment(card)}
                     >
-                      {card.promotion_enabled ? "홍보 신청 받는 중" : "홍보 링크 추가"}
+                      {card.promotion_enabled ? "헬퍼링크 신청 받는 중" : "헬퍼링크 추가"}
                     </button>
                   </div>
                   {showPromotionPerf ? (
@@ -1377,7 +1378,7 @@ export function DashboardPage() {
                       <h3 className="text-sm font-bold text-slate-900">홍보 파트너별 성과</h3>
                       {promotionPerfRows.length === 0 ? (
                         <p className="mt-3 text-sm text-slate-500">
-                          아직 홍보 방문 기록이 없어요. 홍보 링크를 승인하고 공유가 시작되면 이곳에 데이터가 쌓입니다.
+                          아직 헬퍼링크 방문 기록이 없어요. 헬퍼링크를 승인하고 공유가 시작되면 이곳에 데이터가 쌓입니다.
                         </p>
                       ) : (
                         <div className="mt-3 overflow-x-auto">
@@ -1388,7 +1389,7 @@ export function DashboardPage() {
                                 <th className="py-2 pr-2">홍보 파트너</th>
                                 <th className="py-2 pr-2">방문 수</th>
                                 <th className="py-2 pr-2">최근 방문일</th>
-                                <th className="py-2">홍보 링크</th>
+                                <th className="py-2">헬퍼링크</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -1434,17 +1435,17 @@ export function DashboardPage() {
             </p>
           ) : (
             <p className="mt-3 max-w-2xl rounded-xl border border-amber-200 bg-amber-50/90 px-4 py-3 text-sm font-medium text-amber-950">
-              아직 고객 반응이 없어요. 홍보 문구를 복사해 카카오톡, 당근, 문자에 공유해 보세요.
+              아직 고객 반응이 없어요. 헬퍼링크 안내 문구를 복사해 카카오톡, 당근, 문자에 공유해 보세요.
             </p>
           )}
           <div className="mt-6 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
             <PerformanceStatCard label="조회수" hint="공개 명함 열람·조회 기록" value={viewsDisplay} />
             <PerformanceStatCard label="클릭수" hint="명함 속 버튼·링크 클릭" value={clicksDisplay} />
             <PerformanceStatCard label="문의 수" hint="문의·상담 성격 연결" value={inquiriesDisplay} />
-            <PerformanceStatCard label="홍보 링크 유입 수" hint="추천·홍보 링크로 들어온 횟수" value={promoLinkInboundCount} />
+            <PerformanceStatCard label="헬퍼링크 유입 수" hint="헬퍼링크로 명함 페이지에 들어온 횟수" value={promoLinkInboundCount} />
           </div>
           <div className="mt-4 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
-            <PerformanceStatCard label="추천 가입자 수" hint="추천 링크로 가입한 사용자" value={referredCount} />
+            <PerformanceStatCard label="수익 링크 가입자 수" hint="수익 링크(?ref)로 가입한 사용자" value={referredCount} />
             <PerformanceStatCard
               label="결제 전환 수"
               hint="추천 보상이 적립된 결제 건수"
@@ -1543,21 +1544,21 @@ export function DashboardPage() {
 
       {uid && myCards.length > 0 ? (
         <section className="mt-8 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
-          <h2 className="text-lg font-semibold text-slate-900 sm:text-xl">홍보 현황</h2>
+          <h2 className="text-lg font-semibold text-slate-900 sm:text-xl">헬퍼링크·파트너 현황</h2>
           <p className="mt-2 text-sm leading-relaxed text-slate-600 sm:text-base">
-            가입자들의 홍보 활동은 실시간으로 집계되며, 누가 더 많은 고객을 연결하고 있는지 한눈에 확인할 수 있습니다.
+            홍보 파트너가 헬퍼링크로 연결한 방문이 집계됩니다. 누가 더 많은 고객을 연결하는지 한눈에 확인할 수 있어요.
           </p>
           {visitOwnerStats.totalVisits === 0 ? (
             <div className="mt-5 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center">
-              <p className="text-base font-medium text-slate-700">아직 홍보 방문 기록이 없어요.</p>
+              <p className="text-base font-medium text-slate-700">아직 헬퍼링크 방문 기록이 없어요.</p>
               <p className="mt-2 text-sm text-slate-500">
-                홍보 링크를 승인하고 공유가 시작되면 이곳에 데이터가 쌓입니다.
+                헬퍼링크를 승인하고 공유가 시작되면 이곳에 데이터가 쌓입니다.
               </p>
             </div>
           ) : (
             <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
               <StatBlock label="총 방문 수" value={String(visitOwnerStats.totalVisits)} />
-              <StatBlock label="홍보 링크 방문" value={String(visitOwnerStats.promotionVisits)} />
+              <StatBlock label="헬퍼링크 방문" value={String(visitOwnerStats.promotionVisits)} />
               <StatBlock label="직접 방문" value={String(visitOwnerStats.directVisits)} />
               <StatBlock label="참여 홍보 파트너 수" value={String(visitOwnerStats.promoterCount)} />
               <StatBlock label="최고 성과 홍보 파트너" value={topPromoterDisplay} />
@@ -1569,9 +1570,9 @@ export function DashboardPage() {
       {uid ? (
         <section className="mt-10 rounded-2xl border border-brand-200/80 bg-gradient-to-br from-brand-50 via-white to-sky-50 p-4 shadow-sm sm:p-6">
           <div>
-            <h2 className="text-lg font-semibold text-slate-900 sm:text-xl">내 홍보 성과</h2>
+            <h2 className="text-lg font-semibold text-slate-900 sm:text-xl">내 헬퍼링크 성과</h2>
             <p className="mt-2 text-sm leading-relaxed text-slate-600 sm:text-base">
-              승인된 홍보 링크로 유입된 방문 수와 최근 활동을 확인할 수 있습니다. 이 링크로 공유하면 내 홍보 활동으로 기록됩니다.
+              승인된 헬퍼링크로 유입된 방문과 활동을 확인합니다. 헬퍼링크로 고객을 연결하고 수익에 참여합니다.
             </p>
           </div>
           {approvedPromotions.length > 0 ? (
@@ -1602,7 +1603,7 @@ export function DashboardPage() {
                       <span>방문 {visitCount}회</span>
                       <span className="text-slate-500">최근 방문 {formatPromotionVisitDate(lastVisited)}</span>
                     </div>
-                    <p className="mt-3 text-xs font-bold text-slate-600">내 홍보 링크</p>
+                    <p className="mt-3 text-xs font-bold text-slate-600">내 헬퍼링크</p>
                     <p className="mt-1 break-all rounded-xl bg-brand-50 px-3 py-3 text-xs font-semibold text-brand-900">
                       {promotionUrl}
                     </p>
@@ -1639,7 +1640,7 @@ export function DashboardPage() {
             </ul>
           ) : (
             <p className="mt-5 rounded-2xl border border-dashed border-brand-200 bg-white/70 px-4 py-6 text-center text-sm text-slate-500">
-              승인된 홍보 링크가 아직 없습니다. 홍보 가능한 명함에서 먼저 홍보 신청을 해 주세요.
+              승인된 헬퍼링크가 아직 없습니다. 헬퍼링크 기능을 연 명함에서 먼저 헬퍼링크 신청을 받아 주세요.
             </p>
           )}
         </section>
@@ -1648,10 +1649,11 @@ export function DashboardPage() {
       {!isCreator ? (
         <section className="mt-10 rounded-2xl border border-brand-200/80 bg-gradient-to-br from-brand-50 via-white to-sky-50 p-4 shadow-sm sm:p-6">
           <div className="rounded-xl border border-brand-100 bg-white/70 px-4 py-4">
-            <p className="text-sm font-bold text-brand-900">이용 안내</p>
-            <h2 className="mt-1 text-lg font-semibold text-slate-900">추천하고 결제 보상 받기</h2>
+            <p className="text-sm font-bold text-brand-900">추천인 보상 · 수익 링크</p>
+            <h2 className="mt-1 text-lg font-semibold text-slate-900">수익 링크로 가입을 유도하면 보상이 쌓입니다</h2>
             <p className="mt-2 text-sm leading-relaxed text-slate-600">
-              내 추천 링크로 가입한 사용자가 유료 결제를 하면, 결제 금액의 10%가 추천 보상으로 적립됩니다. 적립된 보상은 출금 신청을 통해 받을 수 있습니다.
+              내 수익 링크로 가입한 사용자가 유료 결제를 하면, 결제 금액의 10%가 추천 보상으로 적립됩니다. 적립된 보상은 출금
+              신청을 통해 받을 수 있습니다.
             </p>
             <p className="mt-3 text-sm font-medium text-slate-800">보상 예시</p>
             <ul className="mt-1 list-inside list-disc text-sm text-slate-600">
@@ -1662,23 +1664,23 @@ export function DashboardPage() {
 
           <div className="mt-8 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div className="max-w-2xl">
-              <h3 className="text-lg font-semibold text-slate-900 sm:text-xl">내 추천 링크</h3>
+              <h3 className="text-lg font-semibold text-slate-900 sm:text-xl">내 수익 링크</h3>
               <p className="mt-2 text-sm leading-relaxed text-slate-600 sm:text-base">
-                가입하면 나만의 추천링크가 자동으로 만들어집니다. 이 링크를 비회원에게 보내 린코를 소개할 수 있어요. 추천받은
-                사람이 가입하고 결제하면 추천 보상을 받을 수 있습니다.
+                가입하면 나만의 수익 링크가 만들어집니다. 이 링크는 린코 가입 유도 전용이며, 명함 연결용 명함 링크·고객 유입용
+                헬퍼링크와 목적이 다릅니다.
               </p>
               <p className="mt-3 text-xs leading-relaxed text-slate-500">
-                명함 공유 주소(<span className="font-mono">/c/···</span>)와 추천링크(<span className="font-mono">/?ref=···</span>)는
-                목적이 다릅니다. 소개·가입 유도에는 추천링크를 사용해 주세요.
+                명함 주소(<span className="font-mono">/c/···</span>)와 수익 링크(<span className="font-mono">/?ref=···</span>)를
+                헷갈리지 마세요. 플랫폼 소개·가입 유도에는 수익 링크만 사용합니다.
               </p>
             </div>
             <div className="rounded-xl bg-white px-4 py-3 text-sm font-semibold text-slate-900 shadow-sm ring-1 ring-slate-200">
-              추천 가입자 {referredCount}명 / 5명
+              수익 링크 가입자 {referredCount}명 / 5명
             </div>
           </div>
 
           <div className="mt-5">
-            <p className="text-sm font-semibold text-slate-800">추천링크 주소</p>
+            <p className="text-sm font-semibold text-slate-800">내 수익 링크 주소</p>
             {referralLink ? (
               <a
                 href={referralLink}
@@ -1691,11 +1693,11 @@ export function DashboardPage() {
               </a>
             ) : (
               <p className="mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3 font-mono text-sm font-semibold text-slate-500">
-                추천링크를 불러오는 중입니다.
+                수익 링크를 불러오는 중입니다.
               </p>
             )}
             <p className="mt-3 text-xs leading-relaxed text-slate-600">
-              추천링크 확인하기를 누르면 비회원에게 보이는 린코 소개 화면을 확인할 수 있습니다.
+              이 링크로 가입하면 수익이 쌓입니다. 미리 보기는 아래 버튼으로 확인할 수 있어요.
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
               <button
@@ -1707,7 +1709,7 @@ export function DashboardPage() {
                   if (referralLink) window.open(referralLink, "_blank", "noopener,noreferrer");
                 }}
               >
-                추천링크 확인하기
+                수익 링크 미리보기
               </button>
               <button
                 type="button"
@@ -1718,12 +1720,12 @@ export function DashboardPage() {
                 }}
                 disabled={!referralLink}
               >
-                추천링크 복사하기
+                수익 링크 복사하기
               </button>
             </div>
             {referralLinkCopiedFlash ? (
               <p className="mt-3 text-xs leading-relaxed text-emerald-800">
-                <span className="font-semibold">추천링크가 복사되었습니다.</span>
+                <span className="font-semibold">수익 링크가 복사되었습니다.</span>
                 <br />
                 카카오톡, 문자, SNS에 붙여넣어 린코를 소개해 주세요.
               </p>
@@ -1731,20 +1733,20 @@ export function DashboardPage() {
           </div>
 
           <div className="mt-8 rounded-xl border border-slate-200 bg-white px-4 py-5 shadow-sm">
-            <p className="text-sm font-bold text-slate-900">추천 링크 성과</p>
+            <p className="text-sm font-bold text-slate-900">수익 링크 성과</p>
             <dl className="mt-4 grid gap-5 sm:grid-cols-2">
               <div>
                 <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">조회수</dt>
                 <dd className="mt-1 text-xl font-bold tabular-nums text-slate-900">
                   {(referralClickCountDb ?? 0).toLocaleString()}
                 </dd>
-                <p className="mt-1 text-xs leading-relaxed text-slate-500">추천 링크를 클릭한 횟수입니다.</p>
+                <p className="mt-1 text-xs leading-relaxed text-slate-500">수익 링크가 열린 횟수입니다.</p>
               </div>
               <div>
-                <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">추천 가입자</dt>
+                <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">수익 링크 가입</dt>
                 <dd className="mt-1 text-xl font-bold tabular-nums text-slate-900">{referredCount}명</dd>
                 <p className="mt-1 text-xs leading-relaxed text-slate-500">
-                  추천 링크를 통해 가입한 사람입니다.
+                  수익 링크로 가입한 사람입니다.
                 </p>
               </div>
               <div>
@@ -1753,7 +1755,7 @@ export function DashboardPage() {
                   {referralPaymentConversionCount}건
                 </dd>
                 <p className="mt-1 text-xs leading-relaxed text-slate-500">
-                  추천 가입자가 유료 결제한 횟수입니다.
+                  수익 링크로 가입한 사용자가 유료 결제한 횟수입니다.
                 </p>
               </div>
               <div>
@@ -1791,7 +1793,7 @@ export function DashboardPage() {
           <div className="mt-8 rounded-xl border border-brand-200 bg-white px-4 py-5 shadow-sm">
             <p className="text-sm font-bold text-brand-900">추천 보상</p>
             <p className="mt-2 text-sm leading-relaxed text-slate-600">
-              내 추천 링크로 가입한 사용자가 결제하면 결제 금액의 10%가 보상으로 적립됩니다. 추천 보상은 실제 결제 완료 건에 대해서만 적립되며, 환불 시 보상은 취소되거나 조정될 수 있습니다. 출금은 관리자 확인 후 지급됩니다.
+              내 수익 링크로 가입한 사용자가 결제하면 결제 금액의 10%가 보상으로 적립됩니다. 추천 보상은 실제 결제 완료 건에 대해서만 적립되며, 환불 시 보상은 취소되거나 조정될 수 있습니다. 출금은 관리자 확인 후 지급됩니다.
             </p>
             <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <StatBlock label="총 적립 보상" value={`${referralRewardBalances.totalAccrued.toLocaleString()}원`} />
@@ -1915,9 +1917,9 @@ export function DashboardPage() {
       {!isCreator ? (
         <section className="mt-8 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
           <div>
-            <h2 className="text-lg font-semibold text-slate-900 sm:text-xl">홍보 신청 관리</h2>
+            <h2 className="text-lg font-semibold text-slate-900 sm:text-xl">헬퍼링크·홍보 파트너 신청 관리</h2>
             <p className="mt-2 text-sm leading-relaxed text-slate-600 sm:text-base">
-              내 명함을 홍보하려는 홍보 신청자를 확인하고 승인 또는 거절할 수 있습니다.
+              내 명함에 헬퍼링크로 참여하려는 홍보 파트너 신청을 확인하고 승인 또는 거절할 수 있습니다.
             </p>
           </div>
           {ownerPromotionApplications.length > 0 ? (
@@ -1970,7 +1972,7 @@ export function DashboardPage() {
             </ul>
           ) : (
             <p className="mt-5 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center text-sm text-slate-500">
-              아직 홍보 신청자가 없습니다.
+              아직 헬퍼링크 신청이 없습니다.
             </p>
           )}
         </section>
@@ -2135,9 +2137,10 @@ export function DashboardPage() {
       {promotionPaymentCard ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 px-4" role="dialog" aria-modal="true">
           <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-xl">
-            <p className="text-lg font-bold text-slate-900">홍보 링크 추가</p>
+            <p className="text-lg font-bold text-slate-900">헬퍼링크 추가 (유료)</p>
             <p className="mt-2 text-sm leading-relaxed text-slate-600">
-              이 명함을 가입자들이 홍보할 수 있도록 공개합니다. 홍보 링크를 추가하면, 가입자들이 홍보 신청을 할 수 있고 승인된 가입자는 전용 공유 링크를 받습니다.
+              명함 오너가 헬퍼링크를 켜면 홍보 파트너가 신청·승인 후 전용 헬퍼링크를 받습니다. 헬퍼링크로 고객을 연결하고
+              수익에 참여하는 구조예요.
             </p>
             <div className="mt-4 rounded-2xl border border-cta-200 bg-cta-50 px-4 py-4">
               <p className="text-sm font-bold text-slate-900">결제 금액</p>
@@ -2149,7 +2152,7 @@ export function DashboardPage() {
                 className="inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-cta-500 px-4 text-sm font-bold text-white hover:bg-cta-600"
                 onClick={() => void confirmPromotionPayment()}
               >
-                10,900원 결제하고 홍보 시작하기
+                {PROMOTION_LINK_PRICE.toLocaleString()}원 결제하고 헬퍼링크 받기
               </button>
               <button
                 type="button"

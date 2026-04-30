@@ -18,9 +18,9 @@ const navLinkClass = ({ isActive }: { isActive: boolean }) =>
   );
 
 const links = [
-  { to: "/pricing", label: "요금·홍보" },
+  { to: "/pricing", label: "요금 안내" },
   { to: "/structure", label: "명함 샘플 보기" },
-  { to: "/promotion/guide", label: "홍보·연결" },
+  { to: "/promotion/guide", label: "헬퍼링크·파트너" },
   { to: "/education", label: "교육신청" },
   { to: "/creators", label: "제작 전문가" },
   { to: "/requests", label: "의뢰하기" },
@@ -90,7 +90,7 @@ export function Navbar() {
                 to={`/signup?ref=${encodeURIComponent(referralCode)}`}
                 className={linkButtonClassName({ size: "sm", className: "shadow-sm" })}
               >
-                추천받고 시작하기
+                수익 링크로 가입하기
               </Link>
             ) : user ? (
               <>
@@ -175,7 +175,7 @@ export function Navbar() {
                   className={linkButtonClassName({ size: "lg", className: "mt-3 w-full" })}
                   onClick={() => setOpen(false)}
                 >
-                  추천받고 시작하기
+                  수익 링크로 가입하기
                 </Link>
               ) : (
                 <>

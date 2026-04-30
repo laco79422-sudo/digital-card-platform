@@ -14,7 +14,7 @@ import { useCallback, useRef, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 
 const GOAL_OPTIONS: { value: StructureGoal; label: string; hint: string }[] = [
-  { value: "promo", label: "홍보", hint: "알려지고 싶을 때" },
+  { value: "promo", label: "유입·노출", hint: "알려지고 싶을 때" },
   { value: "inquiry", label: "문의", hint: "상담·연락이 먼저일 때" },
   { value: "sales", label: "판매", hint: "계약·구매까지 고려할 때" },
 ];
@@ -24,7 +24,7 @@ function ResultBlock({ result }: { result: StructureBlueprintResult }) {
     <div className="space-y-6">
       <Card className="border-brand-200/80 bg-white">
         <CardHeader>
-          <p className="text-xs font-bold uppercase tracking-wide text-brand-800">추천 명함 헤드라인</p>
+          <p className="text-xs font-bold uppercase tracking-wide text-brand-800">예시 헤드라인</p>
           <p className="mt-2 text-lg font-bold leading-snug text-slate-900 sm:text-xl">{result.headline}</p>
         </CardHeader>
         <CardContent className="space-y-6 border-t border-slate-100 pt-2">
@@ -50,7 +50,7 @@ function ResultBlock({ result }: { result: StructureBlueprintResult }) {
             </ol>
           </div>
           <div>
-            <p className="text-xs font-bold uppercase tracking-wide text-slate-500">추천 공유 방법</p>
+            <p className="text-xs font-bold uppercase tracking-wide text-slate-500">명함 공유 팁</p>
             <ul className="mt-2 space-y-2 text-[15px] leading-relaxed text-slate-700">
               {result.shareTips.map((t) => (
                 <li key={t} className="flex gap-2">

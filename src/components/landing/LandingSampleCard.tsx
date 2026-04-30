@@ -60,8 +60,8 @@ const SAMPLE_CARDS: Record<LandingSampleType, SampleConfig> = {
       "bg-[radial-gradient(ellipse_90%_55%_at_30%_0%,rgba(52,211,153,0.35),transparent_50%),radial-gradient(ellipse_60%_45%_at_100%_80%,rgba(15,118,110,0.4),transparent)]",
     bottomFeatures: [
       { text: "QR 다운로드", title: "명함 QR을 저장해 오프라인에도 활용할 수 있어요" },
-      { text: "NFC 카드", title: "태그 한 번으로 홍보 페이지로 연결됩니다" },
-      { text: "홍보 링크", title: "추적 가능한 전용 링크로 홍보 성과를 확인합니다" },
+      { text: "NFC 카드", title: "태그 한 번으로 명함 페이지로 연결됩니다" },
+      { text: "헬퍼링크", title: "전용 헬퍼링크로 고객 유입·성과를 확인합니다" },
     ],
   },
   store: {

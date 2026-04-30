@@ -29,7 +29,7 @@ export function SignupSeo() {
     const ref = new URLSearchParams(location.search).get("ref")?.trim();
     const title = "린코 디지털 명함 — 회원가입";
     const desc = ref
-      ? "추천 링크로 린코에 가입하고 디지털 명함을 시작해 보세요."
+      ? "수익 링크로 린코에 가입하고 디지털 명함을 시작해 보세요."
       : SITE_OG_DESCRIPTION;
     const image = SITE_OG_REFERRAL_IMAGE_URL;
 

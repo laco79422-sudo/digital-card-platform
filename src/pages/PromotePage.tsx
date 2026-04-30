@@ -49,14 +49,14 @@ export function PromotePage() {
   const applyPromotion = async (card: BusinessCard) => {
     const ownerUserId = card.owner_id ?? card.user_id;
     if (ownerUserId === user.id) {
-      setMessage("내 명함에는 홍보 신청을 할 수 없습니다.");
+      setMessage("내 명함에는 헬퍼링크 신청을 할 수 없습니다.");
       return;
     }
     const existing = promotionApplications.find(
       (application) => application.card_id === card.id && application.applicant_user_id === user.id,
     );
     if (existing) {
-      setMessage("이미 홍보 신청한 명함입니다. 내 공간에서 승인 상태를 확인해 주세요.");
+      setMessage("이미 헬퍼링크 신청한 명함입니다. 내 공간에서 승인 상태를 확인해 주세요.");
       return;
     }
 
@@ -77,7 +77,7 @@ export function PromotePage() {
     };
     const remote = await createPromotionApplicationRemote(application);
     upsertPromotionApplication({ ...application, ...(remote ?? {}) });
-    setMessage("홍보 신청이 접수되었습니다. 이용자 승인 후 전용 홍보 링크를 받을 수 있어요.");
+    setMessage("헬퍼링크 신청이 접수되었습니다. 명함 오너 승인 후 전용 헬퍼링크를 받을 수 있어요.");
   };
 
   return (
@@ -85,10 +85,10 @@ export function PromotePage() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="break-keep text-2xl font-bold leading-snug tracking-tight text-slate-900 md:text-3xl">
-            홍보 가능한 명함
+            헬퍼링크로 홍보할 명함
           </h1>
           <p className="mt-2 max-w-2xl text-base leading-relaxed text-slate-600">
-            홍보할 명함을 선택하고 신청하면, 승인 후 내 전용 홍보 링크를 받을 수 있어요.
+            헬퍼링크로 고객을 연결할 명함을 선택하고 신청하면, 승인 후 내 전용 헬퍼링크를 받을 수 있어요.
           </p>
         </div>
         <Link to="/dashboard" className="text-sm font-bold text-brand-700">
@@ -123,7 +123,7 @@ export function PromotePage() {
                   <div>
                     <h2 className="text-lg font-bold text-slate-900">{cardDisplayName(card)}</h2>
                     <p className="mt-1 text-sm text-slate-600">{card.job_title || card.brand_name || "직함 미입력"}</p>
-                    <p className="mt-2 text-xs font-semibold text-brand-700">총 홍보 신청 수 {applicationsCount}</p>
+                    <p className="mt-2 text-xs font-semibold text-brand-700">총 헬퍼링크 신청 수 {applicationsCount}</p>
                   </div>
                 </div>
               </CardHeader>
@@ -135,7 +135,7 @@ export function PromotePage() {
                   onClick={() => void applyPromotion(card)}
                   disabled={Boolean(existing)}
                 >
-                  {existing ? "홍보 신청 완료" : "홍보 신청"}
+                  {existing ? "헬퍼링크 신청 완료" : "헬퍼링크 신청"}
                 </Button>
               </CardContent>
             </Card>
@@ -145,8 +145,8 @@ export function PromotePage() {
 
       {promotableCards.length === 0 ? (
         <div className="mt-8 rounded-2xl border border-dashed border-slate-300 bg-white px-5 py-12 text-center">
-          <p className="text-lg font-bold text-slate-900">아직 홍보 가능한 명함이 없습니다.</p>
-          <p className="mt-2 text-sm text-slate-500">명함 이용자가 홍보 링크를 추가하면 이곳에 표시됩니다.</p>
+          <p className="text-lg font-bold text-slate-900">아직 헬퍼링크 신청 가능한 명함이 없습니다.</p>
+          <p className="mt-2 text-sm text-slate-500">명함 오너가 헬퍼링크 기능을 켜면 이곳에 표시됩니다.</p>
         </div>
       ) : null}
     </div>

@@ -102,7 +102,7 @@ export function AccountDeletionSection({ userId, email, className }: Props) {
       <div className="mt-6 rounded-xl border border-rose-100 bg-rose-50/50 px-4 py-4">
         <h3 className="text-base font-bold text-slate-900">회원 탈퇴</h3>
         <p className="mt-2 text-sm leading-relaxed text-slate-700">
-          탈퇴하면 내 명함과 공유 링크가 중지됩니다. 추천수익, 출금 신청, 결제 내역은 정산과 확인을 위해 보관될 수
+          탈퇴하면 내 명함과 공유 링크가 중지됩니다. 수익 링크 보상·출금 신청·결제 내역은 정산과 확인을 위해 보관될 수
           있습니다.
         </p>
         <p className="mt-3 text-sm leading-relaxed text-slate-600">
@@ -132,7 +132,7 @@ export function AccountDeletionSection({ userId, email, className }: Props) {
               <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-3 text-sm text-amber-950">
                 <p className="font-semibold">출금 가능한 수익이 있습니다. 먼저 출금 신청 후 탈퇴해 주세요.</p>
                 <p className="mt-2 text-amber-900">
-                  출금하지 않고 탈퇴하려면 아래에 동의해 주세요. (추천·파트너 출금 가능 금액 합계 약{" "}
+                  출금하지 않고 탈퇴하려면 아래에 동의해 주세요. (수익 링크·파트너 출금 가능 금액 합계 약{" "}
                   {confirmedTotalKrw.toLocaleString()}원)
                 </p>
                 <label className="mt-3 flex cursor-pointer items-start gap-2 text-sm">

@@ -20,7 +20,7 @@ function patchMetaProperty(property: string, content: string) {
   if (el) el.setAttribute("content", content);
 }
 
-/** 랜딩(/)에서 문서 제목·미리보기 메타를 동기화. `/?ref=` 는 추천용 OG (Netlify Edge와 동일 문구). */
+/** 랜딩(/)에서 문서 제목·미리보기 메타를 동기화. `/?ref=` 는 수익 링크용 OG (Netlify Edge와 동일 문구). */
 export function SiteLinkPreviewSeo() {
   const location = useLocation();
 
@@ -28,9 +28,9 @@ export function SiteLinkPreviewSeo() {
     const ref = new URLSearchParams(location.search).get("ref")?.trim();
     const origin = canonicalSiteOrigin().replace(/\/$/, "");
     const pageUrl = ref ? `${origin}/?ref=${encodeURIComponent(ref)}` : SITE_CANONICAL_URL;
-    const title = ref ? "린코 디지털 명함 — 친구 초대" : SITE_OG_TITLE;
+    const title = ref ? "린코 디지털 명함 — 수익 링크" : SITE_OG_TITLE;
     const desc = ref
-      ? "추천 링크로 린코를 만나 보세요. 가입 후 디지털 명함을 시작할 수 있어요."
+      ? "수익 링크로 린코를 만나 보세요. 가입 후 디지털 명함을 시작할 수 있어요."
       : SITE_OG_DESCRIPTION;
     const image = ref ? SITE_OG_REFERRAL_IMAGE_URL : SITE_OG_IMAGE_URL;
 

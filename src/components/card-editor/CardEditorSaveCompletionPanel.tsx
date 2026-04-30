@@ -52,7 +52,7 @@ export function CardEditorSaveCompletionPanel({
       setCopyPromoDone(true);
       window.setTimeout(() => setCopyPromoDone(false), 2200);
     } catch {
-      window.prompt("홍보 문구를 복사해 주세요", promoShareText);
+      window.prompt("안내 문구를 복사해 주세요", promoShareText);
     }
   }, [promoShareText]);
 
@@ -159,7 +159,7 @@ export function CardEditorSaveCompletionPanel({
       ) : null}
 
       <div className="mt-8 border-t border-slate-200/90 pt-6">
-        <p className="text-sm font-bold text-slate-900">바로 공유할 홍보 문구</p>
+        <p className="text-sm font-bold text-slate-900">바로 공유할 안내 문구</p>
         <p className="mt-1 text-xs text-slate-500">
           업종에 맞춰 만들었습니다. 링크가 포함되어 있어요. 복사해 카카오·당근·문자에 붙여 넣으세요.
         </p>
@@ -168,11 +168,11 @@ export function CardEditorSaveCompletionPanel({
         </div>
         <Button type="button" variant="outline" className="mt-3 min-h-11 w-full gap-2 sm:w-auto" onClick={() => void copyPromo()}>
           <Copy className="h-4 w-4 shrink-0" aria-hidden />
-          {copyPromoDone ? "홍보 문구 복사됨!" : "홍보 문구 복사하기"}
+          {copyPromoDone ? "안내 문구 복사됨!" : "안내 문구 복사하기"}
         </Button>
         {copyPromoDone ? (
           <p className="mt-3 text-sm font-medium leading-relaxed text-emerald-900">
-            홍보 문구가 복사되었습니다. 카카오톡, 당근, 문자, SNS에 붙여넣어 공유해 주세요.
+            안내 문구가 복사되었습니다. 카카오톡, 당근, 문자, SNS에 붙여넣어 공유해 주세요.
           </p>
         ) : null}
       </div>
@@ -181,10 +181,10 @@ export function CardEditorSaveCompletionPanel({
         <p className="text-sm font-bold text-emerald-950">공유 가이드</p>
         <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm font-medium leading-relaxed text-slate-800">
           <li>
-            <span className="font-bold text-slate-900">카카오톡에 공유</span> — 방·단톡에 링크 또는 아래 홍보 문구 붙여넣기
+            <span className="font-bold text-slate-900">카카오톡에 공유</span> — 방·단톡에 링크 또는 아래 안내 문구 붙여넣기
           </li>
           <li>
-            <span className="font-bold text-slate-900">당근에 게시</span> — 동네 홍보 글에 명함 링크 넣기
+            <span className="font-bold text-slate-900">당근에 게시</span> — 동네 게시글에 명함 링크 넣기
           </li>
           <li>
             <span className="font-bold text-slate-900">고객에게 전송</span> — 문자·메신저로 링크만 보내도 명함으로 연결
