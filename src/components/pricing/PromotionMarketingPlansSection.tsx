@@ -44,29 +44,29 @@ function OutcomePreviewDemo() {
       <p className="text-center text-xs font-bold uppercase tracking-widest text-emerald-900/80">제작 완료 후</p>
       <p className="mt-2 text-center text-base font-bold text-slate-900 sm:text-lg">고객 유입으로 이어지는 결과물</p>
       <p className="mx-auto mt-2 max-w-md text-center text-sm leading-relaxed text-slate-600">
-        기능 나열이 아니라, <span className="font-semibold text-slate-800">링크·검색·영상으로 들어오는 흐름</span>을
-        만듭니다.
+        블로그·영상 등 <span className="font-semibold text-slate-800">홍보 파트너</span>가 만든 콘텐츠로 고객이 들어오는
+        길을 넓힙니다.
       </p>
       <ul className="mt-6 space-y-3 text-[15px] leading-relaxed text-slate-800 sm:text-base">
         <li className="flex gap-3 rounded-xl border border-white/80 bg-white/90 px-4 py-3 shadow-sm">
           <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" aria-hidden />
           <span>
-            <span className="font-semibold">👉 당신의 명함 링크</span>
+            <span className="font-semibold">당신의 명함 링크</span>
             <span className="block text-sm font-normal text-slate-600">공유 한 번으로 바로 열리는 디지털 명함</span>
           </span>
         </li>
         <li className="flex gap-3 rounded-xl border border-white/80 bg-white/90 px-4 py-3 shadow-sm">
           <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" aria-hidden />
           <span>
-            <span className="font-semibold">👉 블로그 게시 완료</span>
+            <span className="font-semibold">블로그 게시</span>
             <span className="block text-sm font-normal text-slate-600">검색·링크 유입용 글 배포</span>
           </span>
         </li>
         <li className="flex gap-3 rounded-xl border border-white/80 bg-white/90 px-4 py-3 shadow-sm">
           <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" aria-hidden />
           <span>
-            <span className="font-semibold">👉 영상 생성 완료</span>
-            <span className="block text-sm font-normal text-slate-600">쇼츠·영상으로 도달 범위 확대</span>
+            <span className="font-semibold">영상(숏츠 등)</span>
+            <span className="block text-sm font-normal text-slate-600">영상 채널로 도달 범위 확대</span>
           </span>
         </li>
       </ul>
@@ -91,55 +91,60 @@ function OutcomePreviewDemo() {
   );
 }
 
-export function PromotionMarketingPlansSection({ className }: { className?: string }) {
+type PromotionMarketingPlansSectionProps = {
+  className?: string;
+  /** 랜딩 등에서 플로우·데모 블록 숨김 */
+  compact?: boolean;
+};
+
+export function PromotionMarketingPlansSection({ className, compact }: PromotionMarketingPlansSectionProps) {
   return (
     <section className={cn(className)}>
-      <h2 className="text-lg font-semibold text-slate-900 sm:text-xl">블로그 + 영상 홍보 (유료 패키지)</h2>
+      <h2 className="text-lg font-semibold text-slate-900 sm:text-xl">블로그·영상 홍보까지 맡길 수 있어요</h2>
       <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-600 sm:text-[15px]">
-        명함 제작만이 아니라, <span className="font-semibold text-slate-800">홍보 콘텐츠 제작 → 유입 → 의뢰</span>까지 한
-        번에 설계했습니다. 판매 단위는 기능이 아니라{" "}
-        <span className="font-semibold text-slate-800">고객이 들어오는 결과</span>입니다.
+        명함만으로 부족하다면, 블로그 글과 영상 콘텐츠로{" "}
+        <span className="font-semibold text-slate-800">고객이 들어오는 길을 넓힐 수 있습니다</span>. 패키지는 기능 나열이
+        아니라 <span className="font-semibold text-slate-800">홍보 파트너가 만들어 주는 결과물</span> 단위입니다.
       </p>
 
-      <div className="mx-auto mt-8 max-w-3xl rounded-2xl border border-slate-200/90 bg-slate-50/80 px-4 py-5 sm:px-6 sm:py-6">
-        <p className="text-center text-sm font-semibold text-slate-800">한 번의 여정</p>
-        <div className="mt-4">
-          <FlowStrip />
+      {!compact ? (
+        <div className="mx-auto mt-8 max-w-3xl rounded-2xl border border-slate-200/90 bg-slate-50/80 px-4 py-5 sm:px-6 sm:py-6">
+          <p className="text-center text-sm font-semibold text-slate-800">한 번의 여정</p>
+          <div className="mt-4">
+            <FlowStrip />
+          </div>
         </div>
-      </div>
+      ) : null}
 
       <div className="mt-8 grid gap-6 lg:grid-cols-3">
         <PricingCard
           name="기본 홍보"
-          audience="입문·시작"
           priceLabel="₩499,000"
-          description="1회 패키지 · 예시 금액(상담 후 확정)"
-          features={["명함 제작", "블로그 글 1건", "공유 메시지 제공"]}
+          description="1회 패키지 · 상담 후 확정"
+          features={["업종 소개글", "블로그 글 1건", "공유 메시지 제공"]}
           href="/signup?plan=promo-basic"
           cta="홍보 시작하기"
         />
         <PricingCard
           name="성장 홍보"
-          audience="유입·전환 강화"
           priceLabel="₩899,000"
-          description="1회 패키지 · 예시 금액(상담 후 확정)"
-          features={["명함 제작", "블로그 글 3건", "유튜브 쇼츠 1개"]}
+          description="1회 패키지 · 상담 후 확정"
+          features={["업종 소개글", "블로그 글 3건", "유튜브 숏츠 1건"]}
           highlighted
           href="/signup?plan=promo-growth"
-          cta="지금 시작하기"
+          cta="홍보 시작하기"
         />
         <PricingCard
-          name="확산"
-          audience="브랜드·다채널"
+          name="확산 패키지"
           priceLabel="₩1,490,000"
-          description="1회 패키지 · 예시 금액(상담 후 확정)"
-          features={["명함 제작", "블로그 글 5건", "유튜브 영상 2~3개"]}
+          description="1회 패키지 · 상담 후 확정"
+          features={["업종 소개글", "블로그 글 5건", "유튜브 숏츠 2건", "공유 전략 제공"]}
           href="/signup?plan=promo-scale"
-          cta="브랜드 만들기"
+          cta="홍보 시작하기"
         />
       </div>
 
-      <OutcomePreviewDemo />
+      {!compact ? <OutcomePreviewDemo /> : null}
 
       <p className="mt-8 text-center text-sm leading-relaxed text-slate-500">
         실제 금액·일정은 상담 후 확정됩니다. (데모 앱에서는 가입·문의 흐름만 연결됩니다.)

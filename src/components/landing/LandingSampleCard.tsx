@@ -7,6 +7,8 @@ type Props = {
   variant?: "default" | "hero";
   sampleType?: LandingSampleType;
   className?: string;
+  /** 이름·직함·대표 문구·문의·QR/NFC 중심으로 단순 표시 */
+  minimalUi?: boolean;
 };
 
 type SampleFeature = { text: string; title?: string };
@@ -169,9 +171,17 @@ function SampleFeatureFooter({ features, className }: { features: SampleFeature[
 /**
  * 랜딩용 미리보기 — 실제 사람·직업 중심 카피로 “나도 저런 명함” 감각을 줍니다. (하단 NFC·QR 안내는 유지)
  */
-export function LandingSampleCard({ variant = "default", sampleType = "personal", className }: Props) {
+export function LandingSampleCard({
+  variant = "default",
+  sampleType = "personal",
+  className,
+  minimalUi = false,
+}: Props) {
   const isHero = variant === "hero";
   const sample = SAMPLE_CARDS[sampleType];
+  const footerFeatures = minimalUi
+    ? sample.bottomFeatures.filter((f) => /nfc|qr/i.test(f.text))
+    : sample.bottomFeatures;
 
   return (
     <div
@@ -184,18 +194,20 @@ export function LandingSampleCard({ variant = "default", sampleType = "personal"
       )}
     >
       <div className={cn(isHero ? "p-5 sm:p-6" : "p-5")}>
-        <div className="flex flex-wrap gap-1.5 sm:gap-2">
-          {sample.topBadges.map((b) => (
-            <span
-              key={b}
-              className="inline-flex rounded-full border border-brand-200/90 bg-brand-50/90 px-2.5 py-1 text-[10px] font-semibold text-brand-900 shadow-sm sm:text-[11px]"
-            >
-              {b}
-            </span>
-          ))}
-        </div>
+        {!minimalUi ? (
+          <div className="flex flex-wrap gap-1.5 sm:gap-2">
+            {sample.topBadges.map((b) => (
+              <span
+                key={b}
+                className="inline-flex rounded-full border border-brand-200/90 bg-brand-50/90 px-2.5 py-1 text-[10px] font-semibold text-brand-900 shadow-sm sm:text-[11px]"
+              >
+                {b}
+              </span>
+            ))}
+          </div>
+        ) : null}
 
-        <div className={cn("mt-3", isHero ? "mt-4" : "")}>
+        <div className={cn(!minimalUi ? "mt-3" : "", isHero && !minimalUi ? "mt-4" : minimalUi ? "mt-0" : "")}>
           <SampleHeroVisual
             heroBrandLine={sample.heroBrandLine}
             centerName={sample.name}
@@ -206,22 +218,26 @@ export function LandingSampleCard({ variant = "default", sampleType = "personal"
         </div>
 
         <div className="mt-5">
-          <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700 ring-1 ring-slate-200/80">
-            {sample.typeLabel}
-          </span>
-          <h3 className={cn("mt-3 font-extrabold tracking-tight text-slate-950", isHero ? "text-2xl" : "text-xl")}>
+          {!minimalUi ? (
+            <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700 ring-1 ring-slate-200/80">
+              {sample.typeLabel}
+            </span>
+          ) : null}
+          <h3 className={cn("font-extrabold tracking-tight text-slate-950", minimalUi ? "mt-0 text-xl sm:text-2xl" : "mt-3 text-xl", isHero && !minimalUi ? "text-2xl" : "")}>
             {sample.name}
           </h3>
           <p className="mt-1 text-sm font-semibold leading-snug text-slate-600">{sample.role}</p>
-          <p className="mt-3 text-base font-bold leading-snug text-slate-900">{sample.tagline}</p>
-          <p
-            className={cn(
-              "mt-4 whitespace-pre-line leading-relaxed text-slate-700",
-              isHero ? "text-[15px] sm:text-base" : "text-sm sm:text-[15px]",
-            )}
-          >
-            {sample.description}
-          </p>
+          <p className={cn("font-bold leading-snug text-slate-900", minimalUi ? "mt-2 text-[15px] sm:text-base" : "mt-3 text-base")}>{sample.tagline}</p>
+          {!minimalUi ? (
+            <p
+              className={cn(
+                "mt-4 whitespace-pre-line leading-relaxed text-slate-700",
+                isHero ? "text-[15px] sm:text-base" : "text-sm sm:text-[15px]",
+              )}
+            >
+              {sample.description}
+            </p>
+          ) : null}
         </div>
       </div>
 
@@ -234,7 +250,7 @@ export function LandingSampleCard({ variant = "default", sampleType = "personal"
         >
           {sample.ctaLabel}
         </span>
-        <SampleFeatureFooter features={sample.bottomFeatures} className="mt-1 px-1 pt-0.5" />
+        <SampleFeatureFooter features={footerFeatures} className="mt-1 px-1 pt-0.5" />
       </div>
     </div>
   );

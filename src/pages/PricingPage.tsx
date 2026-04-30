@@ -1,91 +1,71 @@
 import { PromotionMarketingPlansSection } from "@/components/pricing/PromotionMarketingPlansSection";
 import { PricingCard } from "@/components/ui/PricingCard";
-import { PRO_PLAN, STARTER_PLAN } from "@/data/businessCardPlans";
+import { linkButtonClassName } from "@/components/ui/buttonStyles";
 import { layout, type } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
+import { Video } from "lucide-react";
 import { Link } from "react-router-dom";
 
+/** 메인 `/` 의 `#pricing` 과 중복되지 않도록 구독 카드는 두지 않습니다. */
 export function PricingPage() {
   return (
     <div className={cn(layout.page, "py-12 sm:py-16")}>
       <div className="mx-auto max-w-2xl text-center">
         <h1 className="break-keep text-center text-2xl font-bold leading-snug tracking-tight text-slate-900 md:text-4xl">
-          이용 안내
+          요금·홍보 안내
         </h1>
         <p className={cn("mt-3 sm:mt-4", type.sectionLead)}>
-          숫자 나열이 아니라,{" "}
-          <span className="font-semibold text-slate-800">지금 어떤 행동을 하게 될지</span>를 기준으로 하나만 골라 보세요.
-          명함으로 고객이 먼저 연락하는 구조를 만듭니다.
+          명함으로 고객이 들어오는 구조와 요금은 메인 페이지에서 먼저 안내됩니다. 무료·스타터·프로 비교는 한곳만
+          유지합니다.
         </p>
-      </div>
-
-      <div className="mx-auto mt-10 max-w-3xl rounded-2xl border border-amber-200/90 bg-gradient-to-b from-amber-50/90 to-white px-5 py-5 shadow-sm sm:mt-12 sm:px-7 sm:py-6">
-        <p className="text-base font-bold text-slate-900">💡 의뢰란?</p>
-        <p className="mt-3 text-[15px] leading-relaxed text-slate-700 sm:text-base">
-          명함을 본 고객이 <span className="font-semibold text-slate-900">문의, 상담 요청, 제작 요청</span> 등을 보내는
-          것을 의미합니다.
-        </p>
-        <p className="mt-3 text-[15px] leading-relaxed text-slate-700 sm:text-base">
-          즉, 단순 방문이 아니라 <span className="font-semibold text-slate-900">실제로 연결이 시작되는 행동</span>
-          입니다. 플랜마다 이런 의뢰를 <span className="font-semibold text-slate-900">동시에 몇 건까지 관리할지</span>가
-          달라집니다.
-        </p>
-      </div>
-
-      <h2 className="mt-12 text-lg font-semibold text-slate-900 sm:mt-16 sm:text-xl">명함 사용자</h2>
-      <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-600 sm:text-[15px]">
-        비교표보다는 지금 단계에 맞는 하나만 고르면 됩니다.
-      </p>
-      <div className="mx-auto mt-8 grid max-w-6xl gap-8 lg:grid-cols-3 lg:gap-10">
-        <PricingCard
-          name="무료"
-          priceLabel="₩0"
-          tagline="가볍게 시작"
-          features={["명함 1개 생성 가능", "방문·클릭 기본 기록", "간단한 문의 받기"]}
-          recommendFor="디지털 명함을 처음 만들어 보고 싶은 분"
-          href="/signup"
-          cta="무료로 시작"
-        />
-        <PricingCard
-          name={STARTER_PLAN.name}
-          priceLabel={STARTER_PLAN.priceLabel}
-          description={STARTER_PLAN.priceSuffix}
-          tagline={STARTER_PLAN.tagline}
-          features={[...STARTER_PLAN.features]}
-          recommendFor={STARTER_PLAN.recommendFor}
-          href={STARTER_PLAN.href}
-          cta={STARTER_PLAN.cta}
-        />
-        <PricingCard
-          name={PRO_PLAN.name}
-          priceLabel={PRO_PLAN.priceLabel}
-          description={PRO_PLAN.priceSuffix}
-          tagline={PRO_PLAN.tagline}
-          features={[...PRO_PLAN.features]}
-          recommendFor={PRO_PLAN.recommendFor}
-          highlighted
-          href={PRO_PLAN.href}
-          cta={PRO_PLAN.cta}
-        />
-      </div>
-
-      <div className="mx-auto mt-12 max-w-lg rounded-2xl border border-slate-200 bg-slate-50/90 px-6 py-8 text-center sm:mt-14">
-        <p className="text-base font-semibold text-slate-900">팀·법인·맞춤 견적이 필요하신가요?</p>
-        <p className="mt-2 text-sm leading-relaxed text-slate-600">별도 상담 후 견적과 도입 방식을 안내해 드립니다.</p>
         <Link
-          to="/signup?intent=business"
-          className="mt-5 inline-flex min-h-[48px] w-full items-center justify-center rounded-xl bg-slate-900 px-5 text-sm font-bold text-white hover:bg-slate-800 sm:w-auto sm:min-w-[200px]"
+          to="/#pricing"
+          className="mt-8 inline-flex min-h-[52px] w-full max-w-sm items-center justify-center rounded-xl bg-brand-800 px-6 text-base font-bold text-white shadow-md hover:bg-brand-900 sm:w-auto"
         >
-          문의하기
+          메인에서 플랜 비교하기
         </Link>
+      </div>
+
+      <div className="mx-auto mt-14 max-w-3xl rounded-2xl border border-slate-200 bg-slate-50/90 px-5 py-6 text-center sm:mt-16 sm:px-8 sm:py-8">
+        <p className="text-base font-semibold text-slate-900">역할 구분</p>
+        <ul className="mx-auto mt-4 max-w-xl space-y-2 text-left text-[15px] leading-relaxed text-slate-700 sm:text-base">
+          <li>
+            <span className="font-semibold text-slate-900">명함 고객</span> — 디지털 명함을 만들고 링크를 보내는 분
+          </li>
+          <li>
+            <span className="font-semibold text-slate-900">홍보 파트너</span> — 블로그·영상 패키지 등 콘텐츠 홍보를 맡기는
+            영역
+          </li>
+          <li>
+            <span className="font-semibold text-slate-900">제작 전문가</span> — 명함·구조를 함께 잡아 주는 파트너
+          </li>
+        </ul>
       </div>
 
       <PromotionMarketingPlansSection className="mt-16 sm:mt-24" />
 
-      <h2 className="mt-14 text-lg font-semibold text-slate-900 sm:mt-20 sm:text-xl">제작 전문가</h2>
+      <section className="mt-14 rounded-2xl border border-brand-900/20 bg-brand-950 px-5 py-10 text-white sm:mt-20 sm:px-8 sm:py-14">
+        <div className="mx-auto max-w-2xl text-center">
+          <Video className="mx-auto h-10 w-10 text-brand-300" aria-hidden />
+          <h2 className="mt-4 text-xl font-bold leading-snug sm:text-2xl">제작 전문가로 활동하기</h2>
+          <p className="mt-3 text-base leading-relaxed text-white/90">
+            포트폴리오를 등록하고 의뢰에 응답해 보세요. 아래는 플랫폼 이용 플랜 예시입니다.
+          </p>
+          <Link
+            to="/signup"
+            className={cn(
+              "mx-auto mt-6 inline-flex min-h-12 w-full max-w-xs justify-center sm:w-auto",
+              linkButtonClassName({ variant: "solidLight", size: "lg", className: "w-full sm:w-auto" }),
+            )}
+          >
+            제작 전문가로 참여하기
+          </Link>
+        </div>
+      </section>
+
+      <h2 className="mt-14 text-lg font-semibold text-slate-900 sm:mt-20 sm:text-xl">제작 전문가 이용 플랜</h2>
       <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-600 sm:text-[15px]">
-        의뢰를 받아 수익을 내는 제작 전문가는 플러스로{" "}
-        <span className="font-medium text-slate-700">새 의뢰 알림·제안서</span> 흐름을 빠르게 잡을 수 있어요.
+        새 의뢰 알림·제안서 등 활동을 빠르게 잡을 때 참고하세요.
       </p>
       <div className="mt-8 grid gap-6 lg:grid-cols-3">
         <PricingCard
