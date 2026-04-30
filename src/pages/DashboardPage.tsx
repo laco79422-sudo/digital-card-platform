@@ -1026,141 +1026,26 @@ export function DashboardPage() {
         )}
       </div>
 
-      {uid ? <RewardAdsSection placement="dashboard" className="mt-10" /> : null}
-
-      {uid ? (
-        <section
-          className="mt-10 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7"
-          aria-labelledby="dashboard-performance-heading"
-        >
-          <h2 id="dashboard-performance-heading" className="text-lg font-bold text-slate-900 sm:text-xl">
-            내 명함 성과
-          </h2>
-          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-600 sm:text-base">
-            당신의 명함이 얼마나 고객을 만들고 있는지 확인하세요.
-          </p>
-          {hasPerformanceSignal ? (
-            <p className="mt-3 max-w-2xl rounded-xl border border-emerald-200 bg-emerald-50/80 px-4 py-3 text-sm font-medium text-emerald-950">
-              좋아요. 명함이 고객에게 도달하고 있습니다.
-            </p>
-          ) : (
-            <p className="mt-3 max-w-2xl rounded-xl border border-amber-200 bg-amber-50/90 px-4 py-3 text-sm font-medium text-amber-950">
-              아직 고객 반응이 없어요. 홍보 문구를 복사해 카카오톡, 당근, 문자에 공유해 보세요.
-            </p>
-          )}
-          <div className="mt-6 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-            <PerformanceStatCard label="조회수" hint="공개 명함 열람·조회 기록" value={viewsDisplay} />
-            <PerformanceStatCard label="클릭수" hint="명함 속 버튼·링크 클릭" value={clicksDisplay} />
-            <PerformanceStatCard label="문의 수" hint="문의·상담 성격 연결" value={inquiriesDisplay} />
-            <PerformanceStatCard label="홍보 링크 유입 수" hint="추천·홍보 링크로 들어온 횟수" value={promoLinkInboundCount} />
-          </div>
-          <div className="mt-4 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
-            <PerformanceStatCard label="추천 가입자 수" hint="추천 링크로 가입한 사용자" value={referredCount} />
-            <PerformanceStatCard
-              label="결제 전환 수"
-              hint="추천 보상이 적립된 결제 건수"
-              value={referralPaymentConversionCount}
-            />
-            <PerformanceStatCard
-              label="적립 예정 보상"
-              hint="정산 전 추천 보상(원)"
-              value={Math.round(referralRewardBalances.pending)}
-            />
-          </div>
-        </section>
-      ) : null}
-
-      {uid && myCards.length > 0 && isSupabaseConfigured ? (
-        <section
-          className="mt-8 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6"
-          aria-labelledby="dashboard-reservations-heading"
-        >
-          <h2 id="dashboard-reservations-heading" className="text-lg font-bold text-slate-900 sm:text-xl">
-            예약 현황
-          </h2>
-          <p className="mt-2 text-sm leading-relaxed text-slate-600 sm:text-base">
-            고객이 공개 명함에서 신청한 예약입니다.
-          </p>
-          <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <div className="rounded-xl border border-emerald-100 bg-emerald-50/60 px-4 py-3">
-              <p className="text-xs font-bold uppercase tracking-wide text-emerald-800">오늘 예약</p>
-              <p className="mt-1 text-2xl font-extrabold text-emerald-950">{reservationsToday.length}</p>
-            </div>
-            <div className="rounded-xl border border-amber-100 bg-amber-50/70 px-4 py-3">
-              <p className="text-xs font-bold uppercase tracking-wide text-amber-900">대기 예약</p>
-              <p className="mt-1 text-2xl font-extrabold text-amber-950">{reservationsWaiting.length}</p>
-            </div>
-            <div className="rounded-xl border border-slate-200 bg-slate-50/90 px-4 py-3">
-              <p className="text-xs font-bold uppercase tracking-wide text-slate-600">이용 완료</p>
-              <p className="mt-1 text-2xl font-extrabold text-slate-900">{reservationsDone.length}</p>
-            </div>
-          </div>
-          {ownerReservations.length === 0 ? (
-            <p className="mt-6 text-sm text-slate-500">아직 등록된 예약이 없습니다.</p>
-          ) : (
-            <ul className="mt-6 divide-y divide-slate-100 rounded-xl border border-slate-100">
-              {ownerReservations.slice(0, 24).map((r) => {
-                const cardLabel =
-                  myCards.find((c) => c.id === r.card_id)?.person_name?.trim() ||
-                  myCards.find((c) => c.id === r.card_id)?.brand_name?.trim() ||
-                  "명함";
-                return (
-                  <li key={r.id} className="flex flex-col gap-1 px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                      <p className="font-semibold text-slate-900">
-                        {r.reservation_date} · {r.time_slot}
-                      </p>
-                      <p className="text-slate-600">
-                        {cardLabel} · {r.customer_name} · {r.service_name}
-                      </p>
-                    </div>
-                    <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-bold uppercase text-slate-700">
-                      {r.status}
-                    </span>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </section>
-      ) : null}
-
-      {uid && myCards.length > 0 ? (
-        <section
-          id="dashboard-share-loop"
-          className="mt-6 rounded-2xl border-2 border-cta-400/55 bg-gradient-to-br from-cta-50 via-white to-emerald-50/85 p-5 shadow-lg shadow-cta-900/10 sm:p-6"
-          aria-labelledby="dashboard-share-loop-heading"
-        >
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
-            <div className="min-w-0">
-              <p id="dashboard-share-loop-heading" className="text-lg font-extrabold tracking-tight text-slate-900 sm:text-xl">
-                지금 공유하면 더 많은 고객이 들어옵니다
-              </p>
-              <p className="mt-1 text-sm leading-relaxed text-slate-600 sm:text-base">
-                성과를 잠깐 확인했다면, 같은 명함 링크를 카카오·당근·문자로 한 번 더 보내 보세요.
-              </p>
-            </div>
-            <button
-              type="button"
-              className="inline-flex min-h-[52px] shrink-0 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cta-500 to-cta-600 px-5 text-base font-extrabold text-white shadow-md shadow-cta-900/20 hover:from-cta-400 hover:to-cta-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cta-400 focus-visible:ring-offset-2"
-              onClick={scrollToMyCardsSection}
-            >
-              <Share2 className="h-5 w-5 shrink-0" aria-hidden />
-              내 명함에서 공유하기
-            </button>
-          </div>
-        </section>
-      ) : null}
-
       <section id="dashboard-section-my-cards" className="mt-10 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-slate-900 sm:text-xl">내 명함</h2>
+            <h2 className="text-lg font-semibold text-slate-900 sm:text-xl">
+              {cardsActuallyEmpty && !cardsLoading && !cardsLookupFailed ? "아직 만든 명함이 없어요" : "내 명함"}
+            </h2>
             <p className="mt-2 text-sm leading-relaxed text-slate-600 sm:text-base">
-              {myCards.length >= 1
-                ? "추가 명함은 1개당 10,900원 결제 후 만들 수 있습니다."
-                : "내 명함은 실제 프로필 페이지예요. 내 명함 링크는 고객에게 보내는 실제 명함 주소예요. 홍보 링크는 승인된 홍보용 주소로 이 명함에 들어오는 경로예요."}
+              {cardsLoading
+                ? "명함 정보를 불러오는 중이에요."
+                : cardsLookupFailed
+                  ? "명함을 불러오지 못했을 때는 아래 안내를 확인해 주세요."
+                  : cardsActuallyEmpty
+                    ? "먼저 내 명함을 만들고 링크·QR·NFC로 공유해 보세요."
+                    : myCards.length >= 1
+                      ? "고객에게 보내는 실제 명함입니다. 수정하고 공유해 보세요."
+                      : "명함 정보를 확인하는 중이에요."}
             </p>
+            {!cardsActuallyEmpty && !cardsLoading && myCards.length >= 1 ? (
+              <p className="mt-2 text-xs text-slate-500">추가 명함은 1개당 10,900원 결제 후 만들 수 있습니다.</p>
+            ) : null}
           </div>
           {!isCreator ? (
             cardsActuallyEmpty ? (
@@ -1211,20 +1096,11 @@ export function DashboardPage() {
         ) : cardsActuallyEmpty ? (
           <div
             id="dashboard-empty-card-cta"
-            className="mt-6 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-5 py-10 text-center"
+            className="mt-6 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-5 py-8 text-center"
           >
-            <p className="text-lg font-bold text-slate-900">아직 만든 명함이 없어요.</p>
-            <p className="mt-2 text-sm leading-relaxed text-slate-600 sm:text-base">
-              먼저 내 명함을 만들고 링크·QR·NFC로 공유해 보세요.
+            <p className="text-sm leading-relaxed text-slate-600">
+              상단의 <span className="font-semibold text-slate-800">「내 명함 만들기」</span>를 눌러 시작할 수 있어요.
             </p>
-            {!isCreator ? (
-              <Link
-                to="/cards/new"
-                className="mt-6 inline-flex min-h-[48px] items-center justify-center rounded-xl bg-cta-500 px-5 text-base font-bold text-white shadow-sm shadow-cta-900/20 hover:bg-cta-600"
-              >
-                내 명함 만들기
-              </Link>
-            ) : null}
           </div>
         ) : (
           <ul className="mt-6 grid gap-4 lg:grid-cols-2">
@@ -1498,6 +1374,130 @@ export function DashboardPage() {
         )}
       </section>
 
+      {uid ? (
+        <section
+          className="mt-10 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7"
+          aria-labelledby="dashboard-performance-heading"
+        >
+          <h2 id="dashboard-performance-heading" className="text-lg font-bold text-slate-900 sm:text-xl">
+            내 명함 성과
+          </h2>
+          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-600 sm:text-base">
+            당신의 명함이 얼마나 고객을 만들고 있는지 확인하세요.
+          </p>
+          {hasPerformanceSignal ? (
+            <p className="mt-3 max-w-2xl rounded-xl border border-emerald-200 bg-emerald-50/80 px-4 py-3 text-sm font-medium text-emerald-950">
+              좋아요. 명함이 고객에게 도달하고 있습니다.
+            </p>
+          ) : (
+            <p className="mt-3 max-w-2xl rounded-xl border border-amber-200 bg-amber-50/90 px-4 py-3 text-sm font-medium text-amber-950">
+              아직 고객 반응이 없어요. 홍보 문구를 복사해 카카오톡, 당근, 문자에 공유해 보세요.
+            </p>
+          )}
+          <div className="mt-6 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+            <PerformanceStatCard label="조회수" hint="공개 명함 열람·조회 기록" value={viewsDisplay} />
+            <PerformanceStatCard label="클릭수" hint="명함 속 버튼·링크 클릭" value={clicksDisplay} />
+            <PerformanceStatCard label="문의 수" hint="문의·상담 성격 연결" value={inquiriesDisplay} />
+            <PerformanceStatCard label="홍보 링크 유입 수" hint="추천·홍보 링크로 들어온 횟수" value={promoLinkInboundCount} />
+          </div>
+          <div className="mt-4 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
+            <PerformanceStatCard label="추천 가입자 수" hint="추천 링크로 가입한 사용자" value={referredCount} />
+            <PerformanceStatCard
+              label="결제 전환 수"
+              hint="추천 보상이 적립된 결제 건수"
+              value={referralPaymentConversionCount}
+            />
+            <PerformanceStatCard
+              label="적립 예정 보상"
+              hint="정산 전 추천 보상(원)"
+              value={Math.round(referralRewardBalances.pending)}
+            />
+          </div>
+        </section>
+      ) : null}
+
+      {uid && myCards.length > 0 && isSupabaseConfigured ? (
+        <section
+          className="mt-8 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6"
+          aria-labelledby="dashboard-reservations-heading"
+        >
+          <h2 id="dashboard-reservations-heading" className="text-lg font-bold text-slate-900 sm:text-xl">
+            예약 현황
+          </h2>
+          <p className="mt-2 text-sm leading-relaxed text-slate-600 sm:text-base">
+            고객이 공개 명함에서 신청한 예약입니다.
+          </p>
+          <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div className="rounded-xl border border-emerald-100 bg-emerald-50/60 px-4 py-3">
+              <p className="text-xs font-bold uppercase tracking-wide text-emerald-800">오늘 예약</p>
+              <p className="mt-1 text-2xl font-extrabold text-emerald-950">{reservationsToday.length}</p>
+            </div>
+            <div className="rounded-xl border border-amber-100 bg-amber-50/70 px-4 py-3">
+              <p className="text-xs font-bold uppercase tracking-wide text-amber-900">대기 예약</p>
+              <p className="mt-1 text-2xl font-extrabold text-amber-950">{reservationsWaiting.length}</p>
+            </div>
+            <div className="rounded-xl border border-slate-200 bg-slate-50/90 px-4 py-3">
+              <p className="text-xs font-bold uppercase tracking-wide text-slate-600">이용 완료</p>
+              <p className="mt-1 text-2xl font-extrabold text-slate-900">{reservationsDone.length}</p>
+            </div>
+          </div>
+          {ownerReservations.length === 0 ? (
+            <p className="mt-6 text-sm text-slate-500">아직 등록된 예약이 없습니다.</p>
+          ) : (
+            <ul className="mt-6 divide-y divide-slate-100 rounded-xl border border-slate-100">
+              {ownerReservations.slice(0, 24).map((r) => {
+                const cardLabel =
+                  myCards.find((c) => c.id === r.card_id)?.person_name?.trim() ||
+                  myCards.find((c) => c.id === r.card_id)?.brand_name?.trim() ||
+                  "명함";
+                return (
+                  <li key={r.id} className="flex flex-col gap-1 px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="font-semibold text-slate-900">
+                        {r.reservation_date} · {r.time_slot}
+                      </p>
+                      <p className="text-slate-600">
+                        {cardLabel} · {r.customer_name} · {r.service_name}
+                      </p>
+                    </div>
+                    <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-bold uppercase text-slate-700">
+                      {r.status}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
+      ) : null}
+
+      {uid && myCards.length > 0 ? (
+        <section
+          id="dashboard-share-loop"
+          className="mt-6 rounded-2xl border-2 border-cta-400/55 bg-gradient-to-br from-cta-50 via-white to-emerald-50/85 p-5 shadow-lg shadow-cta-900/10 sm:p-6"
+          aria-labelledby="dashboard-share-loop-heading"
+        >
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+            <div className="min-w-0">
+              <p id="dashboard-share-loop-heading" className="text-lg font-extrabold tracking-tight text-slate-900 sm:text-xl">
+                지금 공유하면 더 많은 고객이 들어옵니다
+              </p>
+              <p className="mt-1 text-sm leading-relaxed text-slate-600 sm:text-base">
+                성과를 잠깐 확인했다면, 같은 명함 링크를 카카오·당근·문자로 한 번 더 보내 보세요.
+              </p>
+            </div>
+            <button
+              type="button"
+              className="inline-flex min-h-[52px] shrink-0 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cta-500 to-cta-600 px-5 text-base font-extrabold text-white shadow-md shadow-cta-900/20 hover:from-cta-400 hover:to-cta-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cta-400 focus-visible:ring-offset-2"
+              onClick={scrollToMyCardsSection}
+            >
+              <Share2 className="h-5 w-5 shrink-0" aria-hidden />
+              내 명함에서 공유하기
+            </button>
+          </div>
+        </section>
+      ) : null}
+
       {uid && myCards.length > 0 ? (
         <section className="mt-8 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
           <h2 className="text-lg font-semibold text-slate-900 sm:text-xl">홍보 현황</h2>
@@ -1519,151 +1519,6 @@ export function DashboardPage() {
               <StatBlock label="참여 홍보 파트너 수" value={String(visitOwnerStats.promoterCount)} />
               <StatBlock label="최고 성과 홍보 파트너" value={topPromoterDisplay} />
             </div>
-          )}
-        </section>
-      ) : null}
-
-      {!isCreator ? (
-        <section className="mt-8 rounded-2xl border border-brand-200/80 bg-white p-4 shadow-sm sm:p-6">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <h2 className="text-lg font-semibold text-slate-900 sm:text-xl">진행 중 의뢰</h2>
-              <p className="mt-2 text-sm leading-relaxed text-slate-600 sm:text-base">
-                제작 전문가에게 맡긴 디자인 의뢰와 시안 상태를 확인합니다.
-              </p>
-            </div>
-            <Link
-              to="/request"
-              className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-xl bg-cta-500 px-4 text-sm font-bold text-white shadow-sm shadow-cta-900/20 hover:bg-cta-600"
-            >
-              디자인 제작 의뢰하기
-            </Link>
-          </div>
-
-          {myDesignRequests.length > 0 ? (
-            <ul className="mt-6 grid gap-4 lg:grid-cols-2">
-              {myDesignRequests.map((request) => (
-                <li key={request.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <h3 className="text-base font-bold text-slate-900">명함 디자인 제작 의뢰</h3>
-                      <p className="mt-1 text-sm text-slate-600">
-                        {request.business_type} · {DESIGN_REQUEST_STYLE_LABEL[request.style]}
-                      </p>
-                    </div>
-                    <div className="flex flex-wrap gap-2 text-xs font-semibold">
-                      <span className="rounded-full bg-white px-2.5 py-1 text-slate-700 ring-1 ring-slate-200">
-                        {DESIGN_REQUEST_PAYMENT_STATUS_LABEL[request.payment_status]}
-                      </span>
-                      <span className="rounded-full bg-brand-50 px-2.5 py-1 text-brand-800 ring-1 ring-brand-100">
-                        {DESIGN_REQUEST_STATUS_LABEL[request.status]}
-                      </span>
-                    </div>
-                  </div>
-                  <p className="mt-3 line-clamp-3 text-sm leading-relaxed text-slate-700">{request.request_message}</p>
-                  {request.draft_image_url ? (
-                    <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-3">
-                      <p className="text-sm font-bold text-slate-900">시안 보기</p>
-                      <img
-                        src={request.draft_image_url}
-                        alt="명함 디자인 시안"
-                        className="mt-3 max-h-64 w-full rounded-xl object-contain bg-slate-100"
-                        loading="lazy"
-                      />
-                      <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                        <button
-                          type="button"
-                          className="inline-flex min-h-10 items-center justify-center rounded-xl border border-slate-300 bg-white px-3 text-sm font-bold text-slate-900 hover:bg-slate-50"
-                          onClick={() => void changeDesignRequestStatus(request.id, "revision_requested")}
-                        >
-                          수정 요청
-                        </button>
-                        <button
-                          type="button"
-                          className="inline-flex min-h-10 items-center justify-center rounded-xl bg-slate-900 px-3 text-sm font-bold text-white hover:bg-slate-800"
-                          onClick={() => void changeDesignRequestStatus(request.id, "completed")}
-                        >
-                          이 시안으로 확정
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <p className="mt-4 rounded-xl bg-white px-3 py-3 text-sm font-medium text-slate-600 ring-1 ring-slate-200">
-                      시안이 도착하면 이곳에서 확인할 수 있습니다.
-                    </p>
-                  )}
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <div className="mt-6 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-5 py-8 text-center">
-              <p className="text-base font-bold text-slate-900">진행 중인 디자인 의뢰가 없습니다.</p>
-              <p className="mt-2 text-sm text-slate-500">필요하면 제작 전문가에게 명함 디자인 제작을 맡길 수 있어요.</p>
-            </div>
-          )}
-        </section>
-      ) : null}
-
-      {!isCreator ? (
-        <section className="mt-10 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
-          <div>
-            <h2 className="text-lg font-semibold text-slate-900 sm:text-xl">홍보 신청 관리</h2>
-            <p className="mt-2 text-sm leading-relaxed text-slate-600 sm:text-base">
-              내 명함을 홍보하려는 홍보 신청자를 확인하고 승인 또는 거절할 수 있습니다.
-            </p>
-          </div>
-          {ownerPromotionApplications.length > 0 ? (
-            <ul className="mt-5 grid gap-3">
-              {ownerPromotionApplications.map((application) => {
-                const card = businessCards.find((c) => c.id === application.card_id);
-                const applicant = applicantLabel(application);
-                return (
-                  <li key={application.id} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
-                    <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                      <div>
-                        <p className="text-sm font-bold text-slate-900">{applicant.name}</p>
-                        <p className="mt-1 text-xs text-slate-600">{applicant.email}</p>
-                        <p className="mt-2 text-sm text-slate-700">
-                          명함: {card ? cardDisplayName(card) : application.card_name ?? application.card_id}
-                        </p>
-                        <p className="mt-1 text-xs text-slate-500">
-                          신청일 {new Date(application.created_at).toLocaleDateString("ko-KR")}
-                        </p>
-                      </div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="rounded-full bg-white px-2.5 py-1 text-xs font-bold text-slate-700 ring-1 ring-slate-200">
-                          {application.status === "pending"
-                            ? "승인 대기"
-                            : application.status === "approved"
-                              ? "승인 완료"
-                              : "거절"}
-                        </span>
-                        <button
-                          type="button"
-                          className="inline-flex min-h-10 items-center justify-center rounded-xl bg-slate-900 px-4 text-sm font-bold text-white hover:bg-slate-800 disabled:opacity-50"
-                          onClick={() => void decidePromotionApplication(application, "approved")}
-                          disabled={application.status === "approved"}
-                        >
-                          승인
-                        </button>
-                        <button
-                          type="button"
-                          className="inline-flex min-h-10 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 text-sm font-bold text-slate-900 hover:bg-slate-50 disabled:opacity-50"
-                          onClick={() => void decidePromotionApplication(application, "rejected")}
-                          disabled={application.status === "rejected"}
-                        >
-                          거절
-                        </button>
-                      </div>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          ) : (
-            <p className="mt-5 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center text-sm text-slate-500">
-              아직 홍보 신청자가 없습니다.
-            </p>
           )}
         </section>
       ) : null}
@@ -1893,6 +1748,153 @@ export function DashboardPage() {
               </p>
             ) : null}
           </div>
+        </section>
+      ) : null}
+
+      {uid ? <RewardAdsSection placement="dashboard" className="mt-10" /> : null}
+
+      {!isCreator ? (
+        <section className="mt-10 rounded-2xl border border-brand-200/80 bg-white p-4 shadow-sm sm:p-6">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-900 sm:text-xl">진행 중 의뢰</h2>
+              <p className="mt-2 text-sm leading-relaxed text-slate-600 sm:text-base">
+                제작 전문가에게 맡긴 디자인 의뢰와 시안 상태를 확인합니다.
+              </p>
+            </div>
+            <Link
+              to="/request"
+              className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-xl bg-cta-500 px-4 text-sm font-bold text-white shadow-sm shadow-cta-900/20 hover:bg-cta-600"
+            >
+              디자인 제작 의뢰하기
+            </Link>
+          </div>
+
+          {myDesignRequests.length > 0 ? (
+            <ul className="mt-6 grid gap-4 lg:grid-cols-2">
+              {myDesignRequests.map((request) => (
+                <li key={request.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <h3 className="text-base font-bold text-slate-900">명함 디자인 제작 의뢰</h3>
+                      <p className="mt-1 text-sm text-slate-600">
+                        {request.business_type} · {DESIGN_REQUEST_STYLE_LABEL[request.style]}
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-2 text-xs font-semibold">
+                      <span className="rounded-full bg-white px-2.5 py-1 text-slate-700 ring-1 ring-slate-200">
+                        {DESIGN_REQUEST_PAYMENT_STATUS_LABEL[request.payment_status]}
+                      </span>
+                      <span className="rounded-full bg-brand-50 px-2.5 py-1 text-brand-800 ring-1 ring-brand-100">
+                        {DESIGN_REQUEST_STATUS_LABEL[request.status]}
+                      </span>
+                    </div>
+                  </div>
+                  <p className="mt-3 line-clamp-3 text-sm leading-relaxed text-slate-700">{request.request_message}</p>
+                  {request.draft_image_url ? (
+                    <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-3">
+                      <p className="text-sm font-bold text-slate-900">시안 보기</p>
+                      <img
+                        src={request.draft_image_url}
+                        alt="명함 디자인 시안"
+                        className="mt-3 max-h-64 w-full rounded-xl object-contain bg-slate-100"
+                        loading="lazy"
+                      />
+                      <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                        <button
+                          type="button"
+                          className="inline-flex min-h-10 items-center justify-center rounded-xl border border-slate-300 bg-white px-3 text-sm font-bold text-slate-900 hover:bg-slate-50"
+                          onClick={() => void changeDesignRequestStatus(request.id, "revision_requested")}
+                        >
+                          수정 요청
+                        </button>
+                        <button
+                          type="button"
+                          className="inline-flex min-h-10 items-center justify-center rounded-xl bg-slate-900 px-3 text-sm font-bold text-white hover:bg-slate-800"
+                          onClick={() => void changeDesignRequestStatus(request.id, "completed")}
+                        >
+                          이 시안으로 확정
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="mt-4 rounded-xl bg-white px-3 py-3 text-sm font-medium text-slate-600 ring-1 ring-slate-200">
+                      시안이 도착하면 이곳에서 확인할 수 있습니다.
+                    </p>
+                  )}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div className="mt-6 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-5 py-8 text-center">
+              <p className="text-base font-bold text-slate-900">진행 중인 디자인 의뢰가 없습니다.</p>
+              <p className="mt-2 text-sm text-slate-500">필요하면 제작 전문가에게 명함 디자인 제작을 맡길 수 있어요.</p>
+            </div>
+          )}
+        </section>
+      ) : null}
+
+      {!isCreator ? (
+        <section className="mt-8 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-900 sm:text-xl">홍보 신청 관리</h2>
+            <p className="mt-2 text-sm leading-relaxed text-slate-600 sm:text-base">
+              내 명함을 홍보하려는 홍보 신청자를 확인하고 승인 또는 거절할 수 있습니다.
+            </p>
+          </div>
+          {ownerPromotionApplications.length > 0 ? (
+            <ul className="mt-5 grid gap-3">
+              {ownerPromotionApplications.map((application) => {
+                const card = businessCards.find((c) => c.id === application.card_id);
+                const applicant = applicantLabel(application);
+                return (
+                  <li key={application.id} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+                    <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                      <div>
+                        <p className="text-sm font-bold text-slate-900">{applicant.name}</p>
+                        <p className="mt-1 text-xs text-slate-600">{applicant.email}</p>
+                        <p className="mt-2 text-sm text-slate-700">
+                          명함: {card ? cardDisplayName(card) : application.card_name ?? application.card_id}
+                        </p>
+                        <p className="mt-1 text-xs text-slate-500">
+                          신청일 {new Date(application.created_at).toLocaleDateString("ko-KR")}
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="rounded-full bg-white px-2.5 py-1 text-xs font-bold text-slate-700 ring-1 ring-slate-200">
+                          {application.status === "pending"
+                            ? "승인 대기"
+                            : application.status === "approved"
+                              ? "승인 완료"
+                              : "거절"}
+                        </span>
+                        <button
+                          type="button"
+                          className="inline-flex min-h-10 items-center justify-center rounded-xl bg-slate-900 px-4 text-sm font-bold text-white hover:bg-slate-800 disabled:opacity-50"
+                          onClick={() => void decidePromotionApplication(application, "approved")}
+                          disabled={application.status === "approved"}
+                        >
+                          승인
+                        </button>
+                        <button
+                          type="button"
+                          className="inline-flex min-h-10 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 text-sm font-bold text-slate-900 hover:bg-slate-50 disabled:opacity-50"
+                          onClick={() => void decidePromotionApplication(application, "rejected")}
+                          disabled={application.status === "rejected"}
+                        >
+                          거절
+                        </button>
+                      </div>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <p className="mt-5 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center text-sm text-slate-500">
+              아직 홍보 신청자가 없습니다.
+            </p>
+          )}
         </section>
       ) : null}
 
