@@ -19,7 +19,6 @@ import {
   IdCard,
   MessageCircle,
   MousePointerClick,
-  Repeat,
   Share2,
   Users,
   Video,
@@ -86,10 +85,10 @@ export function LandingPage() {
   const expertItems = ["명함 제작", "블로그 홍보", "영상 콘텐츠 제작", "상담 구조 설계"] as const;
 
   const platformSteps = [
-    { icon: IdCard, title: "명함 만들기", description: "업종 템플릿과 최소 입력으로 바로 시작합니다." },
-    { icon: Share2, title: "바로 공유", description: "링크·홍보 문구를 복사해 카카오·당근·문자로 보냅니다." },
-    { icon: Users, title: "고객 유입", description: "명함 링크로 문의와 방문이 이어집니다." },
-    { icon: Repeat, title: "성과 보고 다시 공유", description: "조회·클릭·문의를 보고 더 넓게 다시 보냅니다." },
+    { icon: IdCard, title: "명함 만들기", description: "템플릿으로 빠르게 완성합니다." },
+    { icon: Share2, title: "링크 보내기", description: "카카오·문자·SNS로 바로 공유합니다." },
+    { icon: MessageCircle, title: "고객 문의", description: "링크를 통해 문의와 연결이 이어집니다." },
+    { icon: MousePointerClick, title: "결제 발생", description: "상품·예약 등 다음 행동으로 전환됩니다." },
   ] as const;
 
   const whyLinkoItems = [
@@ -176,10 +175,10 @@ export function LandingPage() {
         <div className={cn("relative z-10", layout.page, section.yHero)}>
           <div className="mx-auto flex max-w-3xl flex-col items-center text-center">
             <h1 className="mb-6 text-balance text-center text-4xl font-bold leading-snug tracking-tight text-slate-950 sm:text-4xl md:text-[2.65rem]">
-              명함 하나로 고객이 먼저 찾아옵니다
+              <span className="block">명함 하나 만들면</span>
+              <span className="block">고객이 들어오고, 문의가 생깁니다</span>
             </h1>
-            <p className="mb-2 text-center text-lg text-slate-600">만들고 공유하면, 고객이 들어옵니다</p>
-            <p className="mb-8 text-center text-slate-500">보내기만 해도 고객이 연결되는 구조입니다</p>
+            <p className="mb-8 text-center text-lg text-slate-600">보내기만 해도 고객이 연결되는 구조입니다</p>
 
             <div className="mb-6 flex w-full justify-center px-4">
               <Link
@@ -189,18 +188,18 @@ export function LandingPage() {
                   "focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-offset-2",
                 )}
               >
-                내 명함 만들기
+                3초 만에 내 명함 만들기
                 <ArrowRight className="h-5 w-5 shrink-0" aria-hidden />
               </Link>
             </div>
 
             <p className="text-center text-sm text-slate-600 sm:text-base">
-              직접 만들기 어렵다면{" "}
+              혼자 만들기 어렵다면{" "}
               <Link
                 to="/request"
                 className="font-semibold text-blue-600 underline-offset-4 hover:text-blue-700 hover:underline"
               >
-                전문가가 도와드려요
+                전문가가 대신 만들어드립니다
               </Link>
             </p>
           </div>
@@ -210,13 +209,28 @@ export function LandingPage() {
 
       <RewardAdsSection placement="landing" />
 
-      {/* 2. 플랫폼 설명 — 4단계 */}
+      {/* 수익 안내 */}
+      <section className={cn("border-b border-slate-200 bg-gradient-to-b from-brand-50/70 to-white", section.y)}>
+        <div className={layout.page}>
+          <div className="mx-auto max-w-2xl text-center">
+            <h2 className={cn(type.sectionTitleCenter, "text-slate-900")}>추천만 해도 수익이 생깁니다</h2>
+            <p className="mx-auto mt-4 max-w-lg text-lg leading-relaxed text-slate-700">
+              내 링크로 가입하고 결제하면
+            </p>
+            <p className="mx-auto mt-2 max-w-lg text-lg font-semibold leading-relaxed text-brand-900">
+              결제 금액의 10%를 계속 받습니다
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* 흐름 — 4단계 */}
       <section className={cn("border-b border-slate-200 bg-white", section.y)}>
         <div className={layout.page}>
           <div className="mx-auto max-w-3xl text-center">
-            <h2 className={cn(type.sectionTitleCenter, "text-slate-900")}>린코는 단순한 명함이 아닙니다</h2>
+            <h2 className={cn(type.sectionTitleCenter, "text-slate-900")}>흐름</h2>
             <p className={cn("mx-auto mt-3 max-w-xl font-semibold text-brand-800 sm:text-lg")}>
-              명함 만들기 → 공유 → 고객 유입 → 성과 확인 → 다시 공유
+              명함 만들기 → 링크 보내기 → 고객 문의 → 결제 발생
             </p>
           </div>
           <div className="mx-auto mt-10 grid max-w-5xl gap-6 sm:grid-cols-2 lg:mt-12 lg:grid-cols-4 lg:gap-8">
@@ -284,11 +298,9 @@ export function LandingPage() {
       <section className={cn("bg-slate-50", section.y)}>
         <div className={layout.page}>
           <div className="mx-auto max-w-2xl text-center">
-            <p className="text-sm font-bold text-brand-700">이렇게 만들어집니다</p>
-            <h2 className={cn("mt-3", type.sectionTitleCenter)}>명함 예시</h2>
-            <p className={cn("mx-auto mt-3 max-w-lg", type.sectionLead)}>
-              설명이 아니라 실제로 보이게 될 결과를 먼저 확인하세요.
-            </p>
+            <p className="text-sm font-bold text-brand-700">명함 예시</p>
+            <h2 className={cn("mt-3", type.sectionTitleCenter)}>이렇게 만들어집니다</h2>
+            <p className={cn("mx-auto mt-3 max-w-lg font-medium text-slate-600", type.sectionLead)}>(3초면 완성됩니다)</p>
             <div className="mt-7 flex flex-wrap justify-center gap-2" role="tablist" aria-label="명함 예시 유형">
               {LANDING_SAMPLE_TYPES.map((item) => {
                 const selected = item.id === sampleType;
@@ -325,10 +337,8 @@ export function LandingPage() {
       <section className={cn("border-y border-slate-200 bg-white", section.y)}>
         <div className={layout.page}>
           <div className="mx-auto max-w-2xl text-center">
-            <h2 className={cn(type.sectionTitleCenter)}>제작 전문가와 함께하면, 명함은 홍보가 됩니다</h2>
-            <p className={cn("mt-3", type.sectionLead)}>
-              명함 제작부터 블로그·영상 홍보까지 제작 전문가가 함께 설계합니다
-            </p>
+            <h2 className={cn(type.sectionTitleCenter)}>혼자 만들기 어렵다면</h2>
+            <p className={cn("mt-3", type.sectionLead)}>전문가가 대신 만들어드립니다</p>
             <ul className="mx-auto mt-8 max-w-md space-y-2.5 text-left text-[15px] text-slate-800 sm:text-base">
               {expertItems.map((line) => (
                 <li key={line} className="flex gap-3">
@@ -436,7 +446,7 @@ export function LandingPage() {
           </div>
           <div className="mt-10 flex justify-center">
             <FlowCtaLink to={CREATE_CARD_HREF} className="max-w-md">
-              내 명함 만들기
+              3초 만에 내 명함 만들기
             </FlowCtaLink>
           </div>
         </div>
@@ -499,10 +509,16 @@ export function LandingPage() {
 
       <section className={cn("border-t border-slate-200 bg-gradient-to-b from-brand-50/90 to-white", section.y)}>
         <div className={layout.page}>
-          <div className="flex justify-center">
-            <FlowCtaLink to={CREATE_CARD_HREF} className="max-w-md">
-              내 명함 만들기
-            </FlowCtaLink>
+          <div className="mx-auto flex max-w-xl flex-col items-center px-4 text-center">
+            <p className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">지금 시작하면</p>
+            <p className="mt-2 text-base leading-relaxed text-slate-600 sm:text-lg">
+              오늘 바로 고객을 받을 수 있습니다
+            </p>
+            <div className="mt-8 flex w-full justify-center">
+              <FlowCtaLink to={CREATE_CARD_HREF} className="max-w-md">
+                3초 만에 내 명함 만들기
+              </FlowCtaLink>
+            </div>
           </div>
         </div>
       </section>
@@ -520,7 +536,7 @@ export function LandingPage() {
           </dl>
           <div className="mt-10 flex justify-center">
             <FlowCtaLink to={CREATE_CARD_HREF} className="max-w-md">
-              내 명함 만들기
+              3초 만에 내 명함 만들기
             </FlowCtaLink>
           </div>
         </div>
