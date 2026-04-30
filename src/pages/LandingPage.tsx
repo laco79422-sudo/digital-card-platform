@@ -140,26 +140,34 @@ export function LandingPage() {
       <section className="hero-section">
         <div className={cn("relative z-10", layout.page, section.yHero)}>
           <div className="mx-auto flex max-w-3xl flex-col items-center text-center">
-            <h1 className="text-balance text-3xl font-extrabold leading-snug tracking-tight text-slate-950 sm:text-4xl md:text-[2.65rem]">
+            <h1 className="mb-6 text-balance text-center text-4xl font-bold leading-snug tracking-tight text-slate-950 sm:text-4xl md:text-[2.65rem]">
               명함 하나로 고객이 먼저 찾아옵니다
             </h1>
-            <p className="mt-4 max-w-xl text-pretty text-base font-medium leading-relaxed text-slate-700 sm:mt-5 sm:text-lg">
-              만들고 → 공유하고 → 성과를 보고 → 다시 공유합니다.
-              <br className="hidden sm:block" />
-              멈추지 않는 한 줄 흐름이에요.
-            </p>
+            <p className="mb-2 text-center text-lg text-slate-600">만들고 공유하면, 고객이 들어옵니다</p>
+            <p className="mb-8 text-center text-slate-500">보내기만 해도 고객이 연결되는 구조입니다</p>
 
-            <div className="mx-auto mt-8 w-full max-w-md sm:mt-10">
-              <FlowCtaLink to={CREATE_CARD_HREF} className="max-w-none">
+            <div className="mb-6 flex w-full justify-center px-4">
+              <Link
+                to={CREATE_CARD_HREF}
+                className={cn(
+                  "inline-flex min-h-[52px] w-full max-w-md items-center justify-center gap-2 rounded-xl bg-orange-500 px-10 py-4 text-lg font-bold text-white shadow-md transition-colors hover:bg-orange-600",
+                  "focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-offset-2",
+                )}
+              >
                 내 명함 만들기
-              </FlowCtaLink>
-              <p className="mt-4 text-center text-sm text-slate-600">
-                디자인까지 맡기고 싶다면{" "}
-                <Link to="/request" className="font-semibold text-brand-800 underline-offset-4 hover:underline">
-                  제작 전문가 의뢰
-                </Link>
-              </p>
+                <ArrowRight className="h-5 w-5 shrink-0" aria-hidden />
+              </Link>
             </div>
+
+            <p className="text-center text-sm text-slate-600 sm:text-base">
+              직접 만들기 어렵다면{" "}
+              <Link
+                to="/request"
+                className="font-semibold text-blue-600 underline-offset-4 hover:text-blue-700 hover:underline"
+              >
+                전문가가 도와드려요
+              </Link>
+            </p>
           </div>
         </div>
       </section>
