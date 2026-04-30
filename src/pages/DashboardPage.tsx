@@ -15,7 +15,7 @@ import {
 import { layout } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
 import { CardHeroThumbnailImg } from "@/components/digital-card/CardHeroThumbnailImg";
-import { buildCardPublicShareUrl, copyLinkToClipboard } from "@/lib/copyShareLink";
+import { copyLinkToClipboard } from "@/lib/copyShareLink";
 import { getCardHeroImageUrl } from "@/lib/businessCardHeroImage";
 import { isSupabaseConfigured } from "@/lib/supabase/client";
 import {
@@ -653,15 +653,6 @@ export function DashboardPage() {
     await copyLinkToClipboard(referralLink, "referral");
   };
 
-  const copyMyCardPublicLink = async (card: BusinessCard) => {
-    const url = buildCardPublicShareUrl(card.slug ?? "");
-    if (!url) {
-      alert("내 명함 링크를 만들 수 없습니다. 명함 슬러그(/c/주소)를 확인해 주세요.");
-      return;
-    }
-    await copyLinkToClipboard(url, "card");
-  };
-
   const copyCardLink = async (card: BusinessCard) => {
     const url = resolveBusinessCardPublicUrl(card, shareOrigin) ?? "";
     if (!url) return;
@@ -671,7 +662,7 @@ export function DashboardPage() {
       window.prompt("내 명함 링크를 복사해 주세요", url);
     }
     setCardCopyId(card.id);
-    window.setTimeout(() => setCardCopyId(null), 2200);
+    window.setTimeout(() => setCardCopyId(null), 4000);
   };
 
   const copyNfcLink = async (card: BusinessCard) => {
@@ -1106,6 +1097,7 @@ export function DashboardPage() {
           <ul className="mt-6 grid gap-4 lg:grid-cols-2">
             {myCards.map((card) => {
               const publicUrl = resolveBusinessCardPublicUrl(card, shareOrigin) ?? "";
+              const cardPublicHref = publicUrl.trim();
               const cardViewCount = cardViews.filter((v) => v.card_id === card.id).length;
               const cardClickCount = cardClicks.filter((c) => c.card_id === card.id).length;
               const canEditCard = cardBelongsToUser(card, user);
@@ -1187,9 +1179,50 @@ export function DashboardPage() {
                   <div data-dashboard-card-stop className="space-y-4 border-t border-slate-100 p-4">
                     <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3">
                       <p className="text-xs font-bold text-slate-700">내 명함 링크</p>
-                      <p className="mt-1 break-all text-xs font-semibold text-brand-800">
-                        {publicUrl || "/c/ 주소 미설정"}
-                      </p>
+                      {cardPublicHref ? (
+                        <a
+                          href={cardPublicHref}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-1 block break-all text-xs font-semibold text-brand-800 underline underline-offset-2 hover:text-brand-950"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {cardPublicHref}
+                        </a>
+                      ) : (
+                        <p className="mt-1 text-xs font-semibold text-slate-500">/c/ 주소 미설정</p>
+                      )}
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          className="inline-flex min-h-10 items-center justify-center rounded-xl bg-slate-900 px-3 text-sm font-bold text-white hover:bg-slate-800 disabled:pointer-events-none disabled:opacity-50"
+                          disabled={!cardPublicHref}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (cardPublicHref) window.open(cardPublicHref, "_blank", "noopener,noreferrer");
+                          }}
+                        >
+                          내 명함 확인하기
+                        </button>
+                        <button
+                          type="button"
+                          className="inline-flex min-h-10 items-center justify-center rounded-xl border border-slate-300 bg-white px-3 text-sm font-bold text-slate-900 hover:bg-slate-50 disabled:pointer-events-none disabled:opacity-50"
+                          disabled={!cardPublicHref}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            void copyCardLink(card);
+                          }}
+                        >
+                          링크 복사하기
+                        </button>
+                      </div>
+                      {cardCopyId === card.id ? (
+                        <p className="mt-3 text-xs leading-relaxed text-emerald-800">
+                          <span className="font-semibold">내 명함 링크가 복사되었습니다.</span>
+                          <br />
+                          카카오톡, 문자, SNS에 붙여넣어 공유해 주세요.
+                        </p>
+                      ) : null}
                       <p className="mt-2 text-xs leading-relaxed text-slate-600">
                         NFC 태그에는 아래 「NFC 링크 복사」로 만든 주소를 저장하면 됩니다.
                       </p>
@@ -1206,20 +1239,32 @@ export function DashboardPage() {
                         <button
                           type="button"
                           className="mt-3 inline-flex min-h-10 items-center justify-center rounded-xl bg-cta-500 px-4 text-sm font-bold text-white hover:bg-cta-600"
-                          onClick={() => void payForCardExtension(card)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            void payForCardExtension(card);
+                          }}
                         >
                           14,900원 결제하고 한 달 연장
                         </button>
                       </div>
                     ) : null}
 
-                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6">
-                      <Link
-                        to={publicUrl || `/c/${encodeURIComponent(card.slug ?? "")}`}
-                        className="inline-flex min-h-10 items-center justify-center rounded-xl bg-slate-900 px-3 text-sm font-bold text-white hover:bg-slate-800"
-                      >
-                        보기
-                      </Link>
+                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-5">
+                      {cardPublicHref ? (
+                        <a
+                          href={cardPublicHref}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex min-h-10 items-center justify-center rounded-xl bg-slate-900 px-3 text-sm font-bold text-white hover:bg-slate-800"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          보기
+                        </a>
+                      ) : (
+                        <span className="inline-flex min-h-10 cursor-not-allowed items-center justify-center rounded-xl bg-slate-200 px-3 text-sm font-bold text-slate-500">
+                          보기
+                        </span>
+                      )}
                       {canEditCard ? (
                         <Link
                           to={`/cards/${encodeURIComponent(card.id)}/edit`}
@@ -1231,43 +1276,35 @@ export function DashboardPage() {
                       ) : null}
                       <button
                         type="button"
-                        className="inline-flex min-h-10 items-center justify-center rounded-xl border border-amber-300 bg-amber-50 px-3 text-sm font-bold text-amber-950 hover:bg-amber-100"
-                        onClick={() => void copyMyCardPublicLink(card)}
-                      >
-                        내 명함 링크 복사하기
-                      </button>
-                      <button
-                        type="button"
                         className="inline-flex min-h-10 items-center justify-center rounded-xl border border-slate-300 bg-white px-3 text-sm font-bold text-slate-900 hover:bg-slate-50"
-                        onClick={() => void openQr(card)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          void openQr(card);
+                        }}
                       >
                         QR 보기
                       </button>
                       <button
                         type="button"
                         className="inline-flex min-h-10 items-center justify-center rounded-xl bg-slate-900 px-3 text-xs font-bold text-white hover:bg-slate-800 sm:text-sm"
-                        onClick={() => void copyNfcLink(card)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          void copyNfcLink(card);
+                        }}
                       >
                         {nfcCopyCardId === card.id ? "복사됨" : "NFC 링크 복사"}
                       </button>
                       <button
                         type="button"
                         className="inline-flex min-h-10 items-center justify-center rounded-xl bg-cta-500 px-3 text-sm font-bold text-white hover:bg-cta-600"
-                        onClick={() => openPromotionPayment(card)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openPromotionPayment(card);
+                        }}
                       >
                         홍보 링크 추가
                       </button>
                     </div>
-                    <p className="mt-3 text-xs leading-relaxed text-slate-500">
-                      내 명함 링크 복사하기를 누르면 명함 주소가 복사됩니다. 카카오톡, 문자, SNS 대화창에 붙여넣어 공유할 수 있어요.
-                    </p>
-                  <button
-                    type="button"
-                    className="mt-2 text-xs font-semibold text-slate-500 underline underline-offset-4 hover:text-slate-800"
-                    onClick={() => void copyCardLink(card)}
-                  >
-                    {cardCopyId === card.id ? "내 명함 링크 복사됨" : "내 명함 링크 복사"}
-                  </button>
                   {cardShareHintId === card.id ? (
                     <p className="mt-2 text-sm font-medium text-brand-800">
                       카카오톡 공유가 어려워 내 명함 링크를 복사했어요. 대화방에 붙여넣어 주세요.
