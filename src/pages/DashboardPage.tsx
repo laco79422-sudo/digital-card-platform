@@ -15,7 +15,6 @@ import {
 import { layout } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
 import { CardHeroThumbnailImg } from "@/components/digital-card/CardHeroThumbnailImg";
-import { copyLinkToClipboard } from "@/lib/copyShareLink";
 import { getCardHeroImageUrl } from "@/lib/businessCardHeroImage";
 import { isSupabaseConfigured } from "@/lib/supabase/client";
 import {
@@ -274,6 +273,7 @@ export function DashboardPage() {
   const [nfcCopyCardId, setNfcCopyCardId] = useState<string | null>(null);
   const [promoCopyId, setPromoCopyId] = useState<string | null>(null);
   const [cardShareHintId, setCardShareHintId] = useState<string | null>(null);
+  const [referralLinkCopiedFlash, setReferralLinkCopiedFlash] = useState(false);
   const [qrCard, setQrCard] = useState<BusinessCard | null>(null);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [qrLink, setQrLink] = useState("");
@@ -650,7 +650,13 @@ export function DashboardPage() {
 
   const copyReferralLink = async () => {
     if (!referralLink) return;
-    await copyLinkToClipboard(referralLink, "referral");
+    try {
+      await navigator.clipboard.writeText(referralLink);
+      setReferralLinkCopiedFlash(true);
+      window.setTimeout(() => setReferralLinkCopiedFlash(false), 4000);
+    } catch {
+      window.prompt("추천링크를 복사해 주세요", referralLink);
+    }
   };
 
   const copyCardLink = async (card: BusinessCard) => {
@@ -1673,20 +1679,55 @@ export function DashboardPage() {
 
           <div className="mt-5">
             <p className="text-sm font-semibold text-slate-800">추천링크 주소</p>
-            <p className="mt-2 break-all rounded-xl border border-slate-200 bg-white px-4 py-3 font-mono text-sm font-semibold text-brand-900">
-              {referralLink || "추천링크를 불러오는 중입니다."}
+            {referralLink ? (
+              <a
+                href={referralLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-2 block break-all rounded-xl border border-slate-200 bg-white px-4 py-3 font-mono text-sm font-semibold text-brand-900 underline underline-offset-2 hover:text-brand-950"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {referralLink}
+              </a>
+            ) : (
+              <p className="mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3 font-mono text-sm font-semibold text-slate-500">
+                추천링크를 불러오는 중입니다.
+              </p>
+            )}
+            <p className="mt-3 text-xs leading-relaxed text-slate-600">
+              추천링크 확인하기를 누르면 비회원에게 보이는 린코 소개 화면을 확인할 수 있습니다.
             </p>
-          </div>
-
-          <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-            <button
-              type="button"
-              className="inline-flex min-h-11 items-center justify-center rounded-xl bg-cta-500 px-4 text-sm font-bold text-white shadow-sm shadow-cta-900/20 hover:bg-cta-600"
-              onClick={() => void copyReferralLink()}
-              disabled={!referralLink}
-            >
-              추천링크 복사하기
-            </button>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button
+                type="button"
+                className="inline-flex min-h-11 items-center justify-center rounded-xl bg-slate-900 px-4 text-sm font-bold text-white shadow-sm hover:bg-slate-800 disabled:pointer-events-none disabled:opacity-50"
+                disabled={!referralLink}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (referralLink) window.open(referralLink, "_blank", "noopener,noreferrer");
+                }}
+              >
+                추천링크 확인하기
+              </button>
+              <button
+                type="button"
+                className="inline-flex min-h-11 items-center justify-center rounded-xl bg-cta-500 px-4 text-sm font-bold text-white shadow-sm shadow-cta-900/20 hover:bg-cta-600 disabled:pointer-events-none disabled:opacity-50"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  void copyReferralLink();
+                }}
+                disabled={!referralLink}
+              >
+                추천링크 복사하기
+              </button>
+            </div>
+            {referralLinkCopiedFlash ? (
+              <p className="mt-3 text-xs leading-relaxed text-emerald-800">
+                <span className="font-semibold">추천링크가 복사되었습니다.</span>
+                <br />
+                카카오톡, 문자, SNS에 붙여넣어 린코를 소개해 주세요.
+              </p>
+            ) : null}
           </div>
 
           <div className="mt-8 rounded-xl border border-slate-200 bg-white px-4 py-5 shadow-sm">
