@@ -5,6 +5,7 @@ import { CreatorCard } from "@/components/ui/CreatorCard";
 import { PricingCard } from "@/components/ui/PricingCard";
 import { linkButtonClassName } from "@/components/ui/buttonStyles";
 import { useDevMountLog } from "@/dev/renderDiagnostics";
+import { useReferralLandingMode } from "@/hooks/useReferralLandingMode";
 import { PRO_PLAN, STARTER_PLAN } from "@/data/businessCardPlans";
 import { LANDING_FAQ, LANDING_TESTIMONIALS } from "@/data/sampleData";
 import { layout, section, type } from "@/lib/ui-classes";
@@ -66,6 +67,7 @@ function FlowCtaLink({
 export function LandingPage() {
   useDevMountLog("LandingPage");
   const location = useLocation();
+  const isReferralLanding = useReferralLandingMode();
   const loginNotice =
     (location.state as { loginNotice?: string } | null)?.loginNotice ??
     (new URLSearchParams(location.search).get("login") === "success" ? LOGIN_SUCCESS_NOTICE : null);
@@ -116,7 +118,7 @@ export function LandingPage() {
         </div>
       ) : null}
 
-      {!user ? (
+      {!user && !isReferralLanding ? (
         <section className="border-b border-slate-100 bg-slate-50/90">
           <div className={cn(layout.page, "py-5")}>
             <div className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white px-4 py-5 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:px-6">
@@ -136,7 +138,40 @@ export function LandingPage() {
         </section>
       ) : null}
 
-      {/* 1. 강한 결과 + 메인 CTA */}
+      {isReferralLanding ? (
+        <section className="hero-section border-b border-slate-200 bg-gradient-to-b from-brand-50/90 via-white to-white">
+          <div className={cn("relative z-10", layout.page, section.yHero)}>
+            <div className="mx-auto flex max-w-2xl flex-col items-center text-center">
+              <p className="mb-2 text-xs font-bold uppercase tracking-wide text-brand-800">추천 링크로 방문하셨어요</p>
+              <h1 className="mb-4 text-balance text-3xl font-bold leading-snug tracking-tight text-slate-950 sm:text-4xl md:text-[2.5rem]">
+                추천받은 린코 디지털 명함
+              </h1>
+              <p className="text-lg leading-relaxed text-slate-700">명함을 만들고 공유하면 고객과 연결됩니다.</p>
+              <p className="mt-2 text-base leading-relaxed text-slate-600">추천링크로 가입하면 혜택이 적용됩니다.</p>
+              <div className="mt-8 flex w-full max-w-md justify-center px-4">
+                <Link
+                  to="/signup"
+                  className={cn(
+                    "inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cta-500 to-cta-600 px-8 py-4 text-lg font-bold text-white shadow-lg shadow-cta-900/15 ring-2 ring-cta-300/40 transition-colors hover:from-cta-400 hover:to-cta-500",
+                    "focus:outline-none focus:ring-2 focus:ring-cta-400 focus:ring-offset-2",
+                  )}
+                >
+                  추천받고 시작하기
+                  <ArrowRight className="h-5 w-5 shrink-0" aria-hidden />
+                </Link>
+              </div>
+              {!user ? (
+                <p className="mt-6 text-sm text-slate-500">
+                  이미 계정이 있으신가요?{" "}
+                  <Link to="/login" className="font-semibold text-brand-800 underline-offset-4 hover:underline">
+                    로그인
+                  </Link>
+                </p>
+              ) : null}
+            </div>
+          </div>
+        </section>
+      ) : (
       <section className="hero-section">
         <div className={cn("relative z-10", layout.page, section.yHero)}>
           <div className="mx-auto flex max-w-3xl flex-col items-center text-center">
@@ -171,6 +206,7 @@ export function LandingPage() {
           </div>
         </div>
       </section>
+      )}
 
       <RewardAdsSection placement="landing" />
 

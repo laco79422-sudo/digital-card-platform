@@ -5,6 +5,7 @@ import { BRAND_DISPLAY_NAME } from "@/lib/brand";
 import { layout } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
 import { useDevMountLog } from "@/dev/renderDiagnostics";
+import { useReferralLandingMode } from "@/hooks/useReferralLandingMode";
 import { useAuthStore } from "@/stores/authStore";
 import { LogOut, Menu, X } from "lucide-react";
 import { useState } from "react";
@@ -28,6 +29,7 @@ const links = [
 export function Navbar() {
   useDevMountLog("Navbar");
   const navigate = useNavigate();
+  const isReferralLanding = useReferralLandingMode();
   const user = useAuthStore((s) => s.user);
   const authLoading = useAuthStore((s) => s.authLoading);
   const [open, setOpen] = useState(false);
@@ -95,9 +97,11 @@ export function Navbar() {
                     파트너
                   </Link>
                 ) : null}
-                <Link to="/space" className={linkButtonClassName({ size: "sm" })}>
-                  내 공간
-                </Link>
+                {!isReferralLanding ? (
+                  <Link to="/space" className={linkButtonClassName({ size: "sm" })}>
+                    내 공간
+                  </Link>
+                ) : null}
                 <Button
                   type="button"
                   variant="ghost"
@@ -180,13 +184,15 @@ export function Navbar() {
                       파트너 대시보드
                     </Link>
                   ) : null}
-                  <Link
-                    to="/space"
-                    className={linkButtonClassName({ size: "lg", className: "w-full" })}
-                    onClick={() => setOpen(false)}
-                  >
-                    내 공간
-                  </Link>
+                  {!isReferralLanding ? (
+                    <Link
+                      to="/space"
+                      className={linkButtonClassName({ size: "lg", className: "w-full" })}
+                      onClick={() => setOpen(false)}
+                    >
+                      내 공간
+                    </Link>
+                  ) : null}
                   <div className="my-3 border-t border-slate-200" role="separator" />
                   <button
                     type="button"
