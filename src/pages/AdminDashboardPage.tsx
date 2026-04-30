@@ -5,10 +5,12 @@ import { Input } from "@/components/ui/Input";
 import { StatsCard } from "@/components/ui/StatsCard";
 import { Textarea } from "@/components/ui/Textarea";
 import { layout } from "@/lib/ui-classes";
+import { isSupabaseConfigured } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
+import { fetchDeletedProfilesAdmin, type DeletedProfileAdminRow } from "@/services/accountService";
 import { useAppDataStore } from "@/stores/appDataStore";
 import { CreditCard, ImageIcon, LayoutDashboard, Users } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
 const ROLE_LABEL: Record<string, string> = {
@@ -41,6 +43,21 @@ export function AdminDashboardPage() {
   const setFeaturedCreatorIds = useAppDataStore((s) => s.setFeaturedCreatorIds);
   const banners = useAppDataStore((s) => s.banners);
   const setBanners = useAppDataStore((s) => s.setBanners);
+
+  const [deletedProfilesRemote, setDeletedProfilesRemote] = useState<DeletedProfileAdminRow[]>([]);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured) return;
+    void fetchDeletedProfilesAdmin().then(setDeletedProfilesRemote);
+  }, []);
+
+  const deletedProfilesDisplay = useMemo(() => {
+    return [...deletedProfilesRemote].sort((a, b) => {
+      const ta = a.deleted_at ? new Date(a.deleted_at).getTime() : 0;
+      const tb = b.deleted_at ? new Date(b.deleted_at).getTime() : 0;
+      return tb - ta;
+    });
+  }, [deletedProfilesRemote]);
 
   const [bannerTitle, setBannerTitle] = useState(banners[0]?.title ?? "");
   const [bannerSub, setBannerSub] = useState(banners[0]?.subtitle ?? "");
@@ -97,7 +114,56 @@ export function AdminDashboardPage() {
         >
           출금 신청 · 추천 보상 관리로 이동 →
         </Link>
+        <p className="mt-2 text-sm text-brand-900/80">
+          탈퇴 회원의 출금·추천 내역은 아래 목록의 회원 ID와 출금 관리 화면을 대조해 확인하세요. 결제 기록은 DB 및 결제
+          대시보드에서 유지됩니다.
+        </p>
       </div>
+
+      {isSupabaseConfigured && deletedProfilesDisplay.length > 0 ? (
+        <Card className="mt-8">
+          <CardHeader>
+            <h2 className="text-base font-semibold">탈퇴 회원 (Supabase)</h2>
+            <p className="text-sm text-slate-500">
+              소멸 추정액은 referral_rewards.status = forfeited 합계입니다. 파트너 수익 취소는 별도 조회가 필요할 수
+              있습니다.
+            </p>
+          </CardHeader>
+          <CardContent className="max-h-96 overflow-auto">
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="border-b border-slate-100 text-slate-500">
+                  <th className="pb-2 font-medium">회원 ID</th>
+                  <th className="pb-2 font-medium">추천코드</th>
+                  <th className="pb-2 font-medium">탈퇴일</th>
+                  <th className="pb-2 font-medium">사유</th>
+                  <th className="pb-2 font-medium text-right">소멸 추정(원)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {deletedProfilesDisplay.map((row) => (
+                  <tr key={row.id} className="border-b border-slate-50 align-top">
+                    <td className="py-2 font-mono text-xs text-slate-700">{row.id}</td>
+                    <td className="py-2 text-slate-600">{row.referral_code ?? "—"}</td>
+                    <td className="py-2 text-slate-600">
+                      {row.deleted_at
+                        ? new Date(row.deleted_at).toLocaleString("ko-KR", {
+                            dateStyle: "medium",
+                            timeStyle: "short",
+                          })
+                        : "—"}
+                    </td>
+                    <td className="max-w-[200px] py-2 text-slate-600 break-words">{row.deletion_reason ?? "—"}</td>
+                    <td className="py-2 text-right tabular-nums font-medium text-slate-900">
+                      {row.forfeitedReferralKrw.toLocaleString()}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </CardContent>
+        </Card>
+      ) : null}
 
       <div className="mt-10 grid gap-6 lg:grid-cols-2">
         <Card>

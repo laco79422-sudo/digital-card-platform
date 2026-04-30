@@ -1,3 +1,4 @@
+import { ACCOUNT_DELETION_NOTICE_SESSION_KEY } from "@/lib/auth/accountDeletionNotice";
 import { INACTIVITY_NOTICE_SESSION_KEY } from "@/lib/auth/inactivityConstants";
 import { useEffect, useState } from "react";
 
@@ -13,6 +14,12 @@ export function InactivityToast({ authReady }: Props) {
 
   useEffect(() => {
     if (!authReady) return;
+    const deletionMsg = sessionStorage.getItem(ACCOUNT_DELETION_NOTICE_SESSION_KEY);
+    if (deletionMsg) {
+      setMessage(deletionMsg);
+      sessionStorage.removeItem(ACCOUNT_DELETION_NOTICE_SESSION_KEY);
+      return;
+    }
     const msg = sessionStorage.getItem(INACTIVITY_NOTICE_SESSION_KEY);
     if (msg) {
       setMessage(msg);

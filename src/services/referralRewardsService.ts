@@ -12,6 +12,8 @@ export type ReferralRewardRow = {
   created_at: string;
   confirmed_at: string | null;
   cancelled_at: string | null;
+  forfeited_at?: string | null;
+  forfeited_reason?: string | null;
   withdrawal_request_id: string | null;
 };
 

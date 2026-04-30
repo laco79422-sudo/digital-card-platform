@@ -4,13 +4,17 @@ import {
   writeActivityTimestamp,
 } from "@/lib/auth/activityStorage";
 import {
+  ACCOUNT_DELETION_LOGOUT_MESSAGE,
+  ACCOUNT_DELETION_NOTICE_SESSION_KEY,
+} from "@/lib/auth/accountDeletionNotice";
+import {
   INACTIVITY_LOGOUT_MESSAGE,
   INACTIVITY_NOTICE_SESSION_KEY,
   INACTIVITY_TIMEOUT_MS,
 } from "@/lib/auth/inactivityConstants";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase/client";
 import { mapSupabaseUser } from "@/lib/supabase/mapAuthUser";
-import { fetchProfilePartnerFlagRemote } from "@/services/partnerProgramService";
+import { fetchProfilePartnerFlagRemote, fetchProfilesSelfFlagsRemote } from "@/services/partnerProgramService";
 import { claimPendingReferral } from "@/services/referralService";
 import { useAuthStore } from "@/stores/authStore";
 import type { Session } from "@supabase/supabase-js";
@@ -58,7 +62,21 @@ export function useSupabaseAuthSync() {
         const base = mapSupabaseUser(session.user);
         let is_partner = false;
         try {
-          is_partner = await fetchProfilePartnerFlagRemote(session.user.id);
+          const flags = await fetchProfilesSelfFlagsRemote(session.user.id);
+          if (flags && (flags.is_deleted || !flags.can_login)) {
+            sessionStorage.setItem(ACCOUNT_DELETION_NOTICE_SESSION_KEY, ACCOUNT_DELETION_LOGOUT_MESSAGE);
+            await client.auth.signOut();
+            setUser(null);
+            setSession(null);
+            setLastActivityAt(null);
+            clearLastActivity();
+            setAuthLoading(false);
+            return;
+          }
+          is_partner = flags?.is_partner ?? false;
+          if (!flags) {
+            is_partner = await fetchProfilePartnerFlagRemote(session.user.id);
+          }
         } catch {
           is_partner = false;
         }

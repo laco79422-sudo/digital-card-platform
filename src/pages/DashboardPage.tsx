@@ -1,3 +1,4 @@
+import { AccountDeletionSection } from "@/components/account/AccountDeletionSection";
 import { RewardAdsSection } from "@/components/reward-ads/RewardAdsSection";
 import { Input } from "@/components/ui/Input";
 import { CardQrAndExportPanel } from "@/components/card-print/CardQrAndExportPanel";
@@ -1894,6 +1895,8 @@ export function DashboardPage() {
           </div>
         </section>
       ) : null}
+
+      {uid && isSupabaseConfigured ? <AccountDeletionSection userId={uid} email={user?.email ?? null} /> : null}
 
       {!isCreator ? (
         <div className="mt-10 rounded-2xl border border-slate-200 bg-white p-4 sm:p-6">

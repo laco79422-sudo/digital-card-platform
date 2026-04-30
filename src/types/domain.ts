@@ -53,6 +53,9 @@ export interface BusinessCard {
   kakao_chat_url?: string | null;
   theme: "navy" | "slate" | "midnight";
   is_public: boolean;
+  /** 탈퇴·관리 목적 비활성 시 true — 공개 조회에서 제외 */
+  is_archived?: boolean;
+  archived_at?: string | null;
   created_at: string;
   expire_at?: string | null;
   status?: "active" | "expired" | "payment_required";

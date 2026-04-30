@@ -1,6 +1,35 @@
 import { isSupabaseConfigured, supabase } from "@/lib/supabase/client";
 
+export type ProfileSelfFlags = {
+  is_partner: boolean;
+  is_deleted: boolean;
+  can_login: boolean;
+};
+
+/** 로그인 세션과 동기화 — 파트너 여부·탈퇴·로그인 허용 */
+export async function fetchProfilesSelfFlagsRemote(userId: string): Promise<ProfileSelfFlags | null> {
+  if (!isSupabaseConfigured || !supabase) return null;
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("is_partner, is_deleted, can_login")
+    .eq("id", userId)
+    .maybeSingle();
+  if (error) {
+    console.warn("[partnerProgramService] profiles self flags", error.message);
+    return null;
+  }
+  if (!data || typeof data !== "object") return null;
+  const row = data as Record<string, unknown>;
+  return {
+    is_partner: Boolean(row.is_partner),
+    is_deleted: Boolean(row.is_deleted),
+    can_login: row.can_login !== false,
+  };
+}
+
 export async function fetchProfilePartnerFlagRemote(userId: string): Promise<boolean> {
+  const flags = await fetchProfilesSelfFlagsRemote(userId);
+  if (flags) return flags.is_partner;
   if (!isSupabaseConfigured || !supabase) return false;
   const { data, error } = await supabase.from("profiles").select("is_partner").eq("id", userId).maybeSingle();
   if (error) {

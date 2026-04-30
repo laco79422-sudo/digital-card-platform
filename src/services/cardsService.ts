@@ -276,6 +276,7 @@ export async function fetchCardBySlug(slug: string): Promise<FetchCardBySlugResu
         .select("*")
         .eq("slug", v)
         .eq("is_public", true)
+        .eq("is_archived", false)
         .maybeSingle();
       if (error) {
         if (!isMissingTableError(error.message, TABLE_CARDS)) {
