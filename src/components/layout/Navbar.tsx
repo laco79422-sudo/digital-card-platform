@@ -5,7 +5,7 @@ import { BRAND_DISPLAY_NAME } from "@/lib/brand";
 import { layout } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
 import { useDevMountLog } from "@/dev/renderDiagnostics";
-import { useReferralLandingMode } from "@/hooks/useReferralLandingMode";
+import { useReferralLanding } from "@/hooks/useReferralLandingMode";
 import { useAuthStore } from "@/stores/authStore";
 import { LogOut, Menu, X } from "lucide-react";
 import { useState } from "react";
@@ -29,7 +29,7 @@ const links = [
 export function Navbar() {
   useDevMountLog("Navbar");
   const navigate = useNavigate();
-  const isReferralLanding = useReferralLandingMode();
+  const { isReferralLanding, referralCode } = useReferralLanding();
   const user = useAuthStore((s) => s.user);
   const authLoading = useAuthStore((s) => s.authLoading);
   const [open, setOpen] = useState(false);
@@ -85,23 +85,28 @@ export function Navbar() {
             )}
             aria-hidden={authLoading}
           >
-            {user?.role === "admin" ? (
-              <Link to="/admin" className={linkButtonClassName({ variant: "ghost", size: "sm" })}>
-                관리자
+            {isReferralLanding && referralCode ? (
+              <Link
+                to={`/signup?ref=${encodeURIComponent(referralCode)}`}
+                className={linkButtonClassName({ size: "sm", className: "shadow-sm" })}
+              >
+                추천받고 시작하기
               </Link>
-            ) : null}
-            {user ? (
+            ) : user ? (
               <>
-                {user?.is_partner ? (
+                {user.role === "admin" ? (
+                  <Link to="/admin" className={linkButtonClassName({ variant: "ghost", size: "sm" })}>
+                    관리자
+                  </Link>
+                ) : null}
+                {user.is_partner ? (
                   <Link to="/partner/dashboard" className={linkButtonClassName({ variant: "ghost", size: "sm" })}>
                     파트너
                   </Link>
                 ) : null}
-                {!isReferralLanding ? (
-                  <Link to="/space" className={linkButtonClassName({ size: "sm" })}>
-                    내 공간
-                  </Link>
-                ) : null}
+                <Link to="/space" className={linkButtonClassName({ size: "sm" })}>
+                  내 공간
+                </Link>
                 <Button
                   type="button"
                   variant="ghost"
@@ -164,67 +169,77 @@ export function Navbar() {
               className={cn(authLoading && "pointer-events-none invisible absolute h-0 w-0 overflow-hidden")}
               aria-hidden={authLoading}
             >
-              {user?.role === "admin" ? (
+              {isReferralLanding && referralCode ? (
                 <Link
-                  to="/admin"
-                  className="rounded-lg px-3 py-3 text-base font-medium text-brand-800 hover:bg-slate-50"
+                  to={`/signup?ref=${encodeURIComponent(referralCode)}`}
+                  className={linkButtonClassName({ size: "lg", className: "mt-3 w-full" })}
                   onClick={() => setOpen(false)}
                 >
-                  관리자
+                  추천받고 시작하기
                 </Link>
-              ) : null}
-              {user ? (
-                <div className="mt-3 flex flex-col gap-0">
-                  {user.is_partner ? (
-                    <Link
-                      to="/partner/dashboard"
-                      className="rounded-lg px-3 py-3 text-base font-medium text-brand-800 hover:bg-brand-50"
-                      onClick={() => setOpen(false)}
-                    >
-                      파트너 대시보드
-                    </Link>
-                  ) : null}
-                  {!isReferralLanding ? (
-                    <Link
-                      to="/space"
-                      className={linkButtonClassName({ size: "lg", className: "w-full" })}
-                      onClick={() => setOpen(false)}
-                    >
-                      내 공간
-                    </Link>
-                  ) : null}
-                  <div className="my-3 border-t border-slate-200" role="separator" />
-                  <button
-                    type="button"
-                    className="flex min-h-[52px] w-full items-center justify-center gap-2 rounded-xl px-3 text-base font-semibold text-red-600 transition-colors hover:bg-red-50 hover:text-red-700 disabled:opacity-50"
-                    disabled={signingOut}
-                    onClick={() => void handleLogout()}
-                  >
-                    <LogOut className="h-5 w-5 shrink-0" aria-hidden />
-                    {signingOut ? "로그아웃 중…" : "로그아웃"}
-                  </button>
-                </div>
               ) : (
-                <div className="mt-3 flex flex-col gap-3">
-                  <Link
-                    to="/login"
-                    className={linkButtonClassName({
-                      variant: "secondary",
-                      size: "lg",
-                      className: "w-full",
-                    })}
-                    onClick={() => setOpen(false)}
-                  >
-                    로그인
-                  </Link>
-                  <Link
-                    to="/signup"
-                    className={linkButtonClassName({ size: "lg", className: "w-full" })}
-                    onClick={() => setOpen(false)}
-                  >
-                    회원가입
-                  </Link>
-                </div>
+                <>
+                  {user?.role === "admin" ? (
+                    <Link
+                      to="/admin"
+                      className="rounded-lg px-3 py-3 text-base font-medium text-brand-800 hover:bg-slate-50"
+                      onClick={() => setOpen(false)}
+                    >
+                      관리자
+                    </Link>
+                  ) : null}
+                  {user ? (
+                    <div className="mt-3 flex flex-col gap-0">
+                      {user.is_partner ? (
+                        <Link
+                          to="/partner/dashboard"
+                          className="rounded-lg px-3 py-3 text-base font-medium text-brand-800 hover:bg-brand-50"
+                          onClick={() => setOpen(false)}
+                        >
+                          파트너 대시보드
+                        </Link>
+                      ) : null}
+                      <Link
+                        to="/space"
+                        className={linkButtonClassName({ size: "lg", className: "w-full" })}
+                        onClick={() => setOpen(false)}
+                      >
+                        내 공간
+                      </Link>
+                      <div className="my-3 border-t border-slate-200" role="separator" />
+                      <button
+                        type="button"
+                        className="flex min-h-[52px] w-full items-center justify-center gap-2 rounded-xl px-3 text-base font-semibold text-red-600 transition-colors hover:bg-red-50 hover:text-red-700 disabled:opacity-50"
+                        disabled={signingOut}
+                        onClick={() => void handleLogout()}
+                      >
+                        <LogOut className="h-5 w-5 shrink-0" aria-hidden />
+                        {signingOut ? "로그아웃 중…" : "로그아웃"}
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="mt-3 flex flex-col gap-3">
+                      <Link
+                        to="/login"
+                        className={linkButtonClassName({
+                          variant: "secondary",
+                          size: "lg",
+                          className: "w-full",
+                        })}
+                        onClick={() => setOpen(false)}
+                      >
+                        로그인
+                      </Link>
+                      <Link
+                        to="/signup"
+                        className={linkButtonClassName({ size: "lg", className: "w-full" })}
+                        onClick={() => setOpen(false)}
+                      >
+                        회원가입
+                      </Link>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </nav>

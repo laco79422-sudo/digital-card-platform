@@ -5,7 +5,7 @@ import { SiteLinkPreviewSeo } from "@/components/seo/SiteLinkPreviewSeo";
 import { CreatorCard } from "@/components/ui/CreatorCard";
 import { PricingCard } from "@/components/ui/PricingCard";
 import { useDevMountLog } from "@/dev/renderDiagnostics";
-import { useReferralLandingMode } from "@/hooks/useReferralLandingMode";
+import { useReferralLanding } from "@/hooks/useReferralLandingMode";
 import { PRO_PLAN, STARTER_PLAN } from "@/data/businessCardPlans";
 import { LANDING_FAQ, LANDING_TESTIMONIALS } from "@/data/sampleData";
 import { layout, section, type } from "@/lib/ui-classes";
@@ -57,7 +57,7 @@ function FlowCtaLink({
 export function LandingPage() {
   useDevMountLog("LandingPage");
   const location = useLocation();
-  const isReferralLanding = useReferralLandingMode();
+  const { isReferralLanding, referralCode } = useReferralLanding();
   const loginNotice =
     (location.state as { loginNotice?: string } | null)?.loginNotice ??
     (new URLSearchParams(location.search).get("login") === "success" ? LOGIN_SUCCESS_NOTICE : null);
@@ -138,7 +138,11 @@ export function LandingPage() {
               <p className="mt-2 text-base leading-relaxed text-slate-600">추천링크로 가입하면 혜택이 적용됩니다.</p>
               <div className="mt-8 flex w-full max-w-md justify-center px-4">
                 <Link
-                  to="/signup"
+                  to={
+                    referralCode
+                      ? `/signup?ref=${encodeURIComponent(referralCode)}`
+                      : "/signup"
+                  }
                   className={cn(
                     "inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cta-500 to-cta-600 px-8 py-4 text-lg font-bold text-white shadow-lg shadow-cta-900/15 ring-2 ring-cta-300/40 transition-colors hover:from-cta-400 hover:to-cta-500",
                     "focus:outline-none focus:ring-2 focus:ring-cta-400 focus:ring-offset-2",
@@ -148,9 +152,16 @@ export function LandingPage() {
                   <ArrowRight className="h-5 w-5 shrink-0" aria-hidden />
                 </Link>
               </div>
+              <p className="mt-6 max-w-md text-sm leading-relaxed text-slate-600">
+                이미 회원이라면{" "}
+                <Link to="/space" className="font-semibold text-brand-800 underline-offset-4 hover:underline">
+                  내 공간
+                </Link>
+                에서 명함을 관리할 수 있습니다.
+              </p>
               {!user ? (
-                <p className="mt-6 text-sm text-slate-500">
-                  이미 계정이 있으신가요?{" "}
+                <p className="mt-3 text-sm text-slate-500">
+                  계정이 없으시면 위 버튼으로 가입할 수 있어요.{" "}
                   <Link to="/login" className="font-semibold text-brand-800 underline-offset-4 hover:underline">
                     로그인
                   </Link>
@@ -495,7 +506,7 @@ export function LandingPage() {
             </div>
           </div>
         </section>
-      <RewardAdsSection placement="landing" />
+      {!isReferralLanding ? <RewardAdsSection placement="landing" /> : null}
     </>
   );
 }
