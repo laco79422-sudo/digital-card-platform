@@ -5,6 +5,7 @@ import { Select } from "@/components/ui/Select";
 import { InactivityToast } from "@/components/auth/InactivityToast";
 import { SignupSeo } from "@/components/seo/SignupSeo";
 import { useAuthReady } from "@/hooks/useAuthReady";
+import { useReferralSignupCta } from "@/hooks/useReferralSignupCta";
 import { DUPLICATE_EMAIL_MESSAGE } from "@/lib/auth/authErrorMessage";
 import { signInWithGoogle, signUpWithEmail } from "@/lib/auth/authActions";
 import { BRAND_DISPLAY_NAME } from "@/lib/brand";
@@ -79,6 +80,8 @@ export function SignupPage() {
 
   const emailValue = watch("email") ?? "";
   const emailFieldStatus = useMemo(() => getSignupEmailFieldStatus(emailValue), [emailValue]);
+
+  const { signupPrimaryLabel } = useReferralSignupCta();
 
   /** UI·미리보기: 홈/?ref 또는 /ref/* 로 활성된 세션 추천만 */
   const platformReferralCode = useMemo(() => getActiveReferralCode(), [
@@ -249,7 +252,9 @@ export function SignupPage() {
       <Card>
         <CardHeader>
           <p className="text-sm font-semibold text-brand-800">{BRAND_DISPLAY_NAME}</p>
-          <h1 className="mt-1 text-2xl font-semibold leading-snug tracking-tight text-slate-900">회원가입</h1>
+          <h1 className="mt-1 text-2xl font-semibold leading-snug tracking-tight text-slate-900">
+            {signupPrimaryLabel}
+          </h1>
           <p className="mt-2 text-base leading-relaxed text-slate-600">
             {hasPendingCardDraft()
               ? "만들어 두신 명함을 저장하려면 계정이 필요해요. 가입 후 이메일 인증을 완료하면 이어서 저장할 수 있습니다."
@@ -271,7 +276,11 @@ export function SignupPage() {
               role="status"
               className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50/90 px-4 py-3 text-sm text-emerald-950"
             >
-              <p className="font-semibold text-emerald-900">추천인 코드가 감지되었습니다.</p>
+              <p className="font-semibold text-emerald-900">추천 링크로 접속하셨습니다</p>
+              <p className="mt-1 text-xs leading-relaxed text-emerald-800/90">
+                가입 시 자동으로 추천인이 등록됩니다.
+              </p>
+              <p className="mt-3 font-semibold text-emerald-900">추천인 코드가 감지되었습니다.</p>
               <div className="mt-3 flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3">
                 <span className="shrink-0 font-medium text-emerald-900">추천인</span>
                 <div className="inline-flex min-h-10 items-center rounded-lg bg-white px-3 py-2 font-semibold text-slate-900 ring-1 ring-emerald-200">
@@ -404,7 +413,7 @@ export function SignupPage() {
 
             {/* loading 시 스피너를 넣지 않아 자식 노드 수가 바뀌지 않게 함 → insertBefore 오류 완화 */}
             <Button type="submit" className="w-full" size="lg" disabled={loading}>
-              {loading ? "가입 처리 중..." : "회원가입"}
+              {loading ? "처리 중…" : signupPrimaryLabel}
             </Button>
           </form>
 

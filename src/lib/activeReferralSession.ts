@@ -67,6 +67,23 @@ export function getActiveReferralCode(): string | null {
   }
 }
 
+/**
+ * 헤더·회원가입 CTA 라벨용.
+ * 깨끗한 메인(`/`, ref 쿼리 없음)에서는 세션을 보지 않아, 동기화 직후 지워지는 과거 세션 때문에
+ * 「시작하기」가 깜박이지 않도록 합니다. 그 외 경로에서는 `activeReferralCode` 세션으로 추천 흐름 유지.
+ */
+export function hasActiveReferralSignupContext(pathname: string, search: string): boolean {
+  const fromUrl = extractPlatformReferralFromLocation(pathname, search);
+  if (fromUrl) return true;
+
+  const path = normalizePathname(pathname);
+  const hasRefQuery = Boolean(new URLSearchParams(search).get("ref")?.trim());
+
+  if (path === "/" && !hasRefQuery) return false;
+
+  return Boolean(getActiveReferralCode());
+}
+
 export function clearActiveReferralCode(): void {
   if (typeof sessionStorage === "undefined") return;
   try {

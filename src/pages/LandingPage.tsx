@@ -5,6 +5,7 @@ import { SiteLinkPreviewSeo } from "@/components/seo/SiteLinkPreviewSeo";
 import { CreatorCard } from "@/components/ui/CreatorCard";
 import { PricingCard } from "@/components/ui/PricingCard";
 import { useDevMountLog } from "@/dev/renderDiagnostics";
+import { useReferralSignupCta } from "@/hooks/useReferralSignupCta";
 import { PRO_PLAN, STARTER_PLAN } from "@/data/businessCardPlans";
 import { LANDING_FAQ, LANDING_TESTIMONIALS } from "@/data/sampleData";
 import { layout, section, type } from "@/lib/ui-classes";
@@ -14,13 +15,14 @@ import { useAppDataStore } from "@/stores/appDataStore";
 import { useAuthStore } from "@/stores/authStore";
 import {
   ArrowRight,
-  FileText,
+  CalendarDays,
   IdCard,
-  Image as ImageIcon,
-  Link2,
   Megaphone,
   MessageCircle,
+  PenSquare,
   Send,
+  Share2,
+  Users,
 } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
@@ -73,6 +75,8 @@ export function LandingPage() {
   const featuredCreatorIds = useAppDataStore((s) => s.featuredCreatorIds);
   const creators = useAppDataStore((s) => s.creators);
   const user = useAuthStore((s) => s.user);
+  const { signupPrimaryLabel } = useReferralSignupCta();
+  const freeSignupCtaLabel = `무료로 ${signupPrimaryLabel}`;
   const featured = useMemo(
     () =>
       featuredCreatorIds
@@ -94,31 +98,36 @@ export function LandingPage() {
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
-  const platformSteps = [
+  const inboundFlowSteps = [
     {
       icon: IdCard,
       title: "명함 생성",
-      description: "정보를 입력하면 한눈에 보는 이미지형 명함과 상세 페이지용 링크가 함께 만들어집니다.",
+      description: "한눈에 보이는 이미지 명함이 완성됩니다.",
     },
     {
-      icon: ImageIcon,
-      title: "이미지형 요약",
-      description: "미리 보기 카드처럼 핵심만 보여 주니 채팅·피드에 붙이기 좋습니다.",
+      icon: PenSquare,
+      title: "상세 내용 작성",
+      description: "클릭하면 더 자세한 정보가 보여, 고객이 관심을 키울 수 있습니다.",
     },
     {
-      icon: Link2,
-      title: "링크 클릭",
-      description: "고객이 링크를 누르면 더 길게 보여 줄 상세 소개 페이지로 들어옵니다.",
+      icon: Share2,
+      title: "링크 전달",
+      description: "카톡, 당근, 블로그 등 받는 사람에게 알리기 편하게 공유합니다.",
     },
     {
-      icon: FileText,
-      title: "상세 설명 페이지",
-      description: "서비스·사례·연락 방법까지 깊게 읽히는 화면에서 신뢰를 쌓습니다.",
+      icon: Users,
+      title: "고객 유입",
+      description: "명함을 본 사람이 업무와 연결된다는 느낌까지 갖게 됩니다.",
     },
     {
       icon: MessageCircle,
-      title: "연락 · 상담",
-      description: "카카오·전화·예약 등 다음 행동으로 자연스럽게 연결합니다.",
+      title: "문의 발생",
+      description: "고객이 먼저 연락을 시작합니다.",
+    },
+    {
+      icon: CalendarDays,
+      title: "상담 진행",
+      description: "실제 상담·예약까지 이어집니다.",
     },
   ] as const;
 
@@ -128,7 +137,11 @@ export function LandingPage() {
       eyebrow: "① 직접 전달",
       title: "내가 채널에 올립니다",
       badge: "기본 이용",
-      points: ["카카오톡으로 공유", "당근마켓 글에 링크 삽입", "블로그·유튜브 설명란에 넣기"],
+      points: [
+        "카카오·당근 피드에 붙여도 바로 확인됩니다",
+        "블로그·유튜브 설명란에 넣으면 새 유입으로 이어집니다",
+        "링크 하나로 동일하게 연결되어 추적이 간단합니다",
+      ],
       moreHref: undefined,
       moreLabel: undefined,
     },
@@ -138,9 +151,9 @@ export function LandingPage() {
       title: "가입된 홍보 주체가 채널을 활용합니다",
       badge: "유료 기능",
       points: [
-        "플랫폼에 가입된 파트너·참여자가 대신 노출 지원",
-        "카카오·당근·블로그·유튜브 등 채널을 묶어 확산 방향 설계",
-        "아래 홍보 패키지와 연결할 수 있습니다",
+        "노출이 더 필요할 때 채널을 묶어 도달 폭을 넓힐 수 있습니다",
+        "블로그·영상 같은 결과물로 검색과 공유까지 이어질 수 있습니다",
+        "패키지는 아래 확산 안내와 연결됩니다",
       ],
       moreHref: "#promotion-packages",
       moreLabel: "홍보·확산 패키지 보기",
@@ -160,37 +173,17 @@ export function LandingPage() {
         </div>
       ) : null}
 
-      {!user ? (
-        <section className="border-b border-slate-100 bg-slate-50/90">
-          <div className={cn(layout.page, "py-5")}>
-            <div className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white px-4 py-5 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:px-6">
-              <p className="text-sm leading-relaxed text-slate-700">
-                가입 후에는 지인에게 보낼 수 있는 <span className="font-semibold text-slate-900">내가 추천할 링크</span>가
-                만들어집니다.
-                <span className="mt-1 block text-slate-600">고객용 명함 주소와는 다른 목적의 링크예요.</span>
-              </p>
-              <Link
-                to="/signup"
-                className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-xl bg-cta-500 px-5 text-center text-sm font-bold text-white shadow-sm hover:bg-cta-600"
-              >
-                시작하기
-              </Link>
-            </div>
-          </div>
-        </section>
-      ) : null}
-
       <section className="hero-section">
         <div className={cn("relative z-10", layout.page, section.yHero)}>
           <div className="mx-auto flex max-w-3xl flex-col items-center text-center">
             <h1 className="text-balance text-center text-4xl font-bold leading-snug tracking-tight text-slate-950 sm:text-4xl md:text-[2.65rem]">
-              정보 입력만으로 이미지형 명함과 상세 링크가 함께 생깁니다
+              만들고 보내기만 하면
+              <br className="sm:hidden" />{" "}
+              <span className="sm:whitespace-nowrap">고객의 문의가 시작됩니다</span>
             </h1>
-            <p className="mt-5 text-center text-lg font-medium text-slate-800">
-              한눈에 보는 요약 화면 → 링크 클릭 → 상세 설명 → 연락까지 한 줄 흐름입니다.
-            </p>
-            <p className="mx-auto mt-4 max-w-xl text-center text-base leading-relaxed text-slate-600">
-              채널에는 직접 올려도 되고, 필요하면 유료 확산 서비스로 노출 폭을 넓힐 수 있습니다.
+            <p className="mt-5 text-center text-lg font-medium leading-relaxed text-slate-800">
+              명함을 보내면 고객이 보고,
+              <br className="sm:hidden" /> 먼저 연락이 옵니다.
             </p>
 
             <div className="mt-8 flex w-full justify-center px-4">
@@ -218,13 +211,96 @@ export function LandingPage() {
         </div>
       </section>
 
+      {/* 명함 예시 (히어로 바로 아래) */}
+      <section className={cn("border-b border-slate-200 bg-slate-50", section.y)}>
+        <div className={layout.page}>
+          <div className="mx-auto max-w-2xl text-center">
+            <p className="text-sm font-bold text-brand-700">명함 예시</p>
+            <h2 className={cn("mt-3", type.sectionTitleCenter)}>실제로 어떻게 보이는지 바로 확인해 보세요</h2>
+            <p className={cn("mx-auto mt-3 max-w-lg font-medium text-slate-600", type.sectionLead)}>
+              유형만 바꿔 보면 내 상황에 맞는 형태를 빠르게 떠올릴 수 있습니다.
+            </p>
+            <div className="mt-7 flex flex-wrap justify-center gap-2" role="tablist" aria-label="명함 예시 유형">
+              {LANDING_SAMPLE_TYPES.map((item) => {
+                const selected = item.id === sampleType;
+
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={selected}
+                    onClick={() => setSampleType(item.id)}
+                    className={cn(
+                      "min-h-10 rounded-full border px-4 text-sm font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2",
+                      selected
+                        ? "border-brand-700 bg-brand-800 text-white shadow-md"
+                        : "border-slate-200 bg-white text-slate-700 hover:border-brand-300 hover:bg-brand-50",
+                    )}
+                  >
+                    {item.label}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="mx-auto mt-6 w-full max-w-lg">
+              <div className="rounded-[1.75rem] border border-slate-200 bg-white/70 p-3 shadow-sm sm:p-4">
+                <LandingSampleCard variant="hero" sampleType={sampleType} minimalUi />
+              </div>
+            </div>
+            <div className="mt-8 flex justify-center">
+              <FlowCtaLink to={CREATE_CARD_HREF} className="max-w-md">
+                지금 바로 만들어보기
+              </FlowCtaLink>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 고객 유입 흐름 */}
+      <section className={cn("border-b border-slate-200 bg-white", section.y)}>
+        <div className={layout.page}>
+          <div className="mx-auto max-w-3xl text-center">
+            <h2 className={cn(type.sectionTitleCenter, "text-slate-900")}>
+              명함을 본 고객이 문의까지 이어지는 과정
+            </h2>
+            <p className="mx-auto mt-4 max-w-xl text-[15px] leading-relaxed text-slate-600 sm:text-base">
+              한 번 만든 구조로 초대부터 후속 연락까지 이어져, 매번 새 페이지를 짤 필요가 줄어듭니다.
+            </p>
+          </div>
+          <div className="mx-auto mt-10 grid max-w-6xl gap-6 sm:grid-cols-2 lg:mt-12 lg:grid-cols-3 lg:gap-6">
+            {inboundFlowSteps.map((step, index) => {
+              const Icon = step.icon;
+              return (
+                <div
+                  key={step.title}
+                  className="relative rounded-2xl border border-slate-200 bg-slate-50/80 p-5 text-center shadow-sm sm:p-6"
+                >
+                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-brand-100 text-brand-800 ring-1 ring-brand-200/80">
+                    <Icon className="h-6 w-6" aria-hidden />
+                  </div>
+                  <p className="mt-3 text-xs font-bold uppercase tracking-wide text-slate-500">Step {index + 1}</p>
+                  <h3 className="mt-1 text-lg font-bold text-slate-900">{step.title}</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-slate-600">{step.description}</p>
+                </div>
+              );
+            })}
+          </div>
+          <div className="mt-10 flex justify-center lg:mt-12">
+            <FlowCtaLink to={CREATE_CARD_HREF} className="max-w-md">
+              나도 시작해보기
+            </FlowCtaLink>
+          </div>
+        </div>
+      </section>
+
       {/* 명함 전달 방식 */}
       <section id="delivery" className={cn("border-b border-slate-200 bg-slate-50/80", section.y)}>
         <div className={layout.page}>
           <div className="mx-auto max-w-3xl text-center">
             <h2 className={cn(type.sectionTitleCenter, "text-slate-900")}>명함 전달은 두 가지입니다</h2>
             <p className="mx-auto mt-3 max-w-2xl text-[15px] leading-relaxed text-slate-600 sm:text-base">
-              기본 구조로 만든 명함은 직접 공유하거나, 필요할 때 확산 형태로 운영을 확장할 수 있습니다.
+              먼저는 직접 보내도 되고, 더 넓히고 싶을 때 확산 옵션을 덧붙이면 됩니다.
             </p>
           </div>
           <div className="mx-auto mt-10 grid max-w-5xl gap-6 lg:mt-11 lg:grid-cols-2 lg:gap-8">
@@ -256,7 +332,10 @@ export function LandingPage() {
                   </div>
                   <ul className="mt-5 space-y-2.5 text-left text-[15px] leading-relaxed text-slate-700 sm:text-base">
                     {block.points.map((point) => (
-                      <li key={point} className="relative pl-4 before:absolute before:left-0 before:top-[0.65em] before:h-1.5 before:w-1.5 before:rounded-full before:bg-brand-500">
+                      <li
+                        key={point}
+                        className="relative pl-4 before:absolute before:left-0 before:top-[0.65em] before:h-1.5 before:w-1.5 before:rounded-full before:bg-brand-500"
+                      >
                         {point}
                       </li>
                     ))}
@@ -278,47 +357,7 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* 구조적 고객 흐름 */}
-      <section className={cn("border-b border-slate-200 bg-white", section.y)}>
-          <div className={layout.page}>
-            <div className="mx-auto max-w-3xl text-center">
-              <h2 className={cn(type.sectionTitleCenter, "text-slate-900")}>고객에게 보이는 순서입니다</h2>
-              <p className={cn("mx-auto mt-3 max-w-xl font-semibold text-brand-800 sm:text-lg")}>
-                명함 생성 → 이미지형 요약 정보 → 링크 클릭 → 상세 설명 페이지 → 연락 · 상담
-              </p>
-              <p className="mx-auto mt-4 max-w-lg text-[15px] leading-relaxed text-slate-600 sm:text-base">
-                광고를 붙일 때마다 새로 시작하는 게 아니라,
-                <br />
-                명함이라는 같은 구조로 처음부터 끝까지 이어집니다.
-              </p>
-            </div>
-            <div className="mx-auto mt-10 grid max-w-6xl gap-6 sm:grid-cols-2 lg:mt-12 lg:grid-cols-3 xl:grid-cols-5 lg:gap-6">
-              {platformSteps.map((step, index) => {
-                const Icon = step.icon;
-                return (
-                  <div
-                    key={step.title}
-                    className="relative rounded-2xl border border-slate-200 bg-slate-50/80 p-5 text-center shadow-sm sm:p-6"
-                  >
-                    <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-brand-100 text-brand-800 ring-1 ring-brand-200/80">
-                      <Icon className="h-6 w-6" aria-hidden />
-                    </div>
-                    <p className="mt-3 text-xs font-bold uppercase tracking-wide text-slate-500">Step {index + 1}</p>
-                    <h3 className="mt-1 text-lg font-bold text-slate-900">{step.title}</h3>
-                    <p className="mt-2 text-sm leading-relaxed text-slate-600">{step.description}</p>
-                  </div>
-                );
-              })}
-            </div>
-            <div className="mt-10 flex justify-center lg:mt-12">
-              <FlowCtaLink to={CREATE_CARD_HREF} className="max-w-md">
-                나도 시작해보기
-              </FlowCtaLink>
-            </div>
-          </div>
-        </section>
-
-      {/* 3. 추천 성과 · 내가 추천할 링크 */}
+      {/* 추천 성과 · 내가 추천할 링크 */}
       <section className={cn("border-b border-slate-200 bg-gradient-to-b from-brand-50/70 to-white", section.y)}>
         <div className={layout.page}>
           <div className="mx-auto max-w-2xl text-center">
@@ -371,53 +410,6 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* 4. 명함 예시 */}
-      <section className={cn("bg-slate-50", section.y)}>
-          <div className={layout.page}>
-            <div className="mx-auto max-w-2xl text-center">
-              <p className="text-sm font-bold text-brand-700">명함 예시</p>
-              <h2 className={cn("mt-3", type.sectionTitleCenter)}>이렇게 만들어집니다</h2>
-              <p className={cn("mx-auto mt-3 max-w-lg font-medium text-slate-600", type.sectionLead)}>
-                이미지형 요약 카드처럼 보이며, 같은 링크로 상세 페이지까지 이어집니다.
-              </p>
-              <div className="mt-7 flex flex-wrap justify-center gap-2" role="tablist" aria-label="명함 예시 유형">
-                {LANDING_SAMPLE_TYPES.map((item) => {
-                  const selected = item.id === sampleType;
-
-                  return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      role="tab"
-                      aria-selected={selected}
-                      onClick={() => setSampleType(item.id)}
-                      className={cn(
-                        "min-h-10 rounded-full border px-4 text-sm font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2",
-                        selected
-                          ? "border-brand-700 bg-brand-800 text-white shadow-md"
-                          : "border-slate-200 bg-white text-slate-700 hover:border-brand-300 hover:bg-brand-50",
-                      )}
-                    >
-                      {item.label}
-                    </button>
-                  );
-                })}
-              </div>
-              <div className="mx-auto mt-6 w-full max-w-lg">
-                <div className="rounded-[1.75rem] border border-slate-200 bg-white/70 p-3 shadow-sm sm:p-4">
-                  <LandingSampleCard variant="hero" sampleType={sampleType} minimalUi />
-                </div>
-              </div>
-              <div className="mt-8 flex justify-center">
-                <FlowCtaLink to={CREATE_CARD_HREF} className="max-w-md">
-                  지금 바로 만들어보기
-                </FlowCtaLink>
-              </div>
-            </div>
-          </div>
-        </section>
-
-      {/* 5. 가격 */}
       <section id="pricing" className={cn("border-b border-slate-200 bg-white", section.y)}>
           <div className={layout.page}>
             <div className="mx-auto max-w-3xl text-center">
@@ -437,7 +429,7 @@ export function LandingPage() {
                 features={["명함 1개 생성 가능", "방문·클릭 기본 기록", "간단한 문의 받기"]}
                 recommendFor="디지털 명함을 처음 만들어 보고 싶은 분"
                 href="/signup"
-                cta="무료로 시작"
+                cta={`무료로 ${signupPrimaryLabel}`}
               />
               <PricingCard
                 name={STARTER_PLAN.name}
@@ -565,27 +557,25 @@ export function LandingPage() {
             </dl>
             <div className="mt-10 flex justify-center">
               <FlowCtaLink to="/signup" className="max-w-md">
-                무료로 시작하기
+                {freeSignupCtaLabel}
               </FlowCtaLink>
             </div>
           </div>
         </section>
 
-      {/* 10. 마지막 CTA */}
+      {/* 마지막 CTA */}
       <section className={cn("border-t border-slate-200 bg-gradient-to-b from-brand-50/90 to-white", section.y)}>
           <div className={layout.page}>
             <div className="mx-auto flex max-w-xl flex-col items-center px-4 text-center">
               <h2 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
-                지금 만들면 오늘부터 직접 전달을 시작할 수 있습니다
+                오늘 보내면, 오늘 반응이 올 수 있습니다
               </h2>
               <p className="mt-3 text-base leading-relaxed text-slate-600 sm:text-lg">
-                이미지형 요약과 상세 페이지가 한 링크로 묶여 있으니,
-                <br />
-                카톡·당근·블로그 어디에 붙여도 같은 구조로 이어집니다.
+                링크 한 줄이면 카톡·당근·블로그 어디에서도 같은 방식으로 이어집니다.
               </p>
               <div className="mt-8 flex w-full justify-center">
                 <FlowCtaLink to="/signup" className="max-w-md">
-                  무료로 시작하기
+                  {freeSignupCtaLabel}
                 </FlowCtaLink>
               </div>
             </div>

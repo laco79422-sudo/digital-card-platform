@@ -5,6 +5,7 @@ import { BRAND_DISPLAY_NAME } from "@/lib/brand";
 import { layout } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
 import { useDevMountLog } from "@/dev/renderDiagnostics";
+import { useReferralSignupCta } from "@/hooks/useReferralSignupCta";
 import { useAuthStore } from "@/stores/authStore";
 import { LogOut, Menu, X } from "lucide-react";
 import { useState } from "react";
@@ -30,6 +31,7 @@ export function Navbar() {
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const authLoading = useAuthStore((s) => s.authLoading);
+  const { signupPrimaryLabel } = useReferralSignupCta();
   const [open, setOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
 
@@ -116,7 +118,7 @@ export function Navbar() {
                   로그인
                 </Link>
                 <Link to="/signup" className={linkButtonClassName({ size: "sm" })}>
-                  시작하기
+                  {signupPrimaryLabel}
                 </Link>
               </>
             )}
@@ -216,7 +218,7 @@ export function Navbar() {
                         className={linkButtonClassName({ size: "lg", className: "w-full" })}
                         onClick={() => setOpen(false)}
                       >
-                        시작하기
+                        {signupPrimaryLabel}
                       </Link>
                     </div>
                   )}
