@@ -5,14 +5,12 @@ import { SiteLinkPreviewSeo } from "@/components/seo/SiteLinkPreviewSeo";
 import { CreatorCard } from "@/components/ui/CreatorCard";
 import { PricingCard } from "@/components/ui/PricingCard";
 import { useDevMountLog } from "@/dev/renderDiagnostics";
-import { useReferralSignupCta } from "@/hooks/useReferralSignupCta";
 import { PRO_PLAN, STARTER_PLAN } from "@/data/businessCardPlans";
 import { LANDING_FAQ, LANDING_TESTIMONIALS } from "@/data/sampleData";
 import { layout, section, type } from "@/lib/ui-classes";
-import { canonicalSiteOrigin } from "@/lib/siteOrigin";
 import { cn } from "@/lib/utils";
 import { useAppDataStore } from "@/stores/appDataStore";
-import { useAuthStore } from "@/stores/authStore";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   ArrowRight,
   CalendarDays,
@@ -24,12 +22,11 @@ import {
   Share2,
   Users,
 } from "lucide-react";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 
 const CREATE_CARD_HREF = "/create-card";
 const LOGIN_SUCCESS_NOTICE = "로그인되었습니다. 이제 메인화면에서 명함 만들기와 내 공간을 이용할 수 있어요.";
-const REF_LINK_FORMAT = "https://linkoapp.kr/?ref=내코드";
+const FREE_SIGNUP_CTA_LABEL = "무료로 회원가입";
 
 const LANDING_SAMPLE_TYPES: Array<{ id: LandingSampleType; label: string }> = [
   { id: "personal", label: "개인형" },
@@ -74,9 +71,6 @@ export function LandingPage() {
   const [sampleType, setSampleType] = useState<LandingSampleType>("personal");
   const featuredCreatorIds = useAppDataStore((s) => s.featuredCreatorIds);
   const creators = useAppDataStore((s) => s.creators);
-  const user = useAuthStore((s) => s.user);
-  const { signupPrimaryLabel } = useReferralSignupCta();
-  const freeSignupCtaLabel = `무료로 ${signupPrimaryLabel}`;
   const featured = useMemo(
     () =>
       featuredCreatorIds
@@ -87,16 +81,12 @@ export function LandingPage() {
 
   useEffect(() => {
     const path = location.pathname.replace(/\/$/, "") || "/";
-    if (path !== "/" || location.hash !== "#pricing") return;
+    const pricingSurface = path === "/" || path === "/preview";
+    if (!pricingSurface || location.hash !== "#pricing") return;
     const el = document.getElementById("pricing");
     if (!el) return;
     requestAnimationFrame(() => el.scrollIntoView({ behavior: "smooth", block: "start" }));
   }, [location.pathname, location.hash]);
-
-  const openReferralLinkPreview = () => {
-    const url = `${canonicalSiteOrigin()}/`;
-    window.open(url, "_blank", "noopener,noreferrer");
-  };
 
   const inboundFlowSteps = [
     {
@@ -357,59 +347,6 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* 추천 성과 · 내가 추천할 링크 */}
-      <section className={cn("border-b border-slate-200 bg-gradient-to-b from-brand-50/70 to-white", section.y)}>
-        <div className={layout.page}>
-          <div className="mx-auto max-w-2xl text-center">
-            <h2 className={cn(type.sectionTitleCenter, "text-slate-900")}>내가 추천할 링크</h2>
-            <p className="mx-auto mt-4 max-w-lg text-lg leading-relaxed text-slate-700">
-              이 링크로 지인을 초대하면 린코 가입·이용이 추천 성과로 남습니다.
-              <br />
-              유료 확산(파트너·채널 홍보)은 아래 홍보 패키지 흐름과 연결될 수 있어요.
-            </p>
-            <div className="mx-auto mt-8 grid max-w-md gap-3 text-left sm:grid-cols-2">
-              <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
-                <p className="text-sm text-slate-600">14,900원 결제 시</p>
-                <p className="text-lg font-bold text-brand-900">1,490원 적립</p>
-              </div>
-              <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
-                <p className="text-sm text-slate-600">59,000원 결제 시</p>
-                <p className="text-lg font-bold text-brand-900">5,900원 적립</p>
-              </div>
-            </div>
-            <p className="mx-auto mt-6 max-w-lg text-sm leading-relaxed text-slate-600">
-              가입 후에만 내 추천 주소를 만들 수 있어요. 지인에게 보여 주는 화면은 일반 메인과 같으며, 주소에 포함된 코드만
-              내부적으로 연결됩니다.
-            </p>
-            <p className="mx-auto mt-3 break-all rounded-xl border border-brand-200 bg-white px-4 py-3 font-mono text-sm text-slate-800">
-              {REF_LINK_FORMAT}
-            </p>
-            <div className="mx-auto mt-8 flex max-w-md flex-col gap-3 sm:flex-row sm:justify-center">
-              <button
-                type="button"
-                onClick={() => openReferralLinkPreview()}
-                className={cn(
-                  "inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-xl px-6 text-base font-bold shadow-lg focus:outline-none focus:ring-2 focus:ring-cta-400 focus:ring-offset-2",
-                  "bg-gradient-to-r from-cta-500 to-cta-600 text-white ring-2 ring-cta-300/45 hover:from-cta-400 hover:to-cta-500",
-                )}
-              >
-                추천 링크 확인하기
-                <ArrowRight className="h-5 w-5 shrink-0" aria-hidden />
-              </button>
-              {user ? (
-                <FlowCtaLink to="/dashboard" variant="outline" className="max-w-md sm:w-auto sm:flex-1">
-                  내 공간에서 링크 복사
-                </FlowCtaLink>
-              ) : (
-                <FlowCtaLink to="/signup" variant="outline" className="max-w-md sm:w-auto sm:flex-1">
-                  가입하고 링크 받기
-                </FlowCtaLink>
-              )}
-            </div>
-          </div>
-        </div>
-      </section>
-
       <section id="pricing" className={cn("border-b border-slate-200 bg-white", section.y)}>
           <div className={layout.page}>
             <div className="mx-auto max-w-3xl text-center">
@@ -429,7 +366,7 @@ export function LandingPage() {
                 features={["명함 1개 생성 가능", "방문·클릭 기본 기록", "간단한 문의 받기"]}
                 recommendFor="디지털 명함을 처음 만들어 보고 싶은 분"
                 href="/signup"
-                cta={`무료로 ${signupPrimaryLabel}`}
+                cta={FREE_SIGNUP_CTA_LABEL}
               />
               <PricingCard
                 name={STARTER_PLAN.name}
@@ -557,7 +494,7 @@ export function LandingPage() {
             </dl>
             <div className="mt-10 flex justify-center">
               <FlowCtaLink to="/signup" className="max-w-md">
-                {freeSignupCtaLabel}
+                {FREE_SIGNUP_CTA_LABEL}
               </FlowCtaLink>
             </div>
           </div>
@@ -575,7 +512,7 @@ export function LandingPage() {
               </p>
               <div className="mt-8 flex w-full justify-center">
                 <FlowCtaLink to="/signup" className="max-w-md">
-                  {freeSignupCtaLabel}
+                  {FREE_SIGNUP_CTA_LABEL}
                 </FlowCtaLink>
               </div>
             </div>

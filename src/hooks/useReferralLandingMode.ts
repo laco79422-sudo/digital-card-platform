@@ -1,8 +1,8 @@
 import { useReferralLandingRouteStore } from "@/stores/referralLandingRouteStore";
 
 /**
- * 홈 경로의 `?ref=` 값만 노출합니다.
- * 외부 방문자 UI는 일반 메인과 동일하게 유지하므로, 추천 전용 랜딩 분기에는 사용하지 않습니다.
+ * URL 쿼리의 `?ref=` 는 세션 저장 후 제거되므로, 화면상으로는 대부분 null 입니다.
+ * 추천 코드는 sessionStorage `referralCode` 를 사용하세요.
  */
 export function useReferralLanding(): {
   referralCodeOnHome: string | null;

@@ -1,7 +1,7 @@
 import { Navigate, useParams } from "react-router-dom";
 
 /**
- * `/ref/LINKOX` → `/?ref=LINKOX` (동일 SPA 내에서 활성 세션 동기화는 ReferralLandingRouteSync가 처리)
+ * `/ref/LINKOX` · `/r/LINKOX` → `/?ref=LINKOX` (활성 세션·공개 헤더 플래그는 ReferralLandingRouteSync가 처리)
  */
 export function ReferSlugRedirect() {
   const { code } = useParams<{ code?: string }>();

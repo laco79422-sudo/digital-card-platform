@@ -6,7 +6,7 @@ import { BRAND_DISPLAY_NAME } from "@/lib/brand";
 import { buildNfcAcceptUrl, canonicalSiteOrigin } from "@/lib/siteOrigin";
 import { buildCardShareUrl, resolveBusinessCardPublicUrl } from "@/lib/cardShareUrl";
 import { shareCardLinkNativeOrder } from "@/lib/kakaoWebShare";
-import { buildReferralCode, buildSignupReferralUrl, rewardMonthsForReferralCount } from "@/lib/referrals";
+import { buildReferralCode, buildSignupReferralGuestPreviewUrl, buildSignupReferralUrl, rewardMonthsForReferralCount } from "@/lib/referrals";
 import {
   DESIGN_REQUEST_PAYMENT_STATUS_LABEL,
   DESIGN_REQUEST_STATUS_LABEL,
@@ -1673,8 +1673,8 @@ export function DashboardPage() {
                 목적이 다릅니다. 고객에게 보여 줄 때는 명함 링크, 플랫폼 소개에는 추천 링크를 사용하세요.
               </p>
               <p className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs leading-relaxed text-slate-600">
-                추천 링크가 외부 방문자에게 어떻게 보이는지 정확히 확인하려면 시크릿 창에서 열어 보세요. 로그인된 상태에서는 내
-                공간 메뉴가 함께 보일 수 있습니다.
+                「추천 링크 확인하기」는 같은 브라우저에서도 비로그인 상단바와 일반 메인 화면만 보이는 전용 미리보기
+                탭을 엽니다. 시크릿 창에서 테스트해 보셔도 됩니다.
               </p>
             </div>
             <div className="rounded-xl bg-white px-4 py-3 text-sm font-semibold text-slate-900 shadow-sm ring-1 ring-slate-200">
@@ -1706,10 +1706,13 @@ export function DashboardPage() {
               <button
                 type="button"
                 className="inline-flex min-h-11 items-center justify-center rounded-xl bg-slate-900 px-4 text-sm font-bold text-white shadow-sm hover:bg-slate-800 disabled:pointer-events-none disabled:opacity-50"
-                disabled={!referralLink}
+                disabled={!refCode}
                 onClick={(e) => {
                   e.stopPropagation();
-                  window.open(`${canonicalSiteOrigin()}/`, "_blank", "noopener,noreferrer");
+                  const href = refCode
+                    ? buildSignupReferralGuestPreviewUrl(refCode, canonicalSiteOrigin())
+                    : "";
+                  if (href) window.open(href, "_blank", "noopener,noreferrer");
                 }}
               >
                 추천 링크 확인하기

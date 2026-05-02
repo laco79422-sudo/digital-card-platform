@@ -23,6 +23,16 @@ export function buildSignupReferralUrl(referralCode: string): string {
   return `${LINKO_REFERRAL_PUBLIC_ORIGIN}/?ref=${encodeURIComponent(code)}`;
 }
 
+/** 비로그인 상단바로 확인하는 미리보기 — 탭에서는 ref를 세션에 저장하지 않습니다. (`/preview`) */
+export function buildSignupReferralGuestPreviewUrl(
+  referralCode: string,
+  origin: string = LINKO_REFERRAL_PUBLIC_ORIGIN,
+): string {
+  const base = origin.replace(/\/$/, "");
+  const code = referralCode.trim().toUpperCase();
+  return `${base}/preview?ref=${encodeURIComponent(code)}`;
+}
+
 export function getReferralCodeFromSearch(search: string): string | null {
   const value = new URLSearchParams(search).get(REFERRAL_QUERY_PARAM)?.trim();
   return value ? value.toUpperCase() : null;

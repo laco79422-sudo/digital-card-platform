@@ -61,7 +61,9 @@ function AppRoutes() {
         <Route path="/auth/callback" element={<AuthCallbackPage />} />
         <Route element={<AppLayout />}>
           <Route index element={<LandingPage />} />
+          <Route path="preview" element={<LandingPage />} />
           <Route path="ref/:code" element={<ReferSlugRedirect />} />
+          <Route path="r/:code" element={<ReferSlugRedirect />} />
           <Route path="pricing" element={<PricingPage />} />
           <Route path="structure" element={<StructureBlueprintPage />} />
           <Route path="education" element={<EducationPage />} />

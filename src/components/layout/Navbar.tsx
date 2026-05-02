@@ -2,14 +2,14 @@ import { Button } from "@/components/ui/Button";
 import { linkButtonClassName } from "@/components/ui/buttonStyles";
 import { signOutApp } from "@/lib/auth/signOutApp";
 import { BRAND_DISPLAY_NAME } from "@/lib/brand";
+import { shouldNavbarMaskLoggedInChrome } from "@/lib/activeReferralSession";
 import { layout } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
 import { useDevMountLog } from "@/dev/renderDiagnostics";
-import { useReferralSignupCta } from "@/hooks/useReferralSignupCta";
 import { useAuthStore } from "@/stores/authStore";
 import { LogOut, Menu, X } from "lucide-react";
 import { useState } from "react";
-import { Link, NavLink, useNavigate } from "react-router-dom";
+import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
   cn(
@@ -29,9 +29,13 @@ const links = [
 export function Navbar() {
   useDevMountLog("Navbar");
   const navigate = useNavigate();
-  const user = useAuthStore((s) => s.user);
-  const authLoading = useAuthStore((s) => s.authLoading);
-  const { signupPrimaryLabel } = useReferralSignupCta();
+  const { pathname, search } = useLocation();
+  /** 추천 유입 시 같은 브라우저에 로그인돼 있어도 공개 헤더만 노출 (내 공간·로그아웃 숨김) */
+  const maskLoggedInChrome = shouldNavbarMaskLoggedInChrome(pathname, search);
+  const authUser = useAuthStore((s) => s.user);
+  const authLoadingRaw = useAuthStore((s) => s.authLoading);
+  const user = maskLoggedInChrome ? null : authUser;
+  const authLoading = maskLoggedInChrome ? false : authLoadingRaw;
   const [open, setOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
 
@@ -118,7 +122,7 @@ export function Navbar() {
                   로그인
                 </Link>
                 <Link to="/signup" className={linkButtonClassName({ size: "sm" })}>
-                  {signupPrimaryLabel}
+                  회원가입
                 </Link>
               </>
             )}
@@ -218,7 +222,7 @@ export function Navbar() {
                         className={linkButtonClassName({ size: "lg", className: "w-full" })}
                         onClick={() => setOpen(false)}
                       >
-                        {signupPrimaryLabel}
+                        회원가입
                       </Link>
                     </div>
                   )}

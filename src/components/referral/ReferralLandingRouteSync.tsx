@@ -1,14 +1,24 @@
 import {
+  extractPlatformReferralFromLocation,
   purgeLegacyReferralLocalStorageOnce,
   syncActiveReferralSessionFromNavigation,
 } from "@/lib/activeReferralSession";
 import { useReferralLandingRouteStore } from "@/stores/referralLandingRouteStore";
 import { useLayoutEffect } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
-/** React Router 위치를 추천 랜딩 스토어·플랫폼 세션 추천 코드와 즉시 동기화합니다. (`useLayoutEffect`로 회원가입 등 첫 페인트 전에 적용) */
+function normalizePathname(pathname: string): string {
+  const t = pathname.replace(/\/$/, "") || "/";
+  return t || "/";
+}
+
+/**
+ * 세션에는 `ref`를 남기고, 주소창에서만 `ref`를 제거해 일반 마케팅 유입처럼 보이게 합니다.
+ * 회원가입 시 자동 추천 속성과 공개 헤더 마스킹에는 sessionStorage만 사용합니다.
+ */
 export function ReferralLandingRouteSync() {
   const location = useLocation();
+  const navigate = useNavigate();
 
   useLayoutEffect(() => {
     purgeLegacyReferralLocalStorageOnce();
@@ -17,7 +27,18 @@ export function ReferralLandingRouteSync() {
   useLayoutEffect(() => {
     syncActiveReferralSessionFromNavigation(location.pathname, location.search);
     useReferralLandingRouteStore.getState().applyLocation(location.pathname, location.search);
-  }, [location.pathname, location.search]);
+
+    const path = normalizePathname(location.pathname);
+    const detected = extractPlatformReferralFromLocation(location.pathname, location.search);
+    if (path !== "/" || !detected) return;
+
+    const params = new URLSearchParams(location.search);
+    if (!params.get("ref")?.trim()) return;
+
+    params.delete("ref");
+    const qs = params.toString();
+    navigate({ pathname: "/", search: qs ? `?${qs}` : "" }, { replace: true });
+  }, [location.pathname, location.search, navigate]);
 
   return null;
 }
