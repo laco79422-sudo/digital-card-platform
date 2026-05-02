@@ -1,3 +1,5 @@
+import type { BusinessCard } from "@/types/domain";
+
 export const PREVIEW_CARD_TYPES = [
   "person",
   "store",
@@ -18,6 +20,22 @@ export const PREVIEW_CARD_TYPE_LABEL: Record<PreviewCardType, string> = {
   trust: "후기/신뢰",
 };
 
+/** 명함 만들기 초기 선택 — 결과·이벤트·후기 레이아웃 대신 사용자 친화 3종 */
+export const ONBOARD_LINKO_CARD_TYPES = ["person", "store", "location"] as const;
+export type OnboardLinkoCardType = (typeof ONBOARD_LINKO_CARD_TYPES)[number];
+
+export const ONBOARD_LINKO_CARD_TYPE_LABEL: Record<OnboardLinkoCardType, string> = {
+  person: "개인형",
+  store: "사업자형",
+  location: "매장형",
+};
+
+export function coerceOnboardCardType(raw: PreviewCardType): OnboardLinkoCardType {
+  return (ONBOARD_LINKO_CARD_TYPES as readonly string[]).includes(raw)
+    ? (raw as OnboardLinkoCardType)
+    : "person";
+}
+
 function clean(v: string | null | undefined, max = 120): string {
   return (v || "").trim().slice(0, max);
 }
@@ -31,6 +49,7 @@ export function buildPreviewMeta(input: {
   type?: string | null;
   person_name?: string | null;
   brand_name?: string | null;
+  job_title?: string | null;
   tagline?: string | null;
   intro?: string | null;
   address?: string | null;
@@ -48,7 +67,10 @@ export function buildPreviewMeta(input: {
       return {
         type,
         title: brandName,
-        description: (headline || clean(input.intro, 220)).slice(0, 300),
+        description: [clean(input.job_title, 140), headline, clean(input.intro, 220)]
+          .filter(Boolean)
+          .join(" · ")
+          .slice(0, 300),
         name,
         brandName,
         headline,
@@ -57,7 +79,10 @@ export function buildPreviewMeta(input: {
       return {
         type,
         title: brandName || name,
-        description: (address || headline || clean(input.intro, 220)).slice(0, 300),
+        description: [clean(input.job_title, 120), address, clean(input.intro, 220)]
+          .filter(Boolean)
+          .join(" · ")
+          .slice(0, 300),
         name,
         brandName,
         headline: address || headline,
@@ -90,15 +115,27 @@ export function buildPreviewMeta(input: {
         headline: trust || headline,
       };
     case "person":
-    default:
+    default: {
+      const oneLineIntro = clean(input.intro, 160);
+      const specialty = clean(input.trust_metric, 160);
+      const region = clean(input.tagline, 120);
+      const desc =
+        [specialty, region, oneLineIntro].filter(Boolean).join(" · ") ||
+        `${brandName ? `${brandName} · ` : ""}${oneLineIntro}`.trim().replace(/^·\s*/, "");
       return {
         type: "person",
         title: name,
-        description: `${brandName} · ${headline}`.slice(0, 300),
+        description: desc.slice(0, 300),
         name,
         brandName,
-        headline,
+        headline: oneLineIntro || region || specialty,
       };
+    }
   }
+}
+
+export function resolveCardPreviewVariant(card: Pick<BusinessCard, "preview_card_type">, override?: PreviewCardType): PreviewCardType {
+  if (override) return override;
+  return normalizePreviewCardType(card.preview_card_type);
 }
 

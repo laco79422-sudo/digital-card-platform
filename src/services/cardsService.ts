@@ -24,6 +24,8 @@ const BUSINESS_CARD_REMOTE_KEYS = [
   "id",
   "user_id",
   "slug",
+  "address",
+  "preview_card_type",
   "brand_name",
   "person_name",
   "job_title",

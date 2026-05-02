@@ -296,6 +296,19 @@ export function CardEditorPage() {
     [completionShareUrl, draft],
   );
 
+  const blogShareSnippet = useMemo(() => {
+    if (!completionShareUrl) return "";
+    const introLines = draft.intro
+      .trim()
+      .split("\n")
+      .map((l) => l.trim())
+      .filter(Boolean);
+    const body =
+      introLines.slice(0, 2).join("\n") ||
+      "공간을 바꾸면 삶이 바뀐다는 마음으로 인테리어 상담을 진행하고 있습니다.";
+    return `안녕하세요.\n${body}\n\n아래 링크에서 시공 분야와 상담 방법을 확인하실 수 있습니다.\n\n${completionShareUrl}\n`;
+  }, [completionShareUrl, draft.intro]);
+
   const assetPreviewCard = useMemo(() => {
     if (!user || !id || id === "new") return null;
     return draftToBusinessCard(draft, {
@@ -1159,6 +1172,7 @@ export function CardEditorPage() {
             <CardEditorSaveCompletionPanel
               shareUrl={completionShareUrl}
               promoShareText={promoShareText}
+              blogShareSnippet={blogShareSnippet}
               cardTitle={`${draft.person_name || draft.brand_name || "내"} 디지털 명함`}
               qrImageUrl={existing?.qr_image_url ?? null}
               heroImageUrl={heroImageUrlForDownload || null}

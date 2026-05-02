@@ -2,13 +2,29 @@ import { Button } from "@/components/ui/Button";
 import { downloadRemoteFile } from "@/lib/downloadRemoteFile";
 import { shareCardLinkNativeOrder } from "@/lib/kakaoWebShare";
 import { cn } from "@/lib/utils";
-import { Check, Copy, Download, ImageIcon, LayoutDashboard, Share2, X } from "lucide-react";
+import {
+  BookOpen,
+  Camera,
+  Carrot,
+  Check,
+  ChevronDown,
+  Copy,
+  Download,
+  ExternalLink,
+  ImageIcon,
+  LayoutDashboard,
+  MessageCircle,
+  Share2,
+  X,
+} from "lucide-react";
 import { useCallback, useId, useState } from "react";
 import { Link } from "react-router-dom";
 
 type Props = {
   shareUrl: string;
   promoShareText: string;
+  /** 블로그·유튜브 설명란용 (링크 포함) */
+  blogShareSnippet: string;
   cardTitle: string;
   qrImageUrl?: string | null;
   heroImageUrl?: string | null;
@@ -21,6 +37,7 @@ type Props = {
 export function CardEditorSaveCompletionPanel({
   shareUrl,
   promoShareText,
+  blogShareSnippet,
   cardTitle,
   qrImageUrl,
   heroImageUrl,
@@ -29,42 +46,50 @@ export function CardEditorSaveCompletionPanel({
   onDismiss,
 }: Props) {
   const baseId = useId();
-  const [copyLinkDone, setCopyLinkDone] = useState(false);
-  const [copyPromoDone, setCopyPromoDone] = useState(false);
-  const [kakaoHint, setKakaoHint] = useState(false);
+  const [copyDetailLinkDone, setCopyDetailLinkDone] = useState(false);
+  const [copyBlogDone, setCopyBlogDone] = useState(false);
+  const [kakaoBusy, setKakaoBusy] = useState(false);
+  const [kakaoClipboardHint, setKakaoClipboardHint] = useState(false);
   const [imageSaving, setImageSaving] = useState(false);
+  const [daangnOpen, setDaangnOpen] = useState(false);
+  const [kakaoOgOpen, setKakaoOgOpen] = useState(true);
 
   const safeSlug = (slug ?? "명함").trim() || "card";
 
-  const copyLink = useCallback(async () => {
+  const copyDetailLink = useCallback(async () => {
     try {
       await navigator.clipboard.writeText(shareUrl);
-      setCopyLinkDone(true);
-      window.setTimeout(() => setCopyLinkDone(false), 2200);
+      setCopyDetailLinkDone(true);
+      window.setTimeout(() => setCopyDetailLinkDone(false), 2200);
     } catch {
-      window.prompt("명함 링크를 복사해 주세요", shareUrl);
+      window.prompt("상세 링크를 복사해 주세요", shareUrl);
     }
   }, [shareUrl]);
 
-  const copyPromo = useCallback(async () => {
+  const copyBlogSnippet = useCallback(async () => {
     try {
-      await navigator.clipboard.writeText(promoShareText);
-      setCopyPromoDone(true);
-      window.setTimeout(() => setCopyPromoDone(false), 2200);
+      await navigator.clipboard.writeText(blogShareSnippet);
+      setCopyBlogDone(true);
+      window.setTimeout(() => setCopyBlogDone(false), 2200);
     } catch {
-      window.prompt("안내 문구를 복사해 주세요", promoShareText);
+      window.prompt("문구를 복사해 주세요", blogShareSnippet);
     }
-  }, [promoShareText]);
+  }, [blogShareSnippet]);
 
-  const shareNow = useCallback(async () => {
-    const r = await shareCardLinkNativeOrder({
-      shareUrl,
-      title: cardTitle,
-      shortMessage: promoShareText.slice(0, 300),
-    });
-    if (r === "clipboard") {
-      setKakaoHint(true);
-      window.setTimeout(() => setKakaoHint(false), 3200);
+  const nativeShareDetail = useCallback(async () => {
+    setKakaoBusy(true);
+    try {
+      const r = await shareCardLinkNativeOrder({
+        shareUrl,
+        title: cardTitle,
+        shortMessage: promoShareText.slice(0, 280),
+      });
+      if (r === "clipboard") {
+        setKakaoClipboardHint(true);
+        window.setTimeout(() => setKakaoClipboardHint(false), 5200);
+      }
+    } finally {
+      setKakaoBusy(false);
     }
   }, [cardTitle, promoShareText, shareUrl]);
 
@@ -105,11 +130,11 @@ export function CardEditorSaveCompletionPanel({
             </p>
             {quickDraft ? (
               <p className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50/90 px-3 py-2 text-sm font-semibold leading-relaxed text-emerald-950">
-                명함 초안이 완성되었습니다. 이제 필요한 부분만 수정하고 바로 공유해 보세요.
+                명함 초안이 완성되었습니다. 필요한 부분만 수정하고 아래부터 공유해 보세요.
               </p>
             ) : null}
-            <p className="mt-1 text-base font-semibold text-emerald-900 sm:text-lg">
-              이제 공유하면 고객 유입을 확인할 수 있습니다.
+            <p className="mt-2 max-w-xl text-[15px] font-medium leading-relaxed text-slate-700">
+              이미지 명함은 한눈에 보여주고, 상세 링크는 더 자세한 설명으로 이어집니다.
             </p>
           </div>
         </div>
@@ -123,97 +148,158 @@ export function CardEditorSaveCompletionPanel({
         </button>
       </div>
 
-      <div className="mt-6 grid grid-cols-1 gap-2.5 sm:grid-cols-3">
-        <Button type="button" variant="outline" className="min-h-12 w-full gap-2 sm:min-h-[52px]" onClick={() => void copyLink()}>
-          <Copy className="h-4 w-4 shrink-0" aria-hidden />
-          {copyLinkDone ? "복사됨!" : "내 명함 링크 복사"}
-        </Button>
+      <div className="mt-8 space-y-3 rounded-2xl border border-emerald-200/80 bg-white/90 p-4 sm:p-5">
+        <p className="text-sm font-extrabold text-emerald-950">① 이미지형 명함</p>
+        <p className="text-xs font-medium leading-relaxed text-slate-600 sm:text-sm">
+          대표 이미지·카드 디자인이 보이면 그대로 저장해 두면 카톡·당근 등에 바로 넣기 좋습니다.
+        </p>
         <Button
           type="button"
           variant="secondary"
-          className="min-h-12 w-full gap-2 border-brand-200 bg-white sm:min-h-[52px]"
+          className="min-h-12 w-full gap-2"
           disabled={!hasDownloadableImage || imageSaving}
           loading={imageSaving}
           title={!hasDownloadableImage ? "QR 또는 대표 이미지가 준비되면 저장할 수 있어요." : undefined}
           onClick={() => void saveCardImage()}
         >
           <Download className="h-4 w-4 shrink-0" aria-hidden />
-          명함 이미지 저장
+          이미지 저장하기
         </Button>
+        {!hasDownloadableImage ? (
+          <p className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50/90 px-3 py-2 text-xs text-amber-950">
+            <ImageIcon className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+            QR 생성 또는 대표 이미지 업로드 후 다시 시도해 주세요.
+          </p>
+        ) : null}
+      </div>
+
+      <div className="mt-5 space-y-3 rounded-2xl border border-slate-200/90 bg-white p-4 sm:p-5">
+        <p className="text-sm font-extrabold text-slate-900">② 상세 링크</p>
+        <p className="text-xs font-medium text-slate-600 sm:text-sm">고객이 눌렀을 때 경력·서비스·연락처가 한 페이지로 열립니다.</p>
+        <div className="break-all rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-brand-900">
+          {shareUrl}
+        </div>
+        <Button type="button" variant="outline" className="min-h-12 w-full gap-2" onClick={() => void copyDetailLink()}>
+          <Copy className="h-4 w-4 shrink-0" aria-hidden />
+          {copyDetailLinkDone ? "복사됨!" : "상세 링크 복사하기"}
+        </Button>
+      </div>
+
+      <div className="mt-6 rounded-2xl border border-brand-200/70 bg-brand-50/50 p-4 sm:p-5">
+        <button
+          type="button"
+          className="flex w-full items-center justify-between gap-2 text-left"
+          onClick={() => setKakaoOgOpen((o) => !o)}
+          aria-expanded={kakaoOgOpen}
+        >
+          <span className="flex items-center gap-2 text-sm font-extrabold text-brand-950">
+            <MessageCircle className="h-4 w-4 shrink-0" aria-hidden />
+            카카오톡으로 보내기 &amp; 미리보기 팁
+          </span>
+          <ChevronDown className={cn("h-4 w-4 shrink-0 transition", kakaoOgOpen ? "rotate-180" : "")} aria-hidden />
+        </button>
+        {kakaoOgOpen ? (
+          <div className="mt-4 space-y-3 text-sm font-medium leading-relaxed text-slate-800">
+            <p className="rounded-xl border border-white/70 bg-white/80 px-3 py-2 text-slate-700">
+              <span className="font-bold text-slate-900">이미지를 먼저 보내면</span> 한눈에 보이고,&nbsp;
+              <span className="font-bold text-slate-900">링크를 함께 보내면</span> 자세한 내용을 확인할 수 있습니다.
+            </p>
+            <p className="font-bold text-brand-950">링크 미리보기(OG 이미지)가 불안정할 때</p>
+            <ol className="list-decimal space-y-1.5 pl-5 text-slate-800">
+              <li>위에서 이미지 명함 저장</li>
+              <li>상세 링크 복사</li>
+              <li>카카오톡에 이미지 먼저 전송</li>
+              <li>이어서 상세 링크 전송</li>
+            </ol>
+            <Button
+              type="button"
+              className={cn(
+                "min-h-[52px] w-full gap-2 border-0 font-extrabold shadow-lg",
+                "bg-gradient-to-r from-cta-500 to-cta-600 text-white hover:from-cta-400 hover:to-cta-500",
+              )}
+              onClick={() => void nativeShareDetail()}
+              disabled={kakaoBusy}
+              loading={kakaoBusy}
+            >
+              <Share2 className="h-5 w-5 shrink-0" aria-hidden />
+              카카오톡으로 보내기
+            </Button>
+          </div>
+        ) : null}
+        {kakaoClipboardHint ? (
+          <p className="mt-3 rounded-lg bg-white/70 px-2 py-2 text-center text-sm font-semibold text-brand-900">
+            클립보드에 준비했습니다. 카톡에 붙여넣은 뒤, 위 순서대로 이미지·링크를 나누어 보내 보세요.
+          </p>
+        ) : null}
+      </div>
+
+      <div className="mt-4 rounded-2xl border border-orange-200/80 bg-orange-50/50 p-4 sm:p-5">
+        <button
+          type="button"
+          className="flex w-full items-center justify-between gap-2 text-left text-sm font-extrabold text-orange-950"
+          onClick={() => setDaangnOpen((o) => !o)}
+          aria-expanded={daangnOpen}
+        >
+          <span className="inline-flex items-center gap-2">
+            <Carrot className="h-4 w-4 shrink-0" aria-hidden />
+            당근에 올리는 방법 보기
+          </span>
+          <ChevronDown className={cn("h-4 w-4 shrink-0 transition", daangnOpen ? "rotate-180" : "")} aria-hidden />
+        </button>
+        {daangnOpen ? (
+          <div className="mt-4 space-y-3 text-sm font-medium leading-relaxed text-orange-950/95">
+            <p className="rounded-xl border border-white/60 bg-white/70 px-3 py-2">
+              당근에서는 이미지가 먼저 보이는 것이 중요합니다.
+              이미지 명함을 저장한 뒤 게시글에 올리고, 상세 링크를 본문에 붙여 주세요.
+            </p>
+            <ol className="list-decimal space-y-1.5 pl-5">
+              <li>이미지 명함 저장</li>
+              <li>당근 게시글에 이미지 첨부</li>
+              <li>본문에 상세 링크 붙여넣기</li>
+            </ol>
+          </div>
+        ) : null}
+      </div>
+
+      <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
+        <p className="flex items-center gap-2 text-sm font-extrabold text-slate-900">
+          <BookOpen className="h-4 w-4 shrink-0 text-slate-600" aria-hidden />
+          블로그·유튜브에 넣을 문구 복사
+        </p>
+        <p className="mt-2 text-xs font-medium leading-relaxed text-slate-600">
+          아래 소개 문구와 링크를 복사해 블로그 글이나 유튜브 설명란에 넣어 주세요.
+        </p>
+        <pre className="mt-3 max-h-40 whitespace-pre-wrap break-words overflow-y-auto rounded-xl border border-slate-100 bg-slate-50 px-4 py-3 font-sans text-sm leading-relaxed text-slate-900">
+          {blogShareSnippet}
+        </pre>
+        <Button type="button" variant="outline" className="mt-3 min-h-11 w-full gap-2" onClick={() => void copyBlogSnippet()}>
+          <Camera className="h-4 w-4 shrink-0 opacity-70" aria-hidden />
+          {copyBlogDone ? "복사됨!" : "블로그/유튜브 문구 복사"}
+        </Button>
+      </div>
+
+      <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+        <Link
+          to={shareUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={cn(
+            "inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-50",
+          )}
+        >
+          <ExternalLink className="h-4 w-4 shrink-0" aria-hidden />
+          상세 페이지 열기
+        </Link>
         <Link
           to="/dashboard"
           className={cn(
-            "inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-50 sm:min-h-[52px]",
+            "inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-50",
           )}
         >
           <LayoutDashboard className="h-4 w-4 shrink-0" aria-hidden />
           내 공간에서 성과 보기
         </Link>
       </div>
-
-      {!hasDownloadableImage ? (
-        <p className="mt-3 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50/90 px-3 py-2 text-xs text-amber-950">
-          <ImageIcon className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
-          QR 생성 또는 대표 이미지 업로드 후 다시 시도해 주세요.
-        </p>
-      ) : null}
-
-      <div className="mt-8 border-t border-slate-200/90 pt-6">
-        <p className="text-sm font-bold text-slate-900">바로 공유할 안내 문구</p>
-        <p className="mt-1 text-xs text-slate-500">
-          업종에 맞춰 만들었습니다. 링크가 포함되어 있어요. 복사해 카카오·당근·문자에 붙여 넣으세요.
-        </p>
-        <div className="mt-3 whitespace-pre-wrap break-words rounded-2xl border-2 border-slate-200 bg-white px-4 py-4 text-[15px] font-medium leading-relaxed text-slate-900 shadow-inner">
-          {promoShareText}
-        </div>
-        <Button type="button" variant="outline" className="mt-3 min-h-11 w-full gap-2 sm:w-auto" onClick={() => void copyPromo()}>
-          <Copy className="h-4 w-4 shrink-0" aria-hidden />
-          {copyPromoDone ? "안내 문구 복사됨!" : "안내 문구 복사하기"}
-        </Button>
-        {copyPromoDone ? (
-          <p className="mt-3 text-sm font-medium leading-relaxed text-emerald-900">
-            안내 문구가 복사되었습니다. 카카오톡, 당근, 문자, SNS에 붙여넣어 공유해 주세요.
-          </p>
-        ) : null}
-      </div>
-
-      <div id="share-flow-guide" className="mt-8 rounded-xl border border-emerald-200/80 bg-emerald-50/40 px-4 py-4 text-left sm:px-5">
-        <p className="text-sm font-bold text-emerald-950">공유 가이드</p>
-        <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm font-medium leading-relaxed text-slate-800">
-          <li>
-            <span className="font-bold text-slate-900">카카오톡에 공유</span> — 방·단톡에 링크 또는 아래 안내 문구 붙여넣기
-          </li>
-          <li>
-            <span className="font-bold text-slate-900">당근에 게시</span> — 동네 게시글에 명함 링크 넣기
-          </li>
-          <li>
-            <span className="font-bold text-slate-900">고객에게 전송</span> — 문자·메신저로 링크만 보내도 명함으로 연결
-          </li>
-        </ol>
-      </div>
-
-      <Button
-        type="button"
-        onClick={() => void shareNow()}
-        className={cn(
-          "mt-6 min-h-[56px] w-full gap-2 border-0 text-base font-extrabold shadow-lg transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cta-400 focus-visible:ring-offset-2",
-          "bg-gradient-to-r from-cta-500 to-cta-600 text-white shadow-cta-900/25 hover:from-cta-400 hover:to-cta-500",
-        )}
-      >
-        <Share2 className="h-5 w-5 shrink-0" aria-hidden />
-        지금 바로 공유하기
-      </Button>
-
-      <p className="mt-5 flex flex-wrap items-center gap-2 text-center text-sm font-medium text-emerald-900/90 sm:text-left">
-        <Share2 className="h-4 w-4 shrink-0 text-emerald-700" aria-hidden />
-        지금 공유하면 바로 고객이 들어올 수 있습니다
-      </p>
-
-      {kakaoHint ? (
-        <p className="mt-4 text-center text-sm font-medium text-brand-800">
-          클립보드에 복사했어요. 카카오톡 채팅에 붙여넣어 보내 보세요.
-        </p>
-      ) : null}
     </div>
   );
 }

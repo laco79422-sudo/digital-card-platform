@@ -1,4 +1,5 @@
 import type { BusinessCard } from "@/types/domain";
+import { normalizePreviewCardType } from "@/lib/previewCardType";
 
 function optStr(v: unknown): string | null {
   if (v == null) return null;
@@ -35,6 +36,8 @@ export function normalizeBusinessCardRow(raw: Record<string, unknown>): Business
   const brand_name = optStr(raw.brand_name) ?? optStr(raw.company) ?? base.brand_name ?? "";
   const job_title = optStr(raw.job_title) ?? optStr(raw.title) ?? base.job_title ?? "";
   const intro = optStr(raw.intro) ?? optStr(raw.description) ?? base.intro ?? "";
+  const address = optStr(raw.address) ?? optStr(base.address) ?? null;
+  const preview_card_type_raw = optStr(raw.preview_card_type) ?? optStr(base.preview_card_type) ?? null;
 
   return {
     ...base,
@@ -42,6 +45,8 @@ export function normalizeBusinessCardRow(raw: Record<string, unknown>): Business
     brand_name,
     job_title,
     intro,
+    address,
+    preview_card_type: preview_card_type_raw ? normalizePreviewCardType(preview_card_type_raw) : null,
     image_url: image_url ?? undefined,
     profile_image_url: profile_image_url ?? undefined,
     og_image_url: og_image_url ?? undefined,

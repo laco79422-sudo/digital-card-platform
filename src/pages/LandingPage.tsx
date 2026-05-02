@@ -245,12 +245,12 @@ export function LandingPage() {
             </div>
             <div className="mx-auto mt-6 w-full max-w-lg">
               <div className="rounded-[1.75rem] border border-slate-200 bg-white/70 p-3 shadow-sm sm:p-4">
-                <LandingSampleCard variant="hero" sampleType={sampleType} minimalUi />
+                <LandingSampleCard variant="hero" sampleType={sampleType} />
               </div>
             </div>
             <div className="mt-8 flex justify-center">
               <FlowCtaLink to={CREATE_CARD_HREF} className="max-w-md">
-                지금 바로 만들어보기
+                내 명함 만들어보기
               </FlowCtaLink>
             </div>
           </div>

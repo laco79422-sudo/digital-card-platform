@@ -20,7 +20,7 @@ import {
 import { defaultReservationAmountKrw } from "@/lib/defaultReservationAmount";
 import { resolveCardShareUrl } from "@/lib/cardShareUrl";
 import { shareCardLinkNativeOrder } from "@/lib/kakaoWebShare";
-import { buildPreviewMeta, type PreviewCardType } from "@/lib/previewCardType";
+import { buildPreviewMeta, resolveCardPreviewVariant, type PreviewCardType } from "@/lib/previewCardType";
 import { tempPreviewKakaoFeedFromCard } from "@/lib/previewShareMeta";
 import { layout } from "@/lib/ui-classes";
 import { buildViralShareText } from "@/lib/viralShareText";
@@ -151,6 +151,15 @@ export function DigitalCardPublicView({
   const description = card.intro.trim();
   const title = card.tagline?.trim() ?? "";
   const rawHero = getCardHeroImageUrl(card, imageUrlOverride);
+  const layoutType = resolveCardPreviewVariant(card, previewVariant);
+  const trustSectionTitle =
+    layoutType === "person"
+      ? "경력 · 포트폴리오 · 상담"
+      : layoutType === "store"
+        ? "회사 소개 · 시공 사례 · 고객 후기"
+        : "매장 소개 · 위치 · 방문 안내";
+  const servicesSectionTitle =
+    layoutType === "person" ? "가능한 업무 · 서비스" : layoutType === "store" ? "주요 서비스" : "대표 상품 · 서비스";
   /** 편집기(onEmptyImageClick)만 빈 히어로 + 안내; 고객용은 공통 폴백 이미지 */
   const heroFrameUrl = rawHero || (!onEmptyImageClick ? resolveCardHeroDisplayUrl(card, imageUrlOverride) : "");
   const hasPhone = Boolean(card.phone?.replace(/\D/g, ""));
@@ -181,11 +190,13 @@ export function DigitalCardPublicView({
   );
   const ownerUidForLog = card.owner_id ?? card.user_id;
   const previewMeta = buildPreviewMeta({
-    type: previewVariant ?? "person",
+    type: layoutType,
     person_name: card.person_name,
     brand_name: card.brand_name,
+    job_title: card.job_title,
     tagline: card.tagline ?? "",
     intro: card.intro,
+    address: card.address ?? "",
     trust_metric: card.trust_metric ?? "",
   });
 
@@ -589,7 +600,7 @@ export function DigitalCardPublicView({
         >
           <header className="section-title mb-4 flex flex-col gap-3">
             <h2 id="trust-heading" className="text-xl font-extrabold tracking-tight text-slate-900 sm:text-2xl">
-              {conversionUx ? "실제 후기 · 전후 사례" : "작업 & 신뢰"}
+              {trustSectionTitle}
             </h2>
             <span className="w-fit rounded-full bg-brand-600/15 px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-brand-900 ring-1 ring-brand-600/20">
               {conversionUx ? "신뢰 요소" : "실제 프로젝트"}
@@ -723,7 +734,7 @@ export function DigitalCardPublicView({
           aria-labelledby="services-heading"
         >
           <h2 id="services-heading" className="text-xl font-extrabold text-slate-900 sm:text-2xl">
-            서비스
+            {servicesSectionTitle}
           </h2>
           <p className="mt-2 max-w-xl text-sm font-medium leading-relaxed text-slate-600 sm:text-[15px]">
             {company ? `${company}의 핵심 영역입니다. 짧게 읽고 바로 연결할 수 있습니다.` : "핵심 영역을 짧게 읽고 바로 연결할 수 있습니다."}
@@ -748,6 +759,37 @@ export function DigitalCardPublicView({
             })}
           </ul>
 
+          {!conversionUx && layoutType === "person" ? (
+            <div className="mt-8 rounded-2xl border border-slate-100 bg-slate-50/80 p-5 sm:p-6">
+              <p className="text-xs font-bold uppercase tracking-wide text-slate-500">상세 안내</p>
+              <p className="mt-2 text-[15px] font-semibold leading-relaxed text-slate-900">
+                경력과 가능 업무는 위 갤러리·서비스 블록에 담았습니다.
+              </p>
+              <p className="mt-2 text-sm leading-relaxed text-slate-600">
+                카카오톡 또는 전화로 편하게 상담 시간을 알려 주시면 순차적으로 안내 드립니다.
+              </p>
+            </div>
+          ) : null}
+          {!conversionUx && layoutType === "store" ? (
+            <div className="mt-8 rounded-2xl border border-slate-100 bg-slate-50/80 p-5 sm:p-6">
+              <p className="text-xs font-bold uppercase tracking-wide text-slate-500">상담 절차</p>
+              <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm font-medium leading-relaxed text-slate-800">
+                <li>문의 접수 후 요청 범위를 간단히 정리합니다.</li>
+                <li>방문 또는 온라인으로 상담 일정을 잡습니다.</li>
+                <li>제안안과 일정 확정 후 시공 또는 용역을 진행합니다.</li>
+              </ol>
+            </div>
+          ) : null}
+          {!conversionUx && layoutType === "location" ? (
+            <div className="mt-8 rounded-2xl border border-slate-100 bg-slate-50/80 p-5 sm:p-6">
+              <p className="text-xs font-bold uppercase tracking-wide text-slate-500">방문 안내</p>
+              <p className="mt-2 text-sm leading-relaxed text-slate-700">
+                방문 전 전화 또는 카카오톡으로 예약하면 대기 시간을 줄일 수 있습니다. 주차·입구 안내가 필요하면 상세
+                링크의 연락처로 남겨 주세요.
+              </p>
+            </div>
+          ) : null}
+
           {!conversionUx ? (
             <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-center">
               <Link
@@ -771,6 +813,19 @@ export function DigitalCardPublicView({
             </div>
           ) : null}
         </section>
+
+        {!conversionUx && !compact && layoutType === "location" && card.address?.trim() ? (
+          <section className="scroll-mt-6 rounded-2xl border border-slate-200/80 bg-white p-6 shadow-md sm:p-7">
+            <h2 className="text-xl font-extrabold text-slate-900 sm:text-2xl">지도 영역 · 위치</h2>
+            <p className="mt-2 whitespace-pre-line text-[15px] font-medium leading-relaxed text-slate-800">{card.address.trim()}</p>
+            <div
+              className="mt-5 flex min-h-[11rem] items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-5 text-center text-sm font-semibold leading-relaxed text-slate-600"
+              role="note"
+            >
+              지도 앱에서 위 주소를 검색하거나 복사해 오시면 됩니다. 추후 여기에 지도를 연결할 수 있어요.
+            </div>
+          </section>
+        ) : null}
 
         {!conversionUx && tertiaryLinks.length > 0 ? (
           <section className="rounded-2xl border border-slate-200/80 bg-white p-4 sm:p-6">

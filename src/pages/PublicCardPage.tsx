@@ -1,6 +1,7 @@
 import { DigitalCardPublicView } from "@/components/digital-card/DigitalCardPublicView";
 import { DigitalCardSeo } from "@/components/digital-card/DigitalCardSeo";
 import { resolveBusinessCardPublicUrl } from "@/lib/cardShareUrl";
+import { resolveCardPreviewVariant } from "@/lib/previewCardType";
 import { parsePartnerIdFromSearch, rememberPartnerForCard, getStoredPartnerForCard } from "@/lib/linkoPartnerAttribution";
 import { savePromotionReferralCode } from "@/lib/promotionReferralStorage";
 import { insertCardActionLogRemote, insertInquiryLogRemote } from "@/services/cardAnalyticsRemote";
@@ -248,6 +249,7 @@ export function PublicCardPage() {
         links={links}
         onLinkClick={handleLink}
         qrDataUrl={qr}
+        previewVariant={resolveCardPreviewVariant(card)}
         referralLanding={Boolean(partnerIdFromUrl)}
         editableName={canEditName}
         namePlaceholder="이름을 입력하세요"

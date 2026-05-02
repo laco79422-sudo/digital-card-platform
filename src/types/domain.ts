@@ -37,6 +37,10 @@ export interface BusinessCard {
   /** Optional owner email for older email-keyed card rows. */
   owner_email?: string | null;
   slug: string;
+  /** 매장형 주소 또는 영업시간·방문 안내 텍스트 */
+  address?: string | null;
+  /** 공유·히어로 미리보기 레이아웃 (person / store / location 등) */
+  preview_card_type?: string | null;
   /** Legacy/alternate display-name column used by some card tables. */
   name?: string | null;
   brand_name: string;

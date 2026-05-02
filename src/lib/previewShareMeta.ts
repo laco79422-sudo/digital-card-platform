@@ -64,21 +64,27 @@ export function cardOgImageHttps(card: BusinessCard): string {
   return generateIndustryOgImage({ industry: card.industry ?? null, og_image_url: null });
 }
 
-export function previewOgTitleFromDraft(draft: Pick<CardEditorDraft, "person_name" | "brand_name">): string {
+export function previewOgTitleFromDraft(
+  draft: Pick<CardEditorDraft, "person_name" | "brand_name"> &
+    Partial<Pick<CardEditorDraft, "job_title" | "card_type">>,
+): string {
   return buildPreviewMeta({
-    type: (draft as Partial<CardEditorDraft>).card_type ?? "person",
+    type: draft.card_type ?? "person",
     person_name: draft.person_name,
     brand_name: draft.brand_name,
+    job_title: draft.job_title,
   }).title;
 }
 
 export function previewOgDescriptionFromDraft(
-  draft: Pick<CardEditorDraft, "tagline" | "intro" | "brand_name" | "address" | "person_name" | "trust_metric">,
+  draft: Pick<CardEditorDraft, "tagline" | "intro" | "brand_name" | "address" | "person_name" | "trust_metric"> &
+    Partial<Pick<CardEditorDraft, "job_title" | "card_type">>,
 ): string {
   return buildPreviewMeta({
-    type: (draft as Partial<CardEditorDraft>).card_type ?? "person",
+    type: draft.card_type ?? "person",
     person_name: draft.person_name,
     brand_name: draft.brand_name,
+    job_title: draft.job_title,
     tagline: draft.tagline,
     intro: draft.intro,
     address: (draft as Partial<CardEditorDraft>).address,

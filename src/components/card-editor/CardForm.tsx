@@ -8,7 +8,11 @@ import { Textarea } from "@/components/ui/Textarea";
 import { buildCardShareUrl, buildTempPreviewUrl, editorOriginFallback } from "@/lib/cardShareUrl";
 import { CARD_DESIGN_LABEL } from "@/lib/cardDesignLabels";
 import { parseCardEditorDraft } from "@/lib/cardEditorSchema";
-import { PREVIEW_CARD_TYPES, PREVIEW_CARD_TYPE_LABEL } from "@/lib/previewCardType";
+import {
+  ONBOARD_LINKO_CARD_TYPES,
+  ONBOARD_LINKO_CARD_TYPE_LABEL,
+  coerceOnboardCardType,
+} from "@/lib/previewCardType";
 import { shareCardLinkNativeOrder } from "@/lib/kakaoWebShare";
 import { previewKakaoFeedFromDraft } from "@/lib/previewShareMeta";
 import { cn } from "@/lib/utils";
@@ -161,39 +165,84 @@ export function CardForm({
   ]);
 
   const onSlugFromBrand = () => {
-    const s = slugify(draft.brand_name || "my-card");
+    const s = slugify(draft.brand_name || draft.person_name || "my-card");
     if (s) setDraft({ slug: s });
   };
 
   const isStudio = variant === "studio";
   const labelCls = cn("text-base font-medium text-slate-800", isStudio && "text-slate-900");
   const hintCls = "mt-0.5 text-xs font-medium text-brand-600";
+  const onboardKind = coerceOnboardCardType(draft.card_type);
 
   const basicBlock = (
     <>
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="sm:col-span-2">
           <label className={labelCls}>
-            브랜드 / 회사명
-            {isStudio ? <span className={hintCls}> · 위 명함에 바로 반영</span> : null}
+            명함 유형
+            {isStudio ? <span className={hintCls}> · 이미지형 명함과 상세 페이지 구성이 달라집니다</span> : null}
           </label>
-          <Input
+          <Select
             className="mt-1"
-            placeholder="예: 린코 디지털 명함"
-            value={draft.brand_name}
-            onChange={(e) => setDraft({ brand_name: e.target.value })}
-            autoComplete="organization"
-          />
-          {errors.brand_name ? <p className="mt-1 text-xs text-red-600">{errors.brand_name}</p> : null}
+            value={onboardKind}
+            onChange={(e) => setDraft({ card_type: e.target.value as typeof draft.card_type })}
+          >
+            {ONBOARD_LINKO_CARD_TYPES.map((t) => (
+              <option key={t} value={t}>
+                {ONBOARD_LINKO_CARD_TYPE_LABEL[t]}
+              </option>
+            ))}
+          </Select>
         </div>
+
+        {onboardKind === "person" ? (
+          <div className="sm:col-span-2 rounded-lg border border-dashed border-slate-200 bg-slate-50/60 px-3 py-2 text-xs font-medium leading-relaxed text-slate-600">
+            개인형은 상호 없이 이름만으로 시작할 수 있어요. 스튜디오·회사명이 있으면 아래에 적어 주세요.
+          </div>
+        ) : null}
+
+        {onboardKind === "store" || onboardKind === "location" ? (
+          <div className="sm:col-span-2">
+            <label className={labelCls}>
+              {onboardKind === "store" ? "상호명" : "매장명"}
+              {isStudio ? <span className={hintCls}> · 이미지형 명함 상단에 크게 보입니다</span> : null}
+            </label>
+            <Input
+              className="mt-1"
+              placeholder={onboardKind === "store" ? "예: 미노 인테리어" : "예: 옥토 가구공방"}
+              value={draft.brand_name}
+              onChange={(e) => setDraft({ brand_name: e.target.value })}
+              autoComplete="organization"
+            />
+            {errors.brand_name ? <p className="mt-1 text-xs text-red-600">{errors.brand_name}</p> : null}
+          </div>
+        ) : null}
+
+        {onboardKind === "person" ? (
+          <div className="sm:col-span-2">
+            <label className={labelCls}>
+              회사·스튜디오명 (선택)
+              {isStudio ? <span className={hintCls}> · 비워 두면 이름만 강조됩니다</span> : null}
+            </label>
+            <Input
+              className="mt-1"
+              placeholder="예: ○○ 인테리어 스튜디오"
+              value={draft.brand_name}
+              onChange={(e) => setDraft({ brand_name: e.target.value })}
+              autoComplete="organization"
+            />
+            {errors.brand_name ? <p className="mt-1 text-xs text-red-600">{errors.brand_name}</p> : null}
+          </div>
+        ) : null}
+
         <div>
           <label className={labelCls}>
-            이름
+            {onboardKind === "location" ? "담당자 이름 (선택)" : onboardKind === "store" ? "대표자명" : "이름"}
             {isStudio ? <span className={hintCls}> · 즉시 반영</span> : null}
           </label>
           <Input
             className="mt-1"
-            placeholder="예: 내 명함 이름"
+            placeholder={onboardKind === "store" ? "예: 김민수" : "예: 김민수"}
             value={draft.person_name}
             onChange={(e) => setDraft({ person_name: e.target.value })}
             autoComplete="name"
@@ -202,12 +251,21 @@ export function CardForm({
         </div>
         <div>
           <label className={labelCls}>
-            직함
-            {isStudio ? <span className={hintCls}> · 즉시 반영</span> : null}
+            {onboardKind === "person"
+              ? "직함 / 역할"
+              : onboardKind === "store"
+                ? "업종"
+                : "대표 상품 / 서비스"}
           </label>
           <Input
             className="mt-1"
-            placeholder="예: 대표"
+            placeholder={
+              onboardKind === "person"
+                ? "예: 인테리어 디렉터"
+                : onboardKind === "store"
+                  ? "예: 주거 · 상업공간 인테리어"
+                  : "예: 맞춤 수납장 · 원목 테이블"
+            }
             value={draft.job_title}
             onChange={(e) => setDraft({ job_title: e.target.value })}
           />
@@ -215,47 +273,69 @@ export function CardForm({
         </div>
         <div className="sm:col-span-2">
           <label className={labelCls}>
-            유형 선택
-            {isStudio ? <span className={hintCls}> · 공유 카드/미리보기 구조가 바뀝니다</span> : null}
-          </label>
-          <Select
-            className="mt-1"
-            value={draft.card_type}
-            onChange={(e) => setDraft({ card_type: e.target.value as typeof draft.card_type })}
-          >
-            {PREVIEW_CARD_TYPES.map((t) => (
-              <option key={t} value={t}>
-                {PREVIEW_CARD_TYPE_LABEL[t]}
-              </option>
-            ))}
-          </Select>
-        </div>
-        <div className="sm:col-span-2">
-          <label className={labelCls}>
-            소개
-            {isStudio ? <span className={hintCls}> · 입력할 때마다 완성되는 문장</span> : null}
+            한 줄 소개
+            {isStudio ? <span className={hintCls}> · 이미지형 명함에도 그대로 들어갑니다</span> : null}
           </label>
           <Textarea
             className="mt-1"
-            rows={4}
-            placeholder="예: 연결을 만드는 사람입니다. 명함 하나로 고객이 먼저 연락하도록 돕습니다."
+            rows={3}
+            placeholder="예: 공간을 바꾸면 삶이 바뀝니다"
             value={draft.intro}
             onChange={(e) => setDraft({ intro: e.target.value })}
           />
           {errors.intro ? <p className="mt-1 text-xs text-red-600">{errors.intro}</p> : null}
         </div>
-        <div className="sm:col-span-2">
-          <label className={labelCls}>
-            주소 / 위치 문구
-            {isStudio ? <span className={hintCls}> · location 유형 공유에 사용</span> : null}
-          </label>
-          <Input
-            className="mt-1"
-            value={draft.address}
-            onChange={(e) => setDraft({ address: e.target.value })}
-            placeholder="예: 서울 강남구 테헤란로 123"
-          />
-        </div>
+
+        {onboardKind === "person" ? (
+          <>
+            <div className="sm:col-span-2">
+              <label className={labelCls}>전문 분야</label>
+              <Input
+                className="mt-1"
+                placeholder="예: 아파트 리모델링 / 상가 인테리어"
+                value={draft.trust_metric}
+                onChange={(e) => setDraft({ trust_metric: e.target.value })}
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <label className={labelCls}>활동 지역</label>
+              <Input
+                className="mt-1"
+                placeholder="예: 서울 · 경기"
+                value={draft.tagline}
+                onChange={(e) => setDraft({ tagline: e.target.value })}
+              />
+            </div>
+          </>
+        ) : null}
+
+        {onboardKind === "store" ? (
+          <div className="sm:col-span-2">
+            <label className={labelCls}>활동 지역</label>
+            <Input
+              className="mt-1"
+              placeholder="예: 서울 · 경기 · 인천"
+              value={draft.tagline}
+              onChange={(e) => setDraft({ tagline: e.target.value })}
+            />
+          </div>
+        ) : null}
+
+        {onboardKind === "location" ? (
+          <div className="sm:col-span-2">
+            <label className={labelCls}>
+              영업시간 · 주소
+              {isStudio ? <span className={hintCls}> · 여러 줄로 적어도 됩니다</span> : null}
+            </label>
+            <Textarea
+              className="mt-1"
+              rows={4}
+              placeholder={"예:\n평일 10:00 - 18:00\n경기 남양주시 ○○로 12"}
+              value={draft.address}
+              onChange={(e) => setDraft({ address: e.target.value })}
+            />
+          </div>
+        ) : null}
       </div>
 
       <div className={cn("rounded-xl border border-brand-100 bg-brand-50/40 p-4 sm:p-5", isStudio && "border-brand-200/80 bg-gradient-to-b from-brand-50/60 to-white")}>
@@ -263,7 +343,15 @@ export function CardForm({
           <p className="mb-3 text-sm font-semibold text-brand-900">첫 인상을 만드는 대표 이미지</p>
         ) : null}
         <ImageUploader
-          label={isStudio ? "이미지 업로드 & 구도 조정" : "브랜드 대표 이미지"}
+          label={
+            isStudio
+              ? "이미지 업로드 & 구도 조정"
+              : onboardKind === "person"
+                ? "대표 이미지"
+                : onboardKind === "store"
+                  ? "로고 또는 대표 이미지"
+                  : "매장 이미지"
+          }
             value={draft.imageUrl ?? draft.brand_image_url}
             naturalWidth={draft.brand_image_natural_width}
             naturalHeight={draft.brand_image_natural_height}
@@ -495,8 +583,8 @@ export function CardForm({
     <div className="space-y-6">
       {isStudio ? (
         <StudioSection
-          title="② 최소 입력으로 채우기"
-          subtitle="이름·직함·한 줄 소개만 있어도 저장 후 공유할 수 있어요. 입력할 때마다 위 미리보기와 동일하게 반영됩니다."
+          title="명함 유형과 기본 정보"
+          subtitle="먼저 유형을 고르면, 그에 맞는 입력란이 정리됩니다. 입력할 때마다 위 미리보기에 반영됩니다."
         >
           {basicBlock}
         </StudioSection>
@@ -515,19 +603,22 @@ export function CardForm({
         <CardHeader>
           <h2 className="text-lg font-semibold text-slate-900">공개 명함 · 랜딩</h2>
           <p className="text-sm text-slate-500">
-            상단 히어로·신뢰·서비스 영역에 반영됩니다. 키워드는 자연스럽게 한 줄 설명과 소개에 녹여 주세요.
+            상단 히어로·신뢰·서비스 영역에 반영됩니다. 필요할 때만 추가로 다듬어 주세요.
           </p>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div>
-            <label className="text-base font-medium text-slate-800">한 줄 설명 (SEO·히어로)</label>
-            <Input
-              className="mt-1"
-              placeholder="예: B2B 퍼포먼스 마케팅 · 리드 제너레이션 전문"
-              value={draft.tagline}
-              onChange={(e) => setDraft({ tagline: e.target.value })}
-            />
-          </div>
+          {draft.card_type === "location" ? (
+            <div>
+              <label className="text-base font-medium text-slate-800">보조 한 줄 (선택, SEO·히어로)</label>
+              <Input
+                className="mt-1"
+                placeholder="예: 방문 전 예약을 권장합니다"
+                value={draft.tagline}
+                onChange={(e) => setDraft({ tagline: e.target.value })}
+              />
+            </div>
+          ) : null}
+          {draft.card_type !== "person" ? (
           <div>
             <label className="text-base font-medium text-slate-800">성과·신뢰 수치 (한 줄)</label>
             <Input
@@ -538,6 +629,7 @@ export function CardForm({
             />
             <p className="mt-1 text-xs text-slate-500">신뢰 영역 상단에 강조됩니다. Supabase 연동 시 로컬에만 저장될 수 있습니다.</p>
           </div>
+          ) : null}
           <div className="space-y-3">
             <p className="text-base font-medium text-slate-800">고객 후기 (최대 2건)</p>
             {([0, 1] as const).map((idx) => (

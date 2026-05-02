@@ -2,7 +2,7 @@ import type { BusinessCard, CardDesignType, DigitalCardServiceLine, TrustTestimo
 import { normalizeCardDesignType } from "@/lib/cardDesignLabels";
 import { buildCardShareUrl } from "@/lib/cardShareUrl";
 import { clampZoom } from "@/lib/brandHeroLayout";
-import type { PreviewCardType } from "@/lib/previewCardType";
+import { normalizePreviewCardType, type PreviewCardType } from "@/lib/previewCardType";
 import { generateIndustryOgImage } from "@/lib/industryOg";
 import { create } from "zustand";
 
@@ -203,8 +203,8 @@ export function draftFromBusinessCard(card: BusinessCard): CardEditorDraft {
     person_name: card.person_name,
     job_title: card.job_title,
     intro: card.intro,
-    address: "",
-    card_type: "person",
+    address: card.address ?? "",
+    card_type: normalizePreviewCardType(card.preview_card_type),
     slug: card.slug,
     phone: card.phone ?? "",
     email: card.email ?? "",
@@ -328,6 +328,8 @@ export function draftToBusinessCard(
     youtube_url: draft.youtube_url.trim() || null,
     kakao_url: draft.kakao_url.trim() || null,
     kakao_chat_url: draft.kakao_chat_url.trim() || null,
+    address: draft.address.trim() || null,
+    preview_card_type: normalizePreviewCardType(draft.card_type),
     theme: draft.theme,
     is_public: draft.is_public,
     created_at: opts.created_at,

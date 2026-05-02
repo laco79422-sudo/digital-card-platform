@@ -4,9 +4,10 @@ import { z } from "zod";
 
 const optionalUrl = z.string().url().or(z.literal(""));
 
-export const cardEditorSubmitSchema = z.object({
-  brand_name: z.string().min(1, "브랜드명을 입력하세요"),
-  person_name: z.string().min(1, "이름을 입력하세요"),
+export const cardEditorSubmitSchema = z
+  .object({
+    brand_name: z.string(),
+    person_name: z.string().min(1, "이름을 입력하세요"),
   job_title: z.string().min(1, "직함을 입력하세요"),
   intro: z.string().min(1, "소개를 입력하세요"),
   address: z.string().optional(),
@@ -47,7 +48,19 @@ export const cardEditorSubmitSchema = z.object({
   industry: z.string().nullable().optional(),
   auto_image_url: z.string().nullable().optional(),
   og_image_url: z.string().nullable().optional(),
-});
+  })
+  .superRefine((data, ctx) => {
+    if (data.card_type === "person") return;
+    if (!data.brand_name.trim()) {
+      const msg =
+        data.card_type === "store"
+          ? "상호명을 입력하세요"
+          : data.card_type === "location"
+            ? "매장명을 입력하세요"
+            : "브랜드명 또는 상호명을 입력하세요";
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: msg, path: ["brand_name"] });
+    }
+  });
 
 export function parseCardEditorDraft(draft: CardEditorDraft) {
   return cardEditorSubmitSchema.safeParse(draft);
