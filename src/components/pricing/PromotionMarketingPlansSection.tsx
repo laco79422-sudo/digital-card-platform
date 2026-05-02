@@ -100,10 +100,10 @@ type PromotionMarketingPlansSectionProps = {
 export function PromotionMarketingPlansSection({ className, compact }: PromotionMarketingPlansSectionProps) {
   return (
     <section className={cn(className)}>
-      <h2 className="text-lg font-semibold text-slate-900 sm:text-xl">블로그·영상 홍보까지 맡길 수 있어요</h2>
+      <h2 className="text-lg font-semibold text-slate-900 sm:text-xl">확산 전달까지: 카톡·당근·블로그·유튜브 연계 패키지</h2>
       <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-600 sm:text-[15px]">
-        명함만으로 부족하다면, 블로그 글과 영상 콘텐츠로{" "}
-        <span className="font-semibold text-slate-800">고객이 들어오는 길을 넓힐 수 있습니다</span>. 패키지는 기능 나열이
+        직접 전달만으로 부족할 때는, 블로그 글과 영상으로{" "}
+        <span className="font-semibold text-slate-800">채널 확산 노출을 돕고</span> 고객이 들어오는 길을 넓힐 수 있습니다. 패키지는 기능 나열이
         아니라 <span className="font-semibold text-slate-800">홍보 파트너가 만들어 주는 결과물</span> 단위입니다.
       </p>
 

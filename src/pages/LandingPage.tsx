@@ -12,7 +12,16 @@ import { canonicalSiteOrigin } from "@/lib/siteOrigin";
 import { cn } from "@/lib/utils";
 import { useAppDataStore } from "@/stores/appDataStore";
 import { useAuthStore } from "@/stores/authStore";
-import { ArrowRight, Eye, IdCard, MousePointerClick, Share2 } from "lucide-react";
+import {
+  ArrowRight,
+  FileText,
+  IdCard,
+  Image as ImageIcon,
+  Link2,
+  Megaphone,
+  MessageCircle,
+  Send,
+} from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 
@@ -86,13 +95,55 @@ export function LandingPage() {
   };
 
   const platformSteps = [
-    { icon: IdCard, title: "명함 만들기", description: "몇 초 만에 고객에게 보낼 링크가 생깁니다." },
-    { icon: Share2, title: "링크 보내기", description: "카톡·문자로 한 번에 전달합니다." },
-    { icon: Eye, title: "고객 방문", description: "명함을 연 사람을 데이터로 확인합니다." },
     {
-      icon: MousePointerClick,
-      title: "문의 · 예약 · 결제",
-      description: "상담부터 결제까지 이어지는 다음 행동을 받습니다.",
+      icon: IdCard,
+      title: "명함 생성",
+      description: "정보를 입력하면 한눈에 보는 이미지형 명함과 상세 페이지용 링크가 함께 만들어집니다.",
+    },
+    {
+      icon: ImageIcon,
+      title: "이미지형 요약",
+      description: "미리 보기 카드처럼 핵심만 보여 주니 채팅·피드에 붙이기 좋습니다.",
+    },
+    {
+      icon: Link2,
+      title: "링크 클릭",
+      description: "고객이 링크를 누르면 더 길게 보여 줄 상세 소개 페이지로 들어옵니다.",
+    },
+    {
+      icon: FileText,
+      title: "상세 설명 페이지",
+      description: "서비스·사례·연락 방법까지 깊게 읽히는 화면에서 신뢰를 쌓습니다.",
+    },
+    {
+      icon: MessageCircle,
+      title: "연락 · 상담",
+      description: "카카오·전화·예약 등 다음 행동으로 자연스럽게 연결합니다.",
+    },
+  ] as const;
+
+  const deliveryMethods = [
+    {
+      icon: Send,
+      eyebrow: "① 직접 전달",
+      title: "내가 채널에 올립니다",
+      badge: "기본 이용",
+      points: ["카카오톡으로 공유", "당근마켓 글에 링크 삽입", "블로그·유튜브 설명란에 넣기"],
+      moreHref: undefined,
+      moreLabel: undefined,
+    },
+    {
+      icon: Megaphone,
+      eyebrow: "② 확산 전달",
+      title: "가입된 홍보 주체가 채널을 활용합니다",
+      badge: "유료 기능",
+      points: [
+        "플랫폼에 가입된 파트너·참여자가 대신 노출 지원",
+        "카카오·당근·블로그·유튜브 등 채널을 묶어 확산 방향 설계",
+        "아래 홍보 패키지와 연결할 수 있습니다",
+      ],
+      moreHref: "#promotion-packages",
+      moreLabel: "홍보·확산 패키지 보기",
     },
   ] as const;
 
@@ -133,11 +184,13 @@ export function LandingPage() {
         <div className={cn("relative z-10", layout.page, section.yHero)}>
           <div className="mx-auto flex max-w-3xl flex-col items-center text-center">
             <h1 className="text-balance text-center text-4xl font-bold leading-snug tracking-tight text-slate-950 sm:text-4xl md:text-[2.65rem]">
-              명함 하나 보내면 고객이 바로 연락합니다
+              정보 입력만으로 이미지형 명함과 상세 링크가 함께 생깁니다
             </h1>
-            <p className="mt-5 text-center text-lg font-medium text-slate-800">링크만 보내세요, 상담이 시작됩니다.</p>
+            <p className="mt-5 text-center text-lg font-medium text-slate-800">
+              한눈에 보는 요약 화면 → 링크 클릭 → 상세 설명 → 연락까지 한 줄 흐름입니다.
+            </p>
             <p className="mx-auto mt-4 max-w-xl text-center text-base leading-relaxed text-slate-600">
-              만들고 공유하면 고객이 들어오고, 결과를 보며 고객 유입을 넓히거나 다시 공유할 수 있습니다.
+              채널에는 직접 올려도 되고, 필요하면 유료 확산 서비스로 노출 폭을 넓힐 수 있습니다.
             </p>
 
             <div className="mt-8 flex w-full justify-center px-4">
@@ -165,21 +218,81 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* 2. 이렇게 고객이 들어옵니다 */}
+      {/* 명함 전달 방식 */}
+      <section id="delivery" className={cn("border-b border-slate-200 bg-slate-50/80", section.y)}>
+        <div className={layout.page}>
+          <div className="mx-auto max-w-3xl text-center">
+            <h2 className={cn(type.sectionTitleCenter, "text-slate-900")}>명함 전달은 두 가지입니다</h2>
+            <p className="mx-auto mt-3 max-w-2xl text-[15px] leading-relaxed text-slate-600 sm:text-base">
+              기본 구조로 만든 명함은 직접 공유하거나, 필요할 때 확산 형태로 운영을 확장할 수 있습니다.
+            </p>
+          </div>
+          <div className="mx-auto mt-10 grid max-w-5xl gap-6 lg:mt-11 lg:grid-cols-2 lg:gap-8">
+            {deliveryMethods.map((block) => {
+              const Icon = block.icon;
+              return (
+                <div
+                  key={block.title}
+                  className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8"
+                >
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-100 text-brand-900 ring-1 ring-brand-200/80">
+                      <Icon className="h-5 w-5 shrink-0" aria-hidden />
+                    </div>
+                    <span className="text-xs font-bold uppercase tracking-wide text-slate-500">{block.eyebrow}</span>
+                  </div>
+                  <div className="mt-4 flex flex-wrap items-baseline gap-2">
+                    <h3 className="text-xl font-bold text-slate-900">{block.title}</h3>
+                    <span
+                      className={cn(
+                        "rounded-full px-3 py-0.5 text-xs font-bold",
+                        block.badge === "유료 기능"
+                          ? "bg-amber-100 text-amber-950 ring-1 ring-amber-200/80"
+                          : "bg-emerald-50 text-emerald-900 ring-1 ring-emerald-200/70",
+                      )}
+                    >
+                      {block.badge}
+                    </span>
+                  </div>
+                  <ul className="mt-5 space-y-2.5 text-left text-[15px] leading-relaxed text-slate-700 sm:text-base">
+                    {block.points.map((point) => (
+                      <li key={point} className="relative pl-4 before:absolute before:left-0 before:top-[0.65em] before:h-1.5 before:w-1.5 before:rounded-full before:bg-brand-500">
+                        {point}
+                      </li>
+                    ))}
+                  </ul>
+                  {block.moreHref ? (
+                    <p className="mt-6 text-center lg:text-left">
+                      <a
+                        href={block.moreHref}
+                        className="text-sm font-bold text-brand-800 underline-offset-4 hover:text-brand-950 hover:underline"
+                      >
+                        {block.moreLabel ?? ""}
+                      </a>
+                    </p>
+                  ) : null}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* 구조적 고객 흐름 */}
       <section className={cn("border-b border-slate-200 bg-white", section.y)}>
           <div className={layout.page}>
             <div className="mx-auto max-w-3xl text-center">
-              <h2 className={cn(type.sectionTitleCenter, "text-slate-900")}>이렇게 고객이 들어옵니다</h2>
+              <h2 className={cn(type.sectionTitleCenter, "text-slate-900")}>고객에게 보이는 순서입니다</h2>
               <p className={cn("mx-auto mt-3 max-w-xl font-semibold text-brand-800 sm:text-lg")}>
-                명함 만들기 → 링크 보내기 → 고객 방문 → 문의 · 예약 · 결제
+                명함 생성 → 이미지형 요약 정보 → 링크 클릭 → 상세 설명 페이지 → 연락 · 상담
               </p>
               <p className="mx-auto mt-4 max-w-lg text-[15px] leading-relaxed text-slate-600 sm:text-base">
-                복잡한 광고가 아니라,
+                광고를 붙일 때마다 새로 시작하는 게 아니라,
                 <br />
-                보내기만 해도 고객이 연결되는 구조입니다.
+                명함이라는 같은 구조로 처음부터 끝까지 이어집니다.
               </p>
             </div>
-            <div className="mx-auto mt-10 grid max-w-5xl gap-6 sm:grid-cols-2 lg:mt-12 lg:grid-cols-4 lg:gap-8">
+            <div className="mx-auto mt-10 grid max-w-6xl gap-6 sm:grid-cols-2 lg:mt-12 lg:grid-cols-3 xl:grid-cols-5 lg:gap-6">
               {platformSteps.map((step, index) => {
                 const Icon = step.icon;
                 return (
@@ -211,9 +324,9 @@ export function LandingPage() {
           <div className="mx-auto max-w-2xl text-center">
             <h2 className={cn(type.sectionTitleCenter, "text-slate-900")}>내가 추천할 링크</h2>
             <p className="mx-auto mt-4 max-w-lg text-lg leading-relaxed text-slate-700">
-              이 링크를 지인에게 보내면 린코를 소개할 수 있습니다.
+              이 링크로 지인을 초대하면 린코 가입·이용이 추천 성과로 남습니다.
               <br />
-              가입과 결제가 발생하면 추천 성과로 기록됩니다.
+              유료 확산(파트너·채널 홍보)은 아래 홍보 패키지 흐름과 연결될 수 있어요.
             </p>
             <div className="mx-auto mt-8 grid max-w-md gap-3 text-left sm:grid-cols-2">
               <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
@@ -265,7 +378,7 @@ export function LandingPage() {
               <p className="text-sm font-bold text-brand-700">명함 예시</p>
               <h2 className={cn("mt-3", type.sectionTitleCenter)}>이렇게 만들어집니다</h2>
               <p className={cn("mx-auto mt-3 max-w-lg font-medium text-slate-600", type.sectionLead)}>
-                3초면 고객에게 보낼 수 있는 명함이 완성됩니다.
+                이미지형 요약 카드처럼 보이며, 같은 링크로 상세 페이지까지 이어집니다.
               </p>
               <div className="mt-7 flex flex-wrap justify-center gap-2" role="tablist" aria-label="명함 예시 유형">
                 {LANDING_SAMPLE_TYPES.map((item) => {
@@ -308,11 +421,11 @@ export function LandingPage() {
       <section id="pricing" className={cn("border-b border-slate-200 bg-white", section.y)}>
           <div className={layout.page}>
             <div className="mx-auto max-w-3xl text-center">
-              <h2 className={type.sectionTitleCenter}>무료로 시작하고 결과를 확인하세요</h2>
+              <h2 className={type.sectionTitleCenter}>명함 만들기는 무료, 확산만 유료 선택</h2>
               <p className={cn("mt-3 text-pretty sm:mt-4", type.sectionLead)}>
-                처음에는 무료로 명함을 만들어보고,
+                명함 생성·직접 전달은 무료 플랜으로 시작합니다.
                 <br />
-                고객 반응이 생기면 필요한 기능만 확장하면 됩니다.
+                더 넓게 퍼트리려면 홍보·확산 같은 유료 옵션을 골라 쓰면 됩니다.
               </p>
             </div>
 
@@ -362,8 +475,8 @@ export function LandingPage() {
           </div>
         </section>
 
-      {/* 6. 블로그·영상 홍보 패키지 */}
-      <section className={cn("bg-slate-50", section.y)}>
+      {/* 블로그·영상 홍보 패키지 (확산 전달 연계) */}
+      <section id="promotion-packages" className={cn("bg-slate-50 scroll-mt-[5.25rem]", section.y)}>
           <div className={layout.page}>
             <PromotionMarketingPlansSection compact />
           </div>
@@ -463,12 +576,12 @@ export function LandingPage() {
           <div className={layout.page}>
             <div className="mx-auto flex max-w-xl flex-col items-center px-4 text-center">
               <h2 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
-                지금 시작하면 오늘 첫 문의를 받을 수 있습니다
+                지금 만들면 오늘부터 직접 전달을 시작할 수 있습니다
               </h2>
               <p className="mt-3 text-base leading-relaxed text-slate-600 sm:text-lg">
-                명함을 만들고 링크를 보내면,
+                이미지형 요약과 상세 페이지가 한 링크로 묶여 있으니,
                 <br />
-                고객이 바로 확인하고 연락할 수 있습니다.
+                카톡·당근·블로그 어디에 붙여도 같은 구조로 이어집니다.
               </p>
               <div className="mt-8 flex w-full justify-center">
                 <FlowCtaLink to="/signup" className="max-w-md">

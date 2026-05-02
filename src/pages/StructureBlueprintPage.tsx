@@ -97,11 +97,11 @@ export function StructureBlueprintPage() {
       <div className="mx-auto max-w-3xl text-center">
         <p className="text-xs font-bold uppercase tracking-widest text-brand-800">무료 → 유료 전환</p>
         <h1 className="mt-2 text-balance text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl md:text-4xl">
-          명함 미리보기
+          명함 구조 미리보기
         </h1>
         <p className="mx-auto mt-4 max-w-2xl text-pretty text-[15px] leading-relaxed text-slate-600 sm:text-lg">
-          내 업종과 목표를 넣으면, 완성된 명함이 어떤 모습일지 먼저 볼 수 있어요. 마음에 들면 제작 전문가와 함께
-          실제 제작까지 이어갑니다.
+          업종과 목표만 넣으면, 명함 생성 → 요약 카드처럼 보이는 화면 → 링크를 통한 상세 소개까지 흐름이 어떤 식일지 먼저 볼 수
+          있어요. 마음에 들면 제작 전문가와 함께 실제 제작까지 이어갑니다.
         </p>
       </div>
 
@@ -124,11 +124,11 @@ export function StructureBlueprintPage() {
               <Users className="h-5 w-5 shrink-0" aria-hidden />
               <h2 className="text-base font-bold">유료</h2>
             </div>
-            <p className="text-sm font-medium text-slate-800">제작 전문가 연결 · 실행 + 결과</p>
+            <p className="text-sm font-medium text-slate-800">확산·채널 홍보 · 실행 + 결과</p>
           </CardHeader>
           <CardContent className="text-sm leading-relaxed text-slate-700">
-            전문 상담가 연결, 1:1 상담, 맞춤 명함 제작, 블로그/영상 홍보, 의뢰가 이어지는 화면까지 함께
-            만듭니다.
+            전문 상담가 연결, 1:1 상담, 맞춤 명함 제작과 함께 블로그·영상 등으로 카톡·당근·유튜브 등 채널 확산까지 이어지는
+            시나리오를 설계합니다.
           </CardContent>
         </Card>
       </div>

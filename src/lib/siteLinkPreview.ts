@@ -11,4 +11,4 @@ export const SITE_OG_CARD_FALLBACK_URL = "https://linkoapp.kr/og-card-default.pn
 /** 기본 OG 이미지 (회원가입·추천 미리보기 등 공통) */
 export const SITE_OG_REFERRAL_IMAGE_URL = "https://linkoapp.kr/og-referral.png" as const;
 export const SITE_OG_TITLE = "린코 디지털 명함" as const;
-export const SITE_OG_DESCRIPTION = "명함 하나로 고객이 먼저 찾아옵니다" as const;
+export const SITE_OG_DESCRIPTION = "이미지형 명함부터 상세 링크까지 무료 생성, 카톡·당근·블로그로 전달 또는 유료로 확산" as const;
