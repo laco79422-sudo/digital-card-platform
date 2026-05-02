@@ -1,4 +1,4 @@
-export type UserRole = "client" | "creator" | "admin" | "company_admin";
+export type UserRole = "client" | "creator" | "admin" | "company_admin" | "teacher";
 
 export interface User {
   id: string;
@@ -390,29 +390,84 @@ export interface MainBanner {
   sort_order: number;
 }
 
-/** 교육 신청 (AI 블로그·영상 실전 교육) */
-export type EducationInterest = "blog" | "video" | "both";
+/** 교육 과정 카탈로그 (educations) */
+export type EducationCategory = "card_design" | "blog" | "video" | "program" | "ai_creation";
+export type EducationMethod = "online" | "offline" | "hybrid";
+export type EducationOfferingStatus = "draft" | "open" | "closed" | "completed";
 
-export interface EducationApplication {
+export interface EducationOffering {
   id: string;
-  name: string;
-  phone: string;
-  email: string;
-  interest: EducationInterest;
-  message: string;
+  title: string;
+  category: EducationCategory;
+  method: EducationMethod;
+  /** teachers.id */
+  teacher_id: string | null;
+  teacher_display_name: string;
+  description: string;
+  curriculum: string;
+  materials_needed: string;
+  location: string;
+  schedule_summary: string;
+  start_time: string | null;
+  end_time: string | null;
+  price: number;
+  max_students: number;
+  status: EducationOfferingStatus;
+  enrolling: boolean;
   created_at: string;
 }
 
-/** 강사 지원 */
-export interface InstructorApplication {
+/** 교육 신청 건 (education_applications) */
+export type CourseEnrollmentStatus = "applied" | "reviewing" | "approved" | "waiting" | "canceled" | "completed";
+
+export interface EducationApplication {
   id: string;
+  education_id: string | null;
+  user_id: string | null;
   name: string;
   phone: string;
   email: string;
-  specialty: string;
-  lecture_topics: string;
-  experience: string;
+  preferred_course_label: string;
+  participation_method: "online" | "offline";
+  message: string;
+  status: CourseEnrollmentStatus;
+  created_at: string;
+}
+
+export type TeacherApplicationStatus = "pending" | "reviewing" | "approved" | "rejected";
+
+export interface TeacherApplication {
+  id: string;
+  user_id: string | null;
+  name: string;
+  phone: string;
+  email: string;
+  region: string;
+  available_method: "online" | "offline" | "both";
+  categories: EducationCategory[];
+  topics: string;
+  career: string;
   portfolio_url: string;
+  desired_time: string;
+  desired_price: string;
+  introduction: string;
+  attachment_url: string | null;
+  status: TeacherApplicationStatus;
+  created_at: string;
+  type_facets_json?: Record<string, unknown> | null;
+}
+
+export type TeacherProfileStatus = "active" | "hidden" | "suspended";
+
+export interface TeacherProfile {
+  id: string;
+  user_id: string;
+  name: string;
+  categories: EducationCategory[];
+  region: string;
+  available_method: "online" | "offline" | "both";
+  bio: string;
+  status: TeacherProfileStatus;
   created_at: string;
 }
 

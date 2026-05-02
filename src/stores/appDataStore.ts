@@ -6,9 +6,11 @@ import {
   SAMPLE_CARDS,
   SAMPLE_CLICKS,
   SAMPLE_CREATORS,
+  SAMPLE_EDUCATION_OFFERINGS,
   SAMPLE_PAYMENTS,
   SAMPLE_REQUESTS,
   SAMPLE_SUBSCRIPTIONS,
+  SAMPLE_TEACHER_PROFILES,
   SAMPLE_USERS,
   SAMPLE_VIEWS,
 } from "@/data/sampleData";
@@ -22,8 +24,8 @@ import type {
   CreatorProfile,
   DesignRequest,
   EducationApplication,
+  EducationOffering,
   ExpertDirectRequest,
-  InstructorApplication,
   MainBanner,
   Payment,
   PromoterParticipation,
@@ -33,8 +35,11 @@ import type {
   ServiceApplication,
   ServiceRequest,
   Subscription,
+  TeacherApplication,
+  TeacherProfile,
 } from "@/types/domain";
 import { INSTANT_GUEST_USER_ID } from "@/lib/instantCardCreate";
+import { migrateEducationApplicationRow, migrateTeacherApplicationRow } from "@/lib/migrateEducation";
 import { migrateCreatorProfileRow } from "@/lib/migrateCreatorProfile";
 import { buildReferralCode, rewardMonthsForReferralCount } from "@/lib/referrals";
 import { create } from "zustand";
@@ -71,8 +76,10 @@ interface AppDataState {
   banners: MainBanner[];
   featuredCreatorIds: string[];
   platformUsers: typeof SAMPLE_USERS;
+  educationOfferings: EducationOffering[];
+  teachers: TeacherProfile[];
   educationApplications: EducationApplication[];
-  instructorApplications: InstructorApplication[];
+  teacherApplications: TeacherApplication[];
   promotionPool: PromotionPoolEntry[];
   promoterParticipations: PromoterParticipation[];
   referralRecords: ReferralRecord[];
@@ -97,7 +104,12 @@ interface AppDataState {
   setFeaturedCreatorIds: (ids: string[]) => void;
   setBanners: (b: MainBanner[]) => void;
   addEducationApplication: (a: EducationApplication) => void;
-  addInstructorApplication: (a: InstructorApplication) => void;
+  appendTeacherApplication: (a: TeacherApplication) => void;
+  updateTeacherApplication: (id: string, patch: Partial<TeacherApplication>) => void;
+  updateEducationApplication: (id: string, patch: Partial<EducationApplication>) => void;
+  upsertTeacherProfile: (t: TeacherProfile) => void;
+  /** 검토 후 강사 프로필 등록 + 신청 상태 approved */
+  approveTeacherApplication: (applicationId: string) => void;
   /** 게스트 즉시 명함 → 로그인 후 내 계정으로 이전 */
   claimInstantGuestCard: (userId: string, cardId: string) => void;
 
@@ -130,8 +142,10 @@ export const useAppDataStore = create<AppDataState>()(
       banners: [...SAMPLE_BANNERS],
       featuredCreatorIds: [...FEATURED_CREATOR_IDS],
       platformUsers: [...SAMPLE_USERS],
+      educationOfferings: [...SAMPLE_EDUCATION_OFFERINGS],
+      teachers: [...SAMPLE_TEACHER_PROFILES],
       educationApplications: [],
-      instructorApplications: [],
+      teacherApplications: [],
       promotionPool: [],
       promoterParticipations: [],
       referralRecords: [],
@@ -191,8 +205,54 @@ export const useAppDataStore = create<AppDataState>()(
       setBanners: (banners) => set({ banners }),
       addEducationApplication: (a) =>
         set((s) => ({ educationApplications: [...s.educationApplications, a] })),
-      addInstructorApplication: (a) =>
-        set((s) => ({ instructorApplications: [...s.instructorApplications, a] })),
+      appendTeacherApplication: (a) =>
+        set((s) => ({ teacherApplications: [...s.teacherApplications, a] })),
+      updateTeacherApplication: (id, patch) =>
+        set((s) => ({
+          teacherApplications: s.teacherApplications.map((x) => (x.id === id ? { ...x, ...patch } : x)),
+        })),
+      updateEducationApplication: (id, patch) =>
+        set((s) => ({
+          educationApplications: s.educationApplications.map((x) => (x.id === id ? { ...x, ...patch } : x)),
+        })),
+      upsertTeacherProfile: (t) =>
+        set((s) => ({
+          teachers: s.teachers.some((x) => x.id === t.id)
+            ? s.teachers.map((x) => (x.id === t.id ? t : x))
+            : [...s.teachers, t],
+        })),
+      approveTeacherApplication: (applicationId) =>
+        set((s) => {
+          const app = s.teacherApplications.find((x) => x.id === applicationId);
+          if (!app || app.status === "approved") return s;
+          const activeExists =
+            !!app.user_id && s.teachers.some((t) => t.user_id === app.user_id && t.status === "active");
+
+          const bumpedApps = s.teacherApplications.map((x) =>
+            x.id === applicationId ? { ...x, status: "approved" as const } : x,
+          );
+
+          if (activeExists) {
+            return { teacherApplications: bumpedApps };
+          }
+
+          const newProfile: TeacherProfile = {
+            id: crypto.randomUUID(),
+            user_id: app.user_id ?? "",
+            name: app.name,
+            categories: app.categories.length ? app.categories : ["blog"],
+            region: app.region,
+            available_method: app.available_method,
+            bio: app.introduction.trim().slice(0, 800) || app.topics,
+            status: app.user_id ? "active" : "hidden",
+            created_at: new Date().toISOString(),
+          };
+
+          return {
+            teacherApplications: bumpedApps,
+            teachers: [...s.teachers, newProfile],
+          };
+        }),
       claimInstantGuestCard: (userId, cardId) =>
         set((s) => ({
           businessCards: s.businessCards.map((c) =>
@@ -299,7 +359,7 @@ export const useAppDataStore = create<AppDataState>()(
     {
       name: "linko-app-data",
       storage: createJSONStorage(() => localStorage),
-      version: 4,
+      version: 5,
       partialize: (state) => ({
         businessCards: state.businessCards,
         cardLinks: state.cardLinks,
@@ -315,8 +375,10 @@ export const useAppDataStore = create<AppDataState>()(
         banners: state.banners,
         featuredCreatorIds: state.featuredCreatorIds,
         platformUsers: state.platformUsers,
+        educationOfferings: state.educationOfferings,
+        teachers: state.teachers,
         educationApplications: state.educationApplications,
-        instructorApplications: state.instructorApplications,
+        teacherApplications: state.teacherApplications,
         promotionPool: state.promotionPool,
         promoterParticipations: state.promoterParticipations,
         referralRecords: state.referralRecords,
@@ -325,11 +387,18 @@ export const useAppDataStore = create<AppDataState>()(
         expertDirectRequests: state.expertDirectRequests,
       }),
       merge: (persisted, current) => {
-        const p = persisted as Partial<AppDataState> | undefined;
+        const p = persisted as Partial<AppDataState> & { instructorApplications?: TeacherApplication[] } | undefined;
         if (!p) return current;
-        return {
+
+        type LegacyPersist = Partial<AppDataState> & { instructorApplications?: unknown[] };
+
+        const raw = p as LegacyPersist;
+        const legacyInstructorApps = raw.instructorApplications;
+
+        const mergedTeacherAppsSeed = [...(p.teacherApplications ?? []), ...((legacyInstructorApps ?? []) as TeacherApplication[])];
+
+        const mergedBase: AppDataState = {
           ...current,
-          ...p,
           businessCards: mergeById(current.businessCards, p.businessCards),
           cardLinks: mergeById(current.cardLinks, p.cardLinks),
           creators: mergeById(current.creators, p.creators).map(migrateCreatorProfileRow),
@@ -346,13 +415,15 @@ export const useAppDataStore = create<AppDataState>()(
             ? p.featuredCreatorIds
             : current.featuredCreatorIds,
           platformUsers: mergeById(current.platformUsers, p.platformUsers),
+          educationOfferings: mergeById(current.educationOfferings, p.educationOfferings),
+          teachers: mergeById(current.teachers, p.teachers),
           educationApplications: mergeById(
-            current.educationApplications,
-            p.educationApplications,
+            current.educationApplications.map(migrateEducationApplicationRow),
+            p.educationApplications?.map(migrateEducationApplicationRow),
           ),
-          instructorApplications: mergeById(
-            current.instructorApplications,
-            p.instructorApplications,
+          teacherApplications: mergeById(
+            current.teacherApplications.map(migrateTeacherApplicationRow),
+            mergedTeacherAppsSeed.map(migrateTeacherApplicationRow),
           ),
           promotionPool: mergeById(current.promotionPool ?? [], p.promotionPool),
           promoterParticipations: mergeById(
@@ -364,6 +435,9 @@ export const useAppDataStore = create<AppDataState>()(
           promotionApplications: mergeById(current.promotionApplications ?? [], p.promotionApplications),
           expertDirectRequests: mergeById(current.expertDirectRequests ?? [], p.expertDirectRequests),
         };
+
+        delete (mergedBase as unknown as Record<string, unknown>).instructorApplications;
+        return mergedBase;
       },
     },
   ),

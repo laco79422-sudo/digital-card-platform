@@ -7,8 +7,9 @@ import { layout } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
 import { useDevMountLog } from "@/dev/renderDiagnostics";
 import { useAuthStore } from "@/stores/authStore";
+import { useAppDataStore } from "@/stores/appDataStore";
 import { LogOut, Menu, X } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
@@ -21,8 +22,8 @@ const links = [
   { to: "/pricing", label: "요금 안내" },
   { to: "/structure", label: "명함 샘플 보기" },
   { to: "/promotion/guide", label: "헬퍼링크·파트너" },
-  { to: "/education", label: "교육신청" },
   { to: "/creators", label: "제작 전문가" },
+  { to: "/education", label: "교육·강사" },
   { to: "/requests", label: "의뢰하기" },
 ];
 
@@ -34,8 +35,16 @@ export function Navbar() {
   const maskLoggedInChrome = shouldNavbarMaskLoggedInChrome(pathname, search);
   const authUser = useAuthStore((s) => s.user);
   const authLoadingRaw = useAuthStore((s) => s.authLoading);
+  const teachers = useAppDataStore((s) => s.teachers);
   const user = maskLoggedInChrome ? null : authUser;
   const authLoading = maskLoggedInChrome ? false : authLoadingRaw;
+  const showTeacherPortal = useMemo(
+    () =>
+      !!user &&
+      (user.role === "teacher" ||
+        teachers.some((t) => t.user_id === user.id && t.status === "active")),
+    [teachers, user],
+  );
   const [open, setOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
 
@@ -99,6 +108,11 @@ export function Navbar() {
                 {user.is_partner ? (
                   <Link to="/partner/dashboard" className={linkButtonClassName({ variant: "ghost", size: "sm" })}>
                     파트너
+                  </Link>
+                ) : null}
+                {showTeacherPortal ? (
+                  <Link to="/teacher/dashboard" className={linkButtonClassName({ variant: "ghost", size: "sm" })}>
+                    강사
                   </Link>
                 ) : null}
                 <Link to="/space" className={linkButtonClassName({ size: "sm" })}>
@@ -184,6 +198,15 @@ export function Navbar() {
                           onClick={() => setOpen(false)}
                         >
                           파트너 대시보드
+                        </Link>
+                      ) : null}
+                      {showTeacherPortal ? (
+                        <Link
+                          to="/teacher/dashboard"
+                          className="rounded-lg px-3 py-3 text-base font-medium text-brand-800 hover:bg-brand-50"
+                          onClick={() => setOpen(false)}
+                        >
+                          강사 대시보드
                         </Link>
                       ) : null}
                       <Link

@@ -1,7 +1,7 @@
 import type { User, UserRole } from "@/types/domain";
 
 function normalizeRole(v: unknown): UserRole {
-  if (v === "creator" || v === "admin" || v === "company_admin") return v;
+  if (v === "creator" || v === "admin" || v === "company_admin" || v === "teacher") return v;
   return "client";
 }
 

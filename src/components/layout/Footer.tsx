@@ -30,7 +30,7 @@ export function Footer() {
               </li>
               <li>
                 <Link to="/education" className="hover:text-brand-800">
-                  교육신청
+                  교육·강사
                 </Link>
               </li>
               <li>

@@ -1,12 +1,10 @@
 import { SITE_OG_DESCRIPTION, SITE_OG_TITLE } from "@/lib/siteLinkPreview";
 import { useEffect } from "react";
 
-const TITLE =
-  "AI 블로그 교육 | AI 영상 제작 교육 | 실전 교육신청 | Linko 디지털 명함";
+const TITLE = "교육·강사 | 린코 명함·블로그·영상·프로그램·AI 제작 교육";
 const DESCRIPTION =
-  "AI 블로그와 AI 영상 제작을 통해 수익을 만드는 실전 교육. 온라인과 오프라인 강의 모두 제공. 교육 신청과 강사 모집을 함께 진행합니다.";
-const KEYWORDS =
-  "AI 블로그, AI 영상 제작, AI 수익화, 교육신청, 강사모집, 실전 교육, Linko";
+  "명함디자인, 블로그, 영상제작, 프로그램 제작, AI 제작교육까지 온·오프라인 교육과 강사 신청을 한곳에서 진행합니다.";
+const KEYWORDS = "린코, 교육, 강사, 명함디자인, 블로그, 영상, 프로그램, AI 교육";
 
 export function EducationSeo() {
   useEffect(() => {

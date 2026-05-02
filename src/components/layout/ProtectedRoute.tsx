@@ -1,5 +1,6 @@
 import { resendSignupConfirmationEmail } from "@/lib/auth/authActions";
 import { useAuthStore } from "@/stores/authStore";
+import { useAppDataStore } from "@/stores/appDataStore";
 import type { UserRole } from "@/types/domain";
 import type { ReactNode } from "react";
 import { useState } from "react";
@@ -9,14 +10,18 @@ export function ProtectedRoute({
   children,
   roles,
   requirePartner,
+  requireApprovedTeacher,
 }: {
   children: ReactNode;
   roles?: UserRole[];
   /** 로그인 + 이메일 인증 후 `profiles.is_partner` 필요 */
   requirePartner?: boolean;
+  /** 선정된 강사(로컬 프로필 활성 또는 역할 teacher)만 통과 */
+  requireApprovedTeacher?: boolean;
 }) {
   const user = useAuthStore((s) => s.user);
   const authLoading = useAuthStore((s) => s.authLoading);
+  const teachers = useAppDataStore((s) => s.teachers);
   const location = useLocation();
   const [resending, setResending] = useState(false);
   const [resendMessage, setResendMessage] = useState<string | null>(null);
@@ -81,6 +86,15 @@ export function ProtectedRoute({
 
   if (requirePartner && !user.is_partner) {
     return <Navigate to="/promotion/partner" replace />;
+  }
+
+  if (requireApprovedTeacher) {
+    const allowed =
+      user.role === "teacher" ||
+      teachers.some((t) => t.user_id === user.id && t.status === "active");
+    if (!allowed) {
+      return <Navigate to="/education" replace />;
+    }
   }
 
   if (roles && !roles.includes(user.role)) {

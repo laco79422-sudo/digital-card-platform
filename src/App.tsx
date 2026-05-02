@@ -17,6 +17,7 @@ import { ExpertApplyPage } from "@/pages/ExpertApplyPage";
 import { ExpertDirectRequestPage } from "@/pages/ExpertDirectRequestPage";
 import { DesignerRequestsPage } from "@/pages/DesignerRequestsPage";
 import { DesignRequestPage } from "@/pages/DesignRequestPage";
+import { EducationDetailPage } from "@/pages/EducationDetailPage";
 import { EducationPage } from "@/pages/EducationPage";
 import { LandingPage } from "@/pages/LandingPage";
 import { LoginPage } from "@/pages/LoginPage";
@@ -30,10 +31,12 @@ import { PromotePage } from "@/pages/PromotePage";
 import { NfcAcceptPage } from "@/pages/NfcAcceptPage";
 import { PublicCardPage } from "@/pages/PublicCardPage";
 import { ReservationPaymentPage } from "@/pages/ReservationPaymentPage";
+import { SignupPage } from "@/pages/SignupPage";
 import { TempCardPreviewPage } from "@/pages/TempCardPreviewPage";
 import { RequestCreatePage } from "@/pages/RequestCreatePage";
 import { RequestListPage } from "@/pages/RequestListPage";
-import { SignupPage } from "@/pages/SignupPage";
+import { TeacherApplyPage } from "@/pages/TeacherApplyPage";
+import { TeacherDashboardPage } from "@/pages/TeacherDashboardPage";
 import { StructureBlueprintPage } from "@/pages/StructureBlueprintPage";
 import { AdsCreatePage } from "@/pages/AdsCreatePage";
 import { AdvertiserDashboardPage } from "@/pages/AdvertiserDashboardPage";
@@ -68,6 +71,8 @@ function AppRoutes() {
           <Route path="r/:code" element={<ReferSlugRedirect />} />
           <Route path="pricing" element={<PricingPage />} />
           <Route path="structure" element={<StructureBlueprintPage />} />
+          <Route path="education/teacher-apply" element={<TeacherApplyPage />} />
+          <Route path="education/:id" element={<EducationDetailPage />} />
           <Route path="education" element={<EducationPage />} />
           <Route path="promotion/guide" element={<PromotionGuidePage />} />
           <Route path="promotion/partner" element={<PromotionPartnerPage />} />
@@ -98,6 +103,14 @@ function AppRoutes() {
           }
         />
         <Route path="creators/:id" element={<CreatorProfilePage />} />
+        <Route
+          path="teacher/dashboard"
+          element={
+            <ProtectedRoute requireApprovedTeacher>
+              <TeacherDashboardPage />
+            </ProtectedRoute>
+          }
+        />
         <Route path="requests" element={<RequestListPage />} />
 
         <Route

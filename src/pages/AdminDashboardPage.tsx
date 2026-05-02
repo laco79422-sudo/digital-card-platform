@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/Textarea";
 import { layout } from "@/lib/ui-classes";
 import { isSupabaseConfigured } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
+import { TEACHER_APPLICATION_STATUS_LABEL } from "@/lib/educationLabels";
 import { fetchDeletedProfilesAdmin, type DeletedProfileAdminRow } from "@/services/accountService";
 import { useAppDataStore } from "@/stores/appDataStore";
 import { CreditCard, ImageIcon, LayoutDashboard, Users } from "lucide-react";
@@ -18,6 +19,7 @@ const ROLE_LABEL: Record<string, string> = {
   creator: "제작 전문가",
   admin: "관리자",
   company_admin: "기업 관리자",
+  teacher: "강사",
 };
 
 const PAYMENT_TYPE_LABEL: Record<string, string> = {
@@ -42,6 +44,8 @@ export function AdminDashboardPage() {
   const featuredCreatorIds = useAppDataStore((s) => s.featuredCreatorIds);
   const setFeaturedCreatorIds = useAppDataStore((s) => s.setFeaturedCreatorIds);
   const banners = useAppDataStore((s) => s.banners);
+  const teacherApplications = useAppDataStore((s) => s.teacherApplications);
+  const approveTeacherApplication = useAppDataStore((s) => s.approveTeacherApplication);
   const setBanners = useAppDataStore((s) => s.setBanners);
 
   const [deletedProfilesRemote, setDeletedProfilesRemote] = useState<DeletedProfileAdminRow[]>([]);
@@ -257,6 +261,45 @@ export function AdminDashboardPage() {
               {c.display_name ?? c.id}
             </button>
           ))}
+        </CardContent>
+      </Card>
+
+      <Card className="mt-6">
+        <CardHeader>
+          <h2 className="text-base font-semibold">강사 신청 관리</h2>
+          <p className="text-sm text-slate-500">강사 신청은 공개 페이지에 노출되지 않으며, 선정 시 강사 프로필이 추가됩니다.</p>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {teacherApplications.length === 0 ? (
+            <p className="text-sm text-slate-600">등록된 강사 신청이 없습니다.</p>
+          ) : (
+            <ul className="space-y-3">
+              {teacherApplications.map((a) => (
+                <li
+                  key={a.id}
+                  className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm lg:flex-row lg:items-center lg:justify-between"
+                >
+                  <div>
+                    <p className="font-bold text-slate-900">
+                      {a.name} ·{" "}
+                      <span className="font-semibold text-slate-700">{TEACHER_APPLICATION_STATUS_LABEL[a.status]}</span>
+                    </p>
+                    <p className="text-xs text-slate-600">
+                      {a.email} · {a.phone}
+                    </p>
+                    <p className="mt-1 line-clamp-2 text-xs text-slate-600">{a.topics}</p>
+                  </div>
+                  {a.status === "pending" || a.status === "reviewing" ? (
+                    <Button type="button" size="sm" onClick={() => approveTeacherApplication(a.id)}>
+                      선정(프로필 생성)
+                    </Button>
+                  ) : (
+                    <span className="text-xs font-semibold text-slate-500">처리 완료</span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
         </CardContent>
       </Card>
 
