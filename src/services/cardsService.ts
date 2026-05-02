@@ -46,6 +46,7 @@ const BUSINESS_CARD_REMOTE_KEYS = [
   "promotion_payment_status",
   "promotion_price",
   "tagline",
+  "marketing_title",
   "publicUrl",
   "trust_line",
   "gallery_urls",

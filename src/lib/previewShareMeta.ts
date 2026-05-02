@@ -65,25 +65,29 @@ export function cardOgImageHttps(card: BusinessCard): string {
 }
 
 export function previewOgTitleFromDraft(
-  draft: Pick<CardEditorDraft, "person_name" | "brand_name"> &
-    Partial<Pick<CardEditorDraft, "job_title" | "card_type">>,
+  draft: Pick<CardEditorDraft, "person_name" | "brand_name" | "marketing_title"> &
+    Partial<Pick<CardEditorDraft, "job_title" | "card_type" | "tagline" | "intro">>,
 ): string {
   return buildPreviewMeta({
     type: draft.card_type ?? "person",
     person_name: draft.person_name,
     brand_name: draft.brand_name,
+    marketing_title: draft.marketing_title,
     job_title: draft.job_title,
+    tagline: draft.tagline,
+    intro: draft.intro,
   }).title;
 }
 
 export function previewOgDescriptionFromDraft(
-  draft: Pick<CardEditorDraft, "tagline" | "intro" | "brand_name" | "address" | "person_name" | "trust_metric"> &
+  draft: Pick<CardEditorDraft, "tagline" | "intro" | "brand_name" | "address" | "person_name" | "trust_metric" | "marketing_title"> &
     Partial<Pick<CardEditorDraft, "job_title" | "card_type">>,
 ): string {
   return buildPreviewMeta({
     type: draft.card_type ?? "person",
     person_name: draft.person_name,
     brand_name: draft.brand_name,
+    marketing_title: draft.marketing_title,
     job_title: draft.job_title,
     tagline: draft.tagline,
     intro: draft.intro,
@@ -115,6 +119,7 @@ export function tempPreviewKakaoFeedFromCard(
   const draftLike = {
     person_name: card.person_name,
     brand_name: card.brand_name,
+    marketing_title: card.marketing_title ?? "",
     tagline: card.tagline ?? "",
     intro: card.intro,
     address: "",
@@ -137,6 +142,7 @@ export function previewKakaoFeedFromBusinessCard(
   const draftLike = {
     person_name: card.person_name,
     brand_name: card.brand_name,
+    marketing_title: card.marketing_title ?? "",
     tagline: card.tagline ?? "",
     intro: card.intro,
     address: "",

@@ -36,6 +36,7 @@ export function normalizeBusinessCardRow(raw: Record<string, unknown>): Business
   const brand_name = optStr(raw.brand_name) ?? optStr(raw.company) ?? base.brand_name ?? "";
   const job_title = optStr(raw.job_title) ?? optStr(raw.title) ?? base.job_title ?? "";
   const intro = optStr(raw.intro) ?? optStr(raw.description) ?? base.intro ?? "";
+  const marketing_title = optStr(raw.marketing_title) ?? optStr(base.marketing_title) ?? null;
   const address = optStr(raw.address) ?? optStr(base.address) ?? null;
   const preview_card_type_raw = optStr(raw.preview_card_type) ?? optStr(base.preview_card_type) ?? null;
 
@@ -45,6 +46,7 @@ export function normalizeBusinessCardRow(raw: Record<string, unknown>): Business
     brand_name,
     job_title,
     intro,
+    marketing_title,
     address,
     preview_card_type: preview_card_type_raw ? normalizePreviewCardType(preview_card_type_raw) : null,
     image_url: image_url ?? undefined,

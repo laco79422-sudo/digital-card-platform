@@ -7,6 +7,8 @@ import { CardForm } from "@/components/card-editor/CardForm";
 import { CardEditorGrowthLadder } from "@/components/card-editor/CardEditorGrowthLadder";
 import { CardEditorSaveCompletionPanel } from "@/components/card-editor/CardEditorSaveCompletionPanel";
 import { CardPreview } from "@/components/card-editor/CardPreview";
+import { FillSampleWizardModal, type FillSampleWizardResult } from "@/components/card-editor/FillSampleWizardModal";
+import { DelegateExpertChoiceModal } from "@/components/card-editor/ExpertAssistModals";
 import { IndustryPickSection } from "@/components/card-editor/IndustryPickSection";
 import { Button } from "@/components/ui/Button";
 import { linkButtonClassName } from "@/components/ui/buttonStyles";
@@ -47,11 +49,12 @@ import {
 } from "@/stores/cardEditorDraftStore";
 import { getLinksForCard, useAppDataStore } from "@/stores/appDataStore";
 import type { BusinessCard, CardLink, CardLinkType, User } from "@/types/domain";
+import { parseWantsSample } from "@/lib/cardEditorSampleData";
 import {
-  getSampleCardDraft,
-  getSampleLinkRows,
-  parseWantsSample,
-} from "@/lib/cardEditorSampleData";
+  applyCardSamplePhrase,
+  SAMPLE_TEMPLATE_PHONE,
+  seedLinkTemplates,
+} from "@/data/cardSampleTemplates";
 import { clearEditorLiveCardId } from "@/lib/editorLiveCardStorage";
 import {
   clearGuestTempId,
@@ -249,6 +252,8 @@ export function CardEditorPage() {
   const [userSkillLevel, setUserSkillLevel] = useState<"low" | "high">("low");
   const [educationMode, setEducationMode] = useState<"online" | "offline">("online");
   const [sampleLadderActive, setSampleLadderActive] = useState(() => wantsSample);
+  const [sampleWizardOpen, setSampleWizardOpen] = useState(false);
+  const [delegateAssistOpen, setDelegateAssistOpen] = useState(false);
   const [growthFlash, setGrowthFlash] = useState<string | null>(null);
   const [paidBusy, setPaidBusy] = useState(false);
   /** 스토어에 카드가 없을 때 Supabase에서 단건 로드 (직접 URL 진입 등) */
@@ -355,12 +360,13 @@ export function CardEditorPage() {
       const emailHint = getLandingEmail()?.trim();
       if (wantsSample) {
         replaceDraft(
-          getSampleCardDraft({
-            email: emailHint || "hello@linko.app",
+          createEmptyDraft({
+            email: emailHint ?? "",
           }),
         );
-        setLinkRows(getSampleLinkRows());
+        setLinkRows(mapLinksToRows([]));
         setGuestTempId(resetGuestTempId());
+        queueMicrotask(() => setSampleWizardOpen(true));
       } else {
         const pending = peekPendingCardDraft();
         if (pending?.draft) {
@@ -448,12 +454,14 @@ export function CardEditorPage() {
       const state = useCardEditorDraftStore.getState();
       if (state.hydratedKey === routeKey) return;
       replaceDraft(
-        getSampleCardDraft({
-          email: user.email?.trim() || "hello@linko.app",
+        createEmptyDraft({
+          person_name: user.name?.trim() || DEFAULT_CARD_PERSON_NAME,
+          email: user.email?.trim() ?? "",
         }),
       );
-      setLinkRows(getSampleLinkRows());
+      setLinkRows(mapLinksToRows([]));
       setHydratedKey(routeKey);
+      queueMicrotask(() => setSampleWizardOpen(true));
       return;
     }
 
@@ -685,20 +693,44 @@ export function CardEditorPage() {
     user,
   ]);
 
-  const applySampleDraft = useCallback(() => {
-    const emailFallback = getLandingEmail()?.trim() || user?.email?.trim() || "hello@linko.app";
-    replaceDraft(getSampleCardDraft({ email: emailFallback }));
-    setLinkRows(getSampleLinkRows());
-    setFieldErrors({});
-    if (isGuestRoute && !user) {
-      setGuestTempId(resetGuestTempId());
-    } else {
-      clearEditorLiveCardId();
-    }
-    clearInstantCardId();
-    newCardIdRef.current = null;
-    setSampleLadderActive(true);
-  }, [replaceDraft, user?.email, isGuestRoute, user]);
+  const applyPhraseFromWizard = useCallback(
+    (r: FillSampleWizardResult) => {
+      const emailFallback = getLandingEmail()?.trim() || user?.email?.trim() || "hello@linko.app";
+      replaceDraft(
+        applyCardSamplePhrase({
+          kind: r.kind,
+          subcategoryId: r.subcategoryId,
+          phrase: r.phrase,
+          categoryLabel: r.categoryLabel,
+          industryLabel: r.industryLabel,
+          emailFallback,
+        }),
+      );
+      setLinkRows(
+        seedLinkTemplates({
+          contactLabel: r.phrase.contactButtonText,
+          detailLabel: r.phrase.detailButtonText,
+          tel: SAMPLE_TEMPLATE_PHONE,
+        }).map((row) => ({
+          id: row.id,
+          label: row.label,
+          type: row.type as CardLinkType,
+          url: row.url,
+        })),
+      );
+      setFieldErrors({});
+      if (isGuestRoute && !user) {
+        setGuestTempId(resetGuestTempId());
+      } else {
+        clearEditorLiveCardId();
+      }
+      clearInstantCardId();
+      newCardIdRef.current = null;
+      setSampleLadderActive(true);
+      setSampleWizardOpen(false);
+    },
+    [replaceDraft, user?.email, isGuestRoute, user],
+  );
 
   const applyEmptyDraft = useCallback(() => {
     replaceDraft(
@@ -720,9 +752,9 @@ export function CardEditorPage() {
   }, [replaceDraft, user?.email, user?.name, isGuestRoute, user]);
 
   const handleTrySample = useCallback(() => {
-    applySampleDraft();
+    setSampleWizardOpen(true);
     scrollToId("card-preview-hero");
-  }, [applySampleDraft]);
+  }, []);
 
   const handleBrandImagePersist = useCallback(
     async (payload: BrandImagePersistPayload) => {
@@ -1406,9 +1438,9 @@ export function CardEditorPage() {
                         <Button type="button" variant="secondary" onClick={moveToEducationStep}>
                           교육으로 배우기
                         </Button>
-                        <Button type="button" variant="outline" onClick={() => navigate("/promotion/partner")}>
-                          제작 전문가에게 맡기기
-                        </Button>
+                <Button type="button" variant="outline" onClick={() => setDelegateAssistOpen(true)}>
+                  제작 전문가에게 맡기기
+                </Button>
                       </div>
                     ) : (
                       <div className="mt-3">
@@ -1588,7 +1620,7 @@ export function CardEditorPage() {
             <div className="rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-5 sm:px-6 sm:py-6">
               <p className="text-center text-sm font-semibold text-slate-900">새로 시작하고 싶다면</p>
               <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
-                <Button type="button" variant="secondary" size="sm" onClick={applySampleDraft}>
+                <Button type="button" variant="secondary" size="sm" onClick={() => setSampleWizardOpen(true)}>
                   샘플 다시 불러오기
                 </Button>
                 <Button type="button" variant="outline" size="sm" onClick={applyEmptyDraft}>
@@ -1597,8 +1629,8 @@ export function CardEditorPage() {
               </div>
               <p className="mx-auto mt-4 max-w-lg text-center text-sm leading-relaxed text-slate-600">
                 {wantsSample
-                  ? "예시 문구가 이미 채워져 있어요. 원하는 톤으로만 고치면 됩니다. 모든 값은 저장·공개 시 그대로 반영됩니다."
-                  : "필드를 채우면 위 미리보기에 실시간으로 반영됩니다. 완성 예시가 필요하면 샘플을 불러오거나 홈에서 ‘샘플로 바로 시작하기’로 들어올 수 있어요."}
+                  ? "유형과 문구를 고르면 예시가 채워집니다. 톤만 바꿔도 바로 활용할 수 있어요. 저장 시 그대로 반영됩니다."
+                  : "필드를 채우면 위 미리보기에 실시간으로 반영됩니다. 완성 예시가 필요하면 샘플로 채우기에서 유형·문구를 고를 수 있어요."}
               </p>
               <p className="mt-3 text-center text-sm font-medium leading-relaxed text-slate-700">
                 나를 소개하는 가장 쉬운 방법, 린코 디지털 명함 — 링크 하나로 고객과 이어지는 첫인상을 만드세요.
@@ -1630,6 +1662,17 @@ export function CardEditorPage() {
           </Button>
         </div>
       </form>
+
+      <FillSampleWizardModal
+        open={sampleWizardOpen}
+        onClose={() => setSampleWizardOpen(false)}
+        onApply={applyPhraseFromWizard}
+      />
+      <DelegateExpertChoiceModal
+        open={delegateAssistOpen}
+        onClose={() => setDelegateAssistOpen(false)}
+        cardTypeHint={draft.card_type}
+      />
     </div>
   );
 }

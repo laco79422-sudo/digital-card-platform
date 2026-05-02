@@ -64,6 +64,8 @@ export type CardEditorDraft = {
   auto_image_url: string | null;
   /** OG·카카오 공유 이미지 (합성 PNG 확장 예정) */
   og_image_url: string | null;
+  /** 이미지형 히어로 상단 큰 제목 — 한 줄 소개(tagline)·본문(intro)과 별개 */
+  marketing_title: string;
 };
 
 function emptyServiceRows(): DigitalCardServiceLine[] {
@@ -186,6 +188,7 @@ export function createEmptyDraft(overrides: Partial<CardEditorDraft> = {}): Card
     industry: null,
     auto_image_url: null,
     og_image_url: null,
+    marketing_title: "",
     ...overrides,
   };
 }
@@ -259,6 +262,7 @@ export function draftFromBusinessCard(card: BusinessCard): CardEditorDraft {
     industry: card.industry?.trim() || null,
     auto_image_url: card.auto_image_url?.trim() || null,
     og_image_url: card.og_image_url?.trim() || null,
+    marketing_title: card.marketing_title?.trim() ?? "",
   };
 }
 
@@ -359,6 +363,7 @@ export function draftToBusinessCard(
     industry,
     auto_image_url: explicitAuto || null,
     og_image_url: resolvedOg || null,
+    marketing_title: draft.marketing_title.trim() || null,
   };
 }
 

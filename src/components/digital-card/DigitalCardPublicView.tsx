@@ -20,7 +20,13 @@ import {
 import { defaultReservationAmountKrw } from "@/lib/defaultReservationAmount";
 import { resolveCardShareUrl } from "@/lib/cardShareUrl";
 import { shareCardLinkNativeOrder } from "@/lib/kakaoWebShare";
-import { buildPreviewMeta, resolveCardPreviewVariant, type PreviewCardType } from "@/lib/previewCardType";
+import {
+  buildPreviewMeta,
+  coerceOnboardCardType,
+  ONBOARD_LINKO_CARD_TYPE_LABEL,
+  resolveCardPreviewVariant,
+  type PreviewCardType,
+} from "@/lib/previewCardType";
 import { tempPreviewKakaoFeedFromCard } from "@/lib/previewShareMeta";
 import { layout } from "@/lib/ui-classes";
 import { buildViralShareText } from "@/lib/viralShareText";
@@ -177,6 +183,15 @@ export function DigitalCardPublicView({
     return pairs;
   }, [gallery]);
   const services = serviceBlocks(card);
+  const heroChips = useMemo(() => {
+    const chips: string[] = [];
+    if (card.industry?.trim()) chips.push(card.industry.trim());
+    services.forEach((s) => {
+      const t = s.title.trim();
+      if (t && chips.length < 3) chips.push(t);
+    });
+    return chips.slice(0, 3);
+  }, [card.industry, services]);
   const hero = resolveHeroCtas(card, links);
   const sticky = resolveStickyCtas(card, links);
   const defaultBookingAmount = useMemo(() => defaultReservationAmountKrw(card.industry), [card.industry]);
@@ -194,6 +209,7 @@ export function DigitalCardPublicView({
     person_name: card.person_name,
     brand_name: card.brand_name,
     job_title: card.job_title,
+    marketing_title: card.marketing_title ?? "",
     tagline: card.tagline ?? "",
     intro: card.intro,
     address: card.address ?? "",
@@ -383,6 +399,35 @@ export function DigitalCardPublicView({
                 </p>
               </div>
             ) : null}
+            {compact ? (
+              <div className="mb-5 w-full max-w-md rounded-2xl border border-white/20 bg-black/25 px-4 py-4 text-left backdrop-blur-md sm:text-center">
+                <span className="inline-flex rounded-full bg-white/15 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white ring-1 ring-white/25">
+                  {ONBOARD_LINKO_CARD_TYPE_LABEL[coerceOnboardCardType(layoutType)]}
+                </span>
+                {card.marketing_title?.trim() ? (
+                  <p className="mt-3 text-balance text-xl font-extrabold leading-snug text-white sm:text-2xl">
+                    {card.marketing_title.trim()}
+                  </p>
+                ) : title ? (
+                  <p className="mt-3 text-balance text-xl font-extrabold leading-snug text-white sm:text-2xl">{title}</p>
+                ) : null}
+                {tagline ? (
+                  <p className="mt-2 text-sm font-medium leading-relaxed text-white/90">{tagline}</p>
+                ) : null}
+                {heroChips.length > 0 ? (
+                  <div className="mt-3 flex flex-wrap justify-start gap-2 sm:justify-center">
+                    {heroChips.map((c) => (
+                      <span
+                        key={c}
+                        className="rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-semibold text-white/95 ring-1 ring-white/20"
+                      >
+                        {c}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
             <div className="relative w-full max-w-md overflow-hidden rounded-2xl bg-white/10 shadow-lg ring-1 ring-white/15">
               <div className="relative aspect-video w-full max-h-[min(42vh,320px)] overflow-hidden">
                 {heroFrameUrl ? (
@@ -444,7 +489,7 @@ export function DigitalCardPublicView({
             {onEmptyImageClick && imageHelperText ? (
               <p className="mt-2 text-sm font-medium text-white/85">{imageHelperText}</p>
             ) : null}
-            {hasPitchHeadline ? (
+            {!compact && hasPitchHeadline ? (
               <>
                 {tempPreview ? (
                   <>
@@ -491,7 +536,7 @@ export function DigitalCardPublicView({
                   </p>
                 ) : null}
               </>
-            ) : (
+            ) : !compact ? (
               <>
                 {tempPreview ? (
                   <>
@@ -534,7 +579,7 @@ export function DigitalCardPublicView({
                   </p>
                 ) : null}
               </>
-            )}
+            ) : null}
             <div className="mt-7 flex w-full max-w-md flex-col gap-3 sm:mt-8 sm:flex-row sm:justify-center">
               {enableReservationBooking ? (
                 <Button

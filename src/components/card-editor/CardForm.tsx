@@ -273,13 +273,38 @@ export function CardForm({
         </div>
         <div className="sm:col-span-2">
           <label className={labelCls}>
+            이미지형 명함 큰 제목
+            {isStudio ? <span className={hintCls}> · 고객이 먼저 읽는 한 줄</span> : null}
+          </label>
+          <Input
+            className="mt-1"
+            placeholder="예: 공간을 바꾸면 삶이 바뀝니다"
+            value={draft.marketing_title}
+            onChange={(e) => setDraft({ marketing_title: e.target.value })}
+          />
+        </div>
+        <div className="sm:col-span-2">
+          <label className={labelCls}>
             한 줄 소개
-            {isStudio ? <span className={hintCls}> · 이미지형 명함에도 그대로 들어갑니다</span> : null}
+            {isStudio ? <span className={hintCls}> · 카드·공유 카피 보조 줄</span> : null}
           </label>
           <Textarea
             className="mt-1"
-            rows={3}
-            placeholder="예: 공간을 바꾸면 삶이 바뀝니다"
+            rows={2}
+            placeholder="예: 하는 일과 연락 방법을 한눈에 보여드립니다"
+            value={draft.tagline}
+            onChange={(e) => setDraft({ tagline: e.target.value })}
+          />
+        </div>
+        <div className="sm:col-span-2">
+          <label className={labelCls}>
+            상세 페이지 본문
+            {isStudio ? <span className={hintCls}> · 링크로 열리는 페이지</span> : null}
+          </label>
+          <Textarea
+            className="mt-1"
+            rows={4}
+            placeholder="예: 경력과 서비스, 상담 절차를 적어 주세요."
             value={draft.intro}
             onChange={(e) => setDraft({ intro: e.target.value })}
           />
@@ -289,10 +314,10 @@ export function CardForm({
         {onboardKind === "person" ? (
           <>
             <div className="sm:col-span-2">
-              <label className={labelCls}>전문 분야</label>
+              <label className={labelCls}>주요 분야 · 태그 (선택)</label>
               <Input
                 className="mt-1"
-                placeholder="예: 아파트 리모델링 / 상가 인테리어"
+                placeholder="예: 상담 · 포트폴리오 강조"
                 value={draft.trust_metric}
                 onChange={(e) => setDraft({ trust_metric: e.target.value })}
               />
@@ -302,8 +327,8 @@ export function CardForm({
               <Input
                 className="mt-1"
                 placeholder="예: 서울 · 경기"
-                value={draft.tagline}
-                onChange={(e) => setDraft({ tagline: e.target.value })}
+                value={draft.address}
+                onChange={(e) => setDraft({ address: e.target.value })}
               />
             </div>
           </>
@@ -311,12 +336,13 @@ export function CardForm({
 
         {onboardKind === "store" ? (
           <div className="sm:col-span-2">
-            <label className={labelCls}>활동 지역</label>
-            <Input
+            <label className={labelCls}>활동 지역 · 오시는 길 안내</label>
+            <Textarea
               className="mt-1"
-              placeholder="예: 서울 · 경기 · 인천"
-              value={draft.tagline}
-              onChange={(e) => setDraft({ tagline: e.target.value })}
+              rows={3}
+              placeholder="예: 서울 · 경기 출장\n또는 매장 주소 한 줄"
+              value={draft.address}
+              onChange={(e) => setDraft({ address: e.target.value })}
             />
           </div>
         ) : null}

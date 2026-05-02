@@ -23,6 +23,7 @@ export const cardEditorSubmitSchema = z
   theme: z.enum(["navy", "slate", "midnight"]),
   is_public: z.boolean(),
   tagline: z.string().optional(),
+  marketing_title: z.string().optional(),
   trust_metric: z.string().optional(),
   trust_testimonials: z
     .array(

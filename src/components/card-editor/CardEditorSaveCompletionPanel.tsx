@@ -134,7 +134,7 @@ export function CardEditorSaveCompletionPanel({
               </p>
             ) : null}
             <p className="mt-2 max-w-xl text-[15px] font-medium leading-relaxed text-slate-700">
-              이미지 명함은 한눈에 보여주고, 상세 링크는 더 자세한 설명으로 이어집니다.
+              이미지는 한눈에 보여주고, 링크는 자세한 설명으로 이어집니다.
             </p>
           </div>
         </div>

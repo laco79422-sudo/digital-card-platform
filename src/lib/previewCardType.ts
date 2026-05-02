@@ -51,6 +51,7 @@ export function buildPreviewMeta(input: {
   brand_name?: string | null;
   job_title?: string | null;
   tagline?: string | null;
+  marketing_title?: string | null;
   intro?: string | null;
   address?: string | null;
   trust_metric?: string | null;
@@ -58,7 +59,11 @@ export function buildPreviewMeta(input: {
   const type = normalizePreviewCardType(input.type);
   const name = clean(input.person_name, 80);
   const brandName = clean(input.brand_name, 80);
-  const headline = clean(input.tagline, 160) || clean(input.intro, 160);
+  const marketingHead = clean(input.marketing_title, 120);
+  const taglineOne = clean(input.tagline, 160);
+  const introSnippet = clean(input.intro, 160);
+  /** 한 줄 후크(공유)·히어로 보조 줄 — 마케팅 헤드라인과 구분 */
+  const hookLine = taglineOne || introSnippet;
   const address = clean(input.address, 180);
   const trust = clean(input.trust_metric, 160);
 
@@ -66,69 +71,70 @@ export function buildPreviewMeta(input: {
     case "store":
       return {
         type,
-        title: brandName,
-        description: [clean(input.job_title, 140), headline, clean(input.intro, 220)]
+        title: marketingHead || brandName || name,
+        description: [clean(input.job_title, 140), hookLine, clean(input.intro, 220)]
           .filter(Boolean)
           .join(" · ")
           .slice(0, 300),
         name,
         brandName,
-        headline,
+        headline: hookLine,
       };
     case "location":
       return {
         type,
-        title: brandName || name,
+        title: marketingHead || brandName || name,
         description: [clean(input.job_title, 120), address, clean(input.intro, 220)]
           .filter(Boolean)
           .join(" · ")
           .slice(0, 300),
         name,
         brandName,
-        headline: address || headline,
+        headline: address || hookLine,
       };
     case "result":
       return {
         type,
-        title: headline || name,
+        title: hookLine || name,
         description: `${brandName} · ${clean(input.intro, 220)}`.trim().replace(/^·\s*/, "").slice(0, 300),
         name,
         brandName,
-        headline,
+        headline: hookLine,
       };
     case "event":
       return {
         type,
         title: `${brandName} 이벤트`.slice(0, 80),
-        description: `${headline}`.slice(0, 300),
+        description: `${hookLine}`.slice(0, 300),
         name,
         brandName,
-        headline,
+        headline: hookLine,
       };
     case "trust":
       return {
         type,
         title: name,
-        description: `${brandName} · ${trust || headline}`.slice(0, 300),
+        description: `${brandName} · ${trust || hookLine}`.slice(0, 300),
         name,
         brandName,
-        headline: trust || headline,
+        headline: trust || hookLine,
       };
     case "person":
     default: {
+      const taglineClean = clean(input.tagline, 160);
       const oneLineIntro = clean(input.intro, 160);
       const specialty = clean(input.trust_metric, 160);
-      const region = clean(input.tagline, 120);
+      const regionLine = address;
       const desc =
-        [specialty, region, oneLineIntro].filter(Boolean).join(" · ") ||
+        [specialty, regionLine, oneLineIntro].filter(Boolean).join(" · ") ||
         `${brandName ? `${brandName} · ` : ""}${oneLineIntro}`.trim().replace(/^·\s*/, "");
       return {
         type: "person",
-        title: name,
+        title: marketingHead || name || brandName,
         description: desc.slice(0, 300),
         name,
         brandName,
-        headline: oneLineIntro || region || specialty,
+        headline: taglineClean || oneLineIntro || specialty,
       };
     }
   }

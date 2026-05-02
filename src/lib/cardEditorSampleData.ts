@@ -12,11 +12,12 @@ const SAMPLE_GALLERY_LINES = [
 ].join("\n");
 
 /**
- * 「3초 샘플」용 초안 — 홍보·전환형(유입·클릭) 톤.
- * placeholder가 아니라 폼·미리보기가 그대로 쓰는 편집 가능 값입니다.
+ * 「3초 샘플」용 초안 — 홍보·전환형(유입·클릭) 톤. 홈 등 레거시 진입용입니다.
+ * `/create-card` 기본은 빈 카드 + 유형 선택 마법사 플로우를 씁니다.
  */
 export function getSampleCardDraft(overrides: Partial<CardEditorDraft> = {}): CardEditorDraft {
   return createEmptyDraft({
+    marketing_title: "연결이 이어지는 디지털 명함",
     brand_name: "린코 디지털 명함",
     person_name: DEFAULT_CARD_PERSON_NAME,
     job_title: "린코 디지털 명함 대표 · 연결을 만드는 사람",

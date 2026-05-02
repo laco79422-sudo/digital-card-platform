@@ -68,6 +68,8 @@ export interface BusinessCard {
   promotion_price?: number;
   /** Hero/SEO 한 줄 (비어 있으면 직함·소개로 보완) */
   tagline?: string | null;
+  /** 이미지형·히어로 상단 큰 제목(한 줄 소개·상세와 별개) */
+  marketing_title?: string | null;
   /** 공개 명함 절대 URL. 없으면 현재 origin + /c/{slug}로 생성 */
   publicUrl?: string | null;
   /** 신뢰 영역 갤러리 이미지 URL */
