@@ -12,8 +12,7 @@ import { layout } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
 import { getLandingEmail, hasPendingCardDraft } from "@/lib/pendingCardStorage";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase/client";
-import { getStoredLinkoReferralCode } from "@/lib/linkoReferralStorage";
-import { getReferralCodeFromSearch } from "@/lib/referrals";
+import { getActiveReferralCode } from "@/lib/activeReferralSession";
 import { getPromotionReferralCode } from "@/lib/promotionReferralStorage";
 import { claimReferralForAuthenticatedUser, fetchReferrerPreviewForSignup } from "@/services/referralService";
 import { useAppDataStore } from "@/stores/appDataStore";
@@ -81,13 +80,18 @@ export function SignupPage() {
   const emailValue = watch("email") ?? "";
   const emailFieldStatus = useMemo(() => getSignupEmailFieldStatus(emailValue), [emailValue]);
 
-  const platformReferralCode = useMemo(() => {
-    const fromUrl = getReferralCodeFromSearch(location.search);
-    if (fromUrl) return fromUrl;
-    return getStoredLinkoReferralCode();
-  }, [location.search]);
+  /** UI·미리보기: 홈/?ref 또는 /ref/* 로 활성된 세션 추천만 */
+  const platformReferralCode = useMemo(() => getActiveReferralCode(), [
+    location.pathname,
+    location.search,
+    location.key,
+  ]);
 
-  const referralCode = useMemo(() => platformReferralCode ?? getPromotionReferralCode(), [platformReferralCode]);
+  /** 가입 제출 시: 활성 플랫폼 추천 또는 명함 헬퍼 등 프로모션 ref */
+  const referralCode = useMemo(
+    () => platformReferralCode ?? getPromotionReferralCode(),
+    [platformReferralCode],
+  );
 
   useEffect(() => {
     if (!platformReferralCode?.trim()) {

@@ -2,7 +2,6 @@ import { DigitalCardPublicView } from "@/components/digital-card/DigitalCardPubl
 import { DigitalCardSeo } from "@/components/digital-card/DigitalCardSeo";
 import { resolveBusinessCardPublicUrl } from "@/lib/cardShareUrl";
 import { parsePartnerIdFromSearch, rememberPartnerForCard, getStoredPartnerForCard } from "@/lib/linkoPartnerAttribution";
-import { saveLinkoReferralCodeFromUrl } from "@/lib/linkoReferralStorage";
 import { savePromotionReferralCode } from "@/lib/promotionReferralStorage";
 import { insertCardActionLogRemote, insertInquiryLogRemote } from "@/services/cardAnalyticsRemote";
 import { insertCardVisitLog } from "@/services/cardVisitLogsService";
@@ -223,7 +222,6 @@ export function PublicCardPage() {
     /** 추천 전용은 `/?ref=` — 잘못 `/c/{slug}?ref=` 로 들어온 경우 메인으로 넘김 */
     const refFromQuery = new URLSearchParams(location.search).get("ref")?.trim();
     if (refFromQuery) {
-      saveLinkoReferralCodeFromUrl(refFromQuery);
       return <Navigate to={`/?ref=${encodeURIComponent(refFromQuery)}`} replace />;
     }
     return (

@@ -37,6 +37,7 @@ import { AdsCreatePage } from "@/pages/AdsCreatePage";
 import { AdvertiserDashboardPage } from "@/pages/AdvertiserDashboardPage";
 import { ReferralCaptureEffect } from "@/components/referral/ReferralCaptureEffect";
 import { ReferralLandingRouteSync } from "@/components/referral/ReferralLandingRouteSync";
+import { ReferSlugRedirect } from "@/components/referral/ReferSlugRedirect";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { useParams } from "react-router-dom";
 
@@ -60,6 +61,7 @@ function AppRoutes() {
         <Route path="/auth/callback" element={<AuthCallbackPage />} />
         <Route element={<AppLayout />}>
           <Route index element={<LandingPage />} />
+          <Route path="ref/:code" element={<ReferSlugRedirect />} />
           <Route path="pricing" element={<PricingPage />} />
           <Route path="structure" element={<StructureBlueprintPage />} />
           <Route path="education" element={<EducationPage />} />

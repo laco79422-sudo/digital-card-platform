@@ -1,32 +1,20 @@
+import { extractPlatformReferralFromLocation } from "@/lib/activeReferralSession";
 import { maybeRecordReferralLinkVisit } from "@/lib/referralClickTracking";
-import { saveLinkoReferralCodeFromUrl } from "@/lib/linkoReferralStorage";
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 
 /**
- * 추천 코드 저장 (`linko_referral_code`).
- * 홈 `/`, 회원가입·로그인 등 정식 추천 진입 경로에서만 저장합니다.
- * 명함 공개 URL(`/c/...`)의 `?ref=`는 플랫폼 추천 링크가 아니므로 저장하지 않습니다.
+ * `/?ref=` · `/ref/:code`(→ 리다이렉트 후 `/?ref=` ) 유입에 대해 `referral_link_visits`를 기록합니다.
+ * 활성 세션 추천 코드는 ReferralLandingRouteSync에서 처리합니다.
  */
-const REF_CAPTURE_PATH_PREFIXES = ["/signup", "/login"];
-
 export function ReferralCaptureEffect() {
   const location = useLocation();
 
   useEffect(() => {
-    const path = location.pathname.replace(/\/$/, "") || "/";
-    const ref = new URLSearchParams(location.search).get("ref");
-    if (!ref?.trim()) return;
-
-    const landing =
-      path === "/" ||
-      REF_CAPTURE_PATH_PREFIXES.some((p) => path === p || path.startsWith(`${p}/`));
-
-    if (landing) {
-      saveLinkoReferralCodeFromUrl(ref);
-      const landingPath = `${location.pathname}${location.search}`;
-      void maybeRecordReferralLinkVisit(ref, landingPath);
-    }
+    const ref = extractPlatformReferralFromLocation(location.pathname, location.search)?.trim();
+    if (!ref) return;
+    const landingPath = `${location.pathname}${location.search}`;
+    void maybeRecordReferralLinkVisit(ref, landingPath);
   }, [location.pathname, location.search]);
 
   return null;

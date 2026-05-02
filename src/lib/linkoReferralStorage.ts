@@ -1,23 +1,13 @@
 export const LINKO_REFERRAL_CODE_STORAGE_KEY = "linko_referral_code";
 
-/** URL ?ref= 로 들어온 추천 코드 (회원가입·로그인 시 claim_referral 에 사용) */
-export function saveLinkoReferralCodeFromUrl(ref: string): void {
-  const t = ref.trim().toUpperCase();
-  if (!t) return;
-  try {
-    localStorage.setItem(LINKO_REFERRAL_CODE_STORAGE_KEY, t);
-  } catch {
-    /* ignore */
-  }
-}
+/**
+ * @deprecated 플랫폼 추천 코드는 세션만 사용합니다. 호환을 위해 빈 함수로 두었습니다.
+ */
+export function saveLinkoReferralCodeFromUrl(_ref: string): void {}
 
+/** @deprecated 로컬 스토리지에서 추천 코드를 읽지 않습니다. {@link getActiveReferralCode}를 사용하세요. */
 export function getStoredLinkoReferralCode(): string | null {
-  try {
-    const v = localStorage.getItem(LINKO_REFERRAL_CODE_STORAGE_KEY)?.trim().toUpperCase();
-    return v || null;
-  } catch {
-    return null;
-  }
+  return null;
 }
 
 export function clearStoredLinkoReferralCode(): void {
