@@ -22,6 +22,7 @@ import type {
   CreatorProfile,
   DesignRequest,
   EducationApplication,
+  ExpertDirectRequest,
   InstructorApplication,
   MainBanner,
   Payment,
@@ -34,6 +35,7 @@ import type {
   Subscription,
 } from "@/types/domain";
 import { INSTANT_GUEST_USER_ID } from "@/lib/instantCardCreate";
+import { migrateCreatorProfileRow } from "@/lib/migrateCreatorProfile";
 import { buildReferralCode, rewardMonthsForReferralCount } from "@/lib/referrals";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
@@ -77,7 +79,10 @@ interface AppDataState {
   designRequests: DesignRequest[];
   promotionApplications: PromotionApplication[];
 
+  expertDirectRequests: ExpertDirectRequest[];
+
   setBusinessCards: (cards: BusinessCard[]) => void;
+  appendExpertDirectRequest: (r: ExpertDirectRequest) => void;
   upsertBusinessCard: (card: BusinessCard) => void;
   removeBusinessCard: (id: string) => void;
   setCardLinks: (cardId: string, links: CardLink[]) => void;
@@ -132,6 +137,7 @@ export const useAppDataStore = create<AppDataState>()(
       referralRecords: [],
       designRequests: [],
       promotionApplications: [],
+      expertDirectRequests: [],
 
       setBusinessCards: (businessCards) => set({ businessCards }),
       upsertBusinessCard: (card) =>
@@ -174,6 +180,7 @@ export const useAppDataStore = create<AppDataState>()(
             : [...s.serviceRequests, r],
         })),
       addApplication: (a) => set((s) => ({ applications: [...s.applications, a] })),
+      appendExpertDirectRequest: (r) => set((s) => ({ expertDirectRequests: [...s.expertDirectRequests, r] })),
       upsertCreatorProfile: (c) =>
         set((s) => ({
           creators: s.creators.some((x) => x.id === c.id)
@@ -292,7 +299,7 @@ export const useAppDataStore = create<AppDataState>()(
     {
       name: "linko-app-data",
       storage: createJSONStorage(() => localStorage),
-      version: 3,
+      version: 4,
       partialize: (state) => ({
         businessCards: state.businessCards,
         cardLinks: state.cardLinks,
@@ -315,6 +322,7 @@ export const useAppDataStore = create<AppDataState>()(
         referralRecords: state.referralRecords,
         designRequests: state.designRequests,
         promotionApplications: state.promotionApplications,
+        expertDirectRequests: state.expertDirectRequests,
       }),
       merge: (persisted, current) => {
         const p = persisted as Partial<AppDataState> | undefined;
@@ -324,7 +332,7 @@ export const useAppDataStore = create<AppDataState>()(
           ...p,
           businessCards: mergeById(current.businessCards, p.businessCards),
           cardLinks: mergeById(current.cardLinks, p.cardLinks),
-          creators: mergeById(current.creators, p.creators),
+          creators: mergeById(current.creators, p.creators).map(migrateCreatorProfileRow),
           serviceRequests: mergeById(current.serviceRequests, p.serviceRequests),
           applications: mergeById(current.applications, p.applications),
           cardViews: mergeById(current.cardViews, p.cardViews),
@@ -354,6 +362,7 @@ export const useAppDataStore = create<AppDataState>()(
           referralRecords: mergeReferralRecords(current.referralRecords ?? [], p.referralRecords),
           designRequests: mergeById(current.designRequests ?? [], p.designRequests),
           promotionApplications: mergeById(current.promotionApplications ?? [], p.promotionApplications),
+          expertDirectRequests: mergeById(current.expertDirectRequests ?? [], p.expertDirectRequests),
         };
       },
     },

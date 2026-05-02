@@ -1,133 +1,127 @@
 import { CreatorCard } from "@/components/ui/CreatorCard";
 import { layout } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
+import { expertTypeTabLabels } from "@/lib/expertLabels";
 import { useAppDataStore } from "@/stores/appDataStore";
-import type { CreatorType } from "@/types/domain";
+import type { CreatorProfile, CreatorType } from "@/types/domain";
+import { ArrowRight } from "lucide-react";
 import { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 
-const tabs: { id: CreatorType | "all"; label: string }[] = [
-  { id: "all", label: "전체" },
-  { id: "blog_writer", label: "블로그" },
-  { id: "youtube_producer", label: "유튜브" },
-  { id: "shortform_editor", label: "숏폼" },
-  { id: "thumbnail_designer", label: "썸네일" },
-];
+type TabId = CreatorType | "all";
 
-const selectionSteps = [
-  {
-    title: "1단계. 필터 질문",
-    label: "고객 관점 분석",
-    body: "“이 명함을 보고 고객이 연락할까요? 그 이유를 설명해주세요.”",
-    note: "예쁘다는 감상이 아니라, 고객이 왜 행동하는지 설명할 수 있는지 봅니다.",
-  },
-  {
-    title: "2단계. 실전 테스트",
-    label: "전환형 명함 제작",
-    body: "직업: 암롤박스 도장 시공 / 목표: 전화 문의 유도 / 고객: 건설·현장 운영자",
-    note: "명함 1개를 만들고, 1초 이해·연락 문장·CTA·구조 설계를 함께 평가합니다.",
-  },
-  {
-    title: "3단계. 확장 질문",
-    label: "마케팅 감각",
-    body: "“이 명함을 더 많이 공유되게 만들려면?”",
-    note: "명함을 만드는 능력에서 끝나지 않고 공유와 문의 증가까지 생각하는지 확인합니다.",
-  },
-] as const;
+type SortOption = "newest" | "reviews";
+type ReqFilterOption = "all" | "open" | "closed";
+type PortfolioFilter = "any" | "has";
 
-const evaluationItems = ["1초 이해 가능 여부", "연락 유도 문장", "CTA 명확성", "구조 설계"] as const;
-const corePrinciples = ["디자인보다 전환율", "감성보다 행동 유도", "예쁨보다 문의"] as const;
+function isExpertVisible(expert: CreatorProfile): boolean {
+  const st = expert.expert_status ?? "active";
+  return st !== "hidden" && st !== "rejected";
+}
 
 export function CreatorDirectoryPage() {
   const creators = useAppDataStore((s) => s.creators);
-  const [tab, setTab] = useState<(typeof tabs)[number]["id"]>("all");
+  const [tab, setTab] = useState<TabId>("all");
+
+  /** 의뢰 가능 = accepting_requests 명시 거짓 아님 */
+  const [reqOpenFilter, setReqOpenFilter] = useState<ReqFilterOption>("all");
+  const [portfolioFilter, setPortfolioFilter] = useState<PortfolioFilter>("any");
+  const [regionQuery, setRegionQuery] = useState("");
+  const [sort, setSort] = useState<SortOption>("newest");
+
+  const regionsForFilter = useMemo(() => {
+    const set = new Set<string>();
+    for (const c of creators) {
+      if (!c.region?.trim()) continue;
+      set.add(c.region.trim());
+    }
+    return [...set].slice(0, 30);
+  }, [creators]);
 
   const filtered = useMemo(() => {
-    if (tab === "all") return creators;
-    return creators.filter((c) => c.creator_type === tab);
-  }, [creators, tab]);
+    let rows = creators.filter(isExpertVisible);
+    if (tab !== "all") rows = rows.filter((c) => c.creator_type === tab);
+    if (regionQuery.trim()) {
+      const q = regionQuery.trim().toLowerCase();
+      rows = rows.filter((c) => (c.region ?? "").toLowerCase().includes(q));
+    }
+    if (reqOpenFilter === "open") {
+      rows = rows.filter((c) => c.accepting_requests !== false);
+    } else if (reqOpenFilter === "closed") {
+      rows = rows.filter((c) => c.accepting_requests === false);
+    }
+    if (portfolioFilter === "has") {
+      rows = rows.filter((c) => {
+        const n =
+          c.portfolio_count_override ??
+          Math.max(c.portfolios_rich_json?.length ?? 0, c.portfolio_items_json?.length ?? 0);
+        return n > 0;
+      });
+    }
+
+    rows = [...rows].sort((a, b) => {
+      if (sort === "reviews") return (b.review_count ?? 0) - (a.review_count ?? 0);
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
+
+    return rows;
+  }, [creators, tab, regionQuery, reqOpenFilter, portfolioFilter, sort]);
+
+  const tabs: { id: TabId; label: string }[] = [
+    { id: "all", label: "전체" },
+    { id: "card_design", label: expertTypeTabLabels.card_design },
+    { id: "blog", label: expertTypeTabLabels.blog },
+    { id: "video", label: expertTypeTabLabels.video },
+    { id: "program", label: expertTypeTabLabels.program },
+  ];
 
   return (
     <div className={cn(layout.page, "py-10 sm:py-12")}>
-      <h1 className="break-keep text-2xl font-bold leading-snug tracking-tight text-slate-900 md:text-3xl">
-        제작 전문가 둘러보기
-      </h1>
-      <p className="mt-2 text-base leading-relaxed text-slate-600">
-        블로그·영상 제작 전문가를 한곳에서 찾고, 프로필에서 바로 지원하세요.
-      </p>
-
-      <section className="mt-10 rounded-3xl border border-brand-100 bg-gradient-to-br from-brand-50 via-white to-slate-50 p-5 shadow-sm sm:p-7 lg:p-8">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="max-w-3xl">
-          <p className="text-sm font-bold text-brand-800">디자이너 선발 기준</p>
-          <h2 className="mt-2 break-keep text-2xl font-extrabold leading-snug tracking-tight text-slate-950 md:text-3xl">
-            예쁜 디자인보다 연락이 오는 명함을 만드는 사람
-          </h2>
+          <p className="text-sm font-bold text-brand-800">린코 제작 전문가 모음</p>
+          <h1 className="mt-2 break-keep text-2xl font-bold leading-snug tracking-tight text-slate-900 md:text-3xl">
+            제작 전문가 둘러보기
+          </h1>
           <p className="mt-3 text-base leading-relaxed text-slate-700">
-            린코는 보기 좋은 결과물보다 고객이 이해하고, 신뢰하고, 바로 문의하게 만드는 구조를 우선합니다.
+            명함디자인, 블로그, 영상제작, 프로그램 전문가들이 모여 있습니다. 필요한 전문가를 선택해 제작 의뢰나 홍보
+            의뢰를 시작해 보세요.
           </p>
-        </div>
-
-        <div className="mt-7 grid gap-4 lg:grid-cols-3">
-          {selectionSteps.map((step) => (
-            <article key={step.title} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-              <p className="text-xs font-bold uppercase tracking-widest text-brand-700">{step.label}</p>
-              <h3 className="mt-2 text-lg font-bold text-slate-950">{step.title}</h3>
-              <p className="mt-3 whitespace-pre-line break-keep text-[15px] font-semibold leading-relaxed text-slate-900">
-                {step.body}
-              </p>
-              <p className="mt-3 text-sm leading-relaxed text-slate-600">{step.note}</p>
-            </article>
-          ))}
-        </div>
-
-        <div className="mt-6 grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <h3 className="text-lg font-bold text-slate-950">실전 테스트 평가 기준</h3>
-            <ul className="mt-4 grid gap-2 sm:grid-cols-2">
-              {evaluationItems.map((item) => (
-                <li key={item} className="rounded-xl bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-800">
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div className="rounded-2xl border border-slate-900 bg-slate-950 p-5 text-white shadow-sm">
-            <h3 className="text-lg font-bold">핵심 원칙</h3>
-            <ul className="mt-4 space-y-2">
-              {corePrinciples.map((item) => (
-                <li key={item} className="rounded-xl bg-white/10 px-4 py-3 text-sm font-semibold text-white">
-                  {item}
-                </li>
-              ))}
-            </ul>
+          <p className="mt-2 text-sm leading-relaxed text-slate-600">
+            명함디자인부터 블로그, 영상제작, 프로그램까지 당신의 홍보를 도와줄 전문가들이 모여 있습니다.
+          </p>
+          <p className="mt-3 text-sm leading-relaxed text-slate-500">
+            누구나 전문가로 신청할 수 있고, 등록된 포트폴리오는 회원들이 열람할 수 있습니다.
+          </p>
+          <div className="mt-6 flex flex-wrap items-center gap-3">
+            <Link
+              to="/creators/apply"
+              className="inline-flex min-h-[52px] items-center justify-center gap-2 rounded-xl bg-slate-900 px-6 text-base font-bold text-white shadow-sm hover:bg-slate-800"
+            >
+              전문가로 등록하기
+              <ArrowRight className="h-5 w-5" aria-hidden />
+            </Link>
+            <p className="max-w-xs text-sm text-slate-600">나도 전문가로 등록하고 의뢰를 받아 보세요.</p>
           </div>
         </div>
-
-        <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h3 className="text-lg font-bold text-slate-950">운영 역할</h3>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            <div className="rounded-xl bg-slate-50 p-4">
-              <p className="font-bold text-slate-900">제작 전문가</p>
-              <p className="mt-1 text-sm leading-relaxed text-slate-600">시각 디자인과 완성도를 담당합니다.</p>
-            </div>
-            <div className="rounded-xl bg-brand-50 p-4">
-              <p className="font-bold text-brand-950">설계자</p>
-              <p className="mt-1 text-sm leading-relaxed text-brand-900">
-                문장, CTA, 고객 행동 흐름을 설계합니다. 두 역할 모두 가능한 인재를 우선 선발합니다.
-              </p>
-            </div>
-          </div>
+        <div className="shrink-0 rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-sm text-slate-700 lg:text-right">
+          <p className="font-semibold text-slate-900">바로 확인</p>
+          <ul className="mt-2 space-y-1 text-left text-slate-600 lg:text-right">
+            <li>어떤 전문가가 있는지</li>
+            <li>어떤 일을 해 주는지</li>
+            <li>직접 의뢰·신청 방법</li>
+          </ul>
         </div>
-      </section>
+      </div>
 
-      <div className="mt-8 flex gap-2 overflow-x-auto pb-2 [-webkit-overflow-scrolling:touch]">
+      <div className="mt-10 flex gap-2 overflow-x-auto pb-2 [-webkit-overflow-scrolling:touch]">
         {tabs.map((t) => (
           <button
             key={t.id}
             type="button"
             onClick={() => setTab(t.id)}
             className={cn(
-              "shrink-0 rounded-full px-4 py-2.5 text-base font-medium transition-colors min-h-11",
+              "min-h-11 shrink-0 rounded-full px-4 py-2.5 text-base font-medium transition-colors",
               tab === t.id
                 ? "bg-brand-900 text-white"
                 : "bg-white text-slate-700 ring-1 ring-slate-300 hover:bg-slate-50",
@@ -137,13 +131,85 @@ export function CreatorDirectoryPage() {
           </button>
         ))}
       </div>
-      <ul className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {filtered.map((c) => (
-          <li key={c.id}>
-            <CreatorCard creator={c} />
-          </li>
-        ))}
-      </ul>
+
+      <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+        <p className="text-sm font-bold text-slate-900">필터</p>
+        <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <label className="block text-xs font-semibold text-slate-700">
+            의뢰 가능
+            <select
+              className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm"
+              value={reqOpenFilter}
+              onChange={(e) => setReqOpenFilter(e.target.value as ReqFilterOption)}
+            >
+              <option value="all">전체</option>
+              <option value="open">의뢰 받는 전문가</option>
+              <option value="closed">일시 중단</option>
+            </select>
+          </label>
+          <label className="block text-xs font-semibold text-slate-700">
+            포트폴리오
+            <select
+              className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm"
+              value={portfolioFilter}
+              onChange={(e) => setPortfolioFilter(e.target.value as PortfolioFilter)}
+            >
+              <option value="any">전체</option>
+              <option value="has">포트폴리오 있음</option>
+            </select>
+          </label>
+          <label className="block text-xs font-semibold text-slate-700">
+            활동 지역
+            <input
+              list="creator-region-suggest"
+              className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm"
+              placeholder="예: 서울"
+              value={regionQuery}
+              onChange={(e) => setRegionQuery(e.target.value)}
+            />
+            <datalist id="creator-region-suggest">
+              {regionsForFilter.map((r) => (
+                <option key={r} value={r} />
+              ))}
+            </datalist>
+          </label>
+          <label className="block text-xs font-semibold text-slate-700">
+            정렬
+            <select
+              className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm"
+              value={sort}
+              onChange={(e) => setSort(e.target.value as SortOption)}
+            >
+              <option value="newest">최신순</option>
+              <option value="reviews">후기 많은 순</option>
+            </select>
+          </label>
+        </div>
+      </div>
+
+      <div className="mt-10 flex justify-end">
+        <Link
+          to="/creators/apply"
+          className="inline-flex min-h-11 items-center rounded-xl px-5 text-base font-semibold text-brand-800 underline-offset-4 hover:underline"
+        >
+          전문가로 등록하기 →
+        </Link>
+      </div>
+
+      {filtered.length === 0 ? (
+        <div className="mt-10 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-16 text-center">
+          <p className="font-semibold text-slate-900">조건에 맞는 전문가가 없습니다.</p>
+          <p className="mt-2 text-sm text-slate-600">필터를 바꾸거나, 직접 전문가로 등록해 보세요.</p>
+        </div>
+      ) : (
+        <ul className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {filtered.map((c) => (
+            <li key={c.id}>
+              <CreatorCard creator={c} />
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

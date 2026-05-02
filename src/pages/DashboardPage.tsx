@@ -7,12 +7,13 @@ import { buildNfcAcceptUrl, canonicalSiteOrigin } from "@/lib/siteOrigin";
 import { buildCardShareUrl, resolveBusinessCardPublicUrl } from "@/lib/cardShareUrl";
 import { shareCardLinkNativeOrder } from "@/lib/kakaoWebShare";
 import { buildReferralCode, buildSignupReferralGuestPreviewUrl, buildSignupReferralUrl, rewardMonthsForReferralCount } from "@/lib/referrals";
+import { layout } from "@/lib/ui-classes";
 import {
   DESIGN_REQUEST_PAYMENT_STATUS_LABEL,
   DESIGN_REQUEST_STATUS_LABEL,
   DESIGN_REQUEST_STYLE_LABEL,
 } from "@/lib/designRequestLabels";
-import { layout } from "@/lib/ui-classes";
+import { DIRECT_REQUEST_STATUS_LABEL, EXPERT_REQUEST_PURPOSE_LABEL } from "@/components/experts/expertUiConstants";
 import { cn } from "@/lib/utils";
 import { CardHeroThumbnailImg } from "@/components/digital-card/CardHeroThumbnailImg";
 import { getCardHeroImageUrl } from "@/lib/businessCardHeroImage";
@@ -261,6 +262,8 @@ export function DashboardPage() {
   const referralRecords = useAppDataStore((s) => s.referralRecords);
   const promotionApplications = useAppDataStore((s) => s.promotionApplications);
   const platformUsers = useAppDataStore((s) => s.platformUsers);
+  const creators = useAppDataStore((s) => s.creators);
+  const expertDirectRequests = useAppDataStore((s) => s.expertDirectRequests);
   const ensureReferralRecord = useAppDataStore((s) => s.ensureReferralRecord);
   const upsertBusinessCard = useAppDataStore((s) => s.upsertBusinessCard);
   const addPayment = useAppDataStore((s) => s.addPayment);
@@ -558,6 +561,27 @@ export function DashboardPage() {
         : [],
     [promotionApplications, uid],
   );
+
+  const myExpertProfileIds = useMemo(() => {
+    if (!uid) return new Set<string>();
+    return new Set(creators.filter((c) => c.user_id === uid).map((c) => c.id));
+  }, [creators, uid]);
+
+  const expertLookup = useMemo(() => new Map(creators.map((c) => [c.id, c])), [creators]);
+
+  const mySentExpertRequests = useMemo(() => {
+    if (!uid) return [];
+    return expertDirectRequests
+      .filter((r) => r.requester_id === uid)
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  }, [expertDirectRequests, uid]);
+
+  const myReceivedExpertRequests = useMemo(() => {
+    if (myExpertProfileIds.size === 0) return [];
+    return expertDirectRequests
+      .filter((r) => myExpertProfileIds.has(r.expert_id))
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  }, [expertDirectRequests, myExpertProfileIds]);
 
   const promoterCodesForMe = useMemo(
     () =>
@@ -1920,6 +1944,132 @@ export function DashboardPage() {
               <p className="mt-2 text-sm text-slate-500">필요하면 제작 전문가에게 명함 디자인 제작을 맡길 수 있어요.</p>
             </div>
           )}
+        </section>
+      ) : null}
+
+      {uid ? (
+        <section
+          id="dashboard-section-expert-direct-requests"
+          className="mt-10 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6"
+        >
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-900 sm:text-xl">제작 전문가 직접 의뢰</h2>
+              <p className="mt-2 text-sm leading-relaxed text-slate-600 sm:text-base">
+                전문가에게 보낸 의뢰와, 내 프로필로 들어온 의뢰를 한곳에서 확인합니다. 데모 환경에서는 브라우저에 저장됩니다.
+              </p>
+            </div>
+            <Link
+              to="/creators"
+              className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 text-sm font-bold text-slate-900 hover:bg-slate-50"
+            >
+              전문가 둘러보기
+            </Link>
+          </div>
+
+          <div className="mt-6 grid gap-6 lg:grid-cols-2">
+            <div>
+              <h3 className="text-sm font-bold text-slate-900">보낸 의뢰</h3>
+              {mySentExpertRequests.length > 0 ? (
+                <ul className="mt-3 grid gap-3">
+                  {mySentExpertRequests.map((r) => {
+                    const ex = expertLookup.get(r.expert_id);
+                    const headline = r.title?.trim() || r.work_category || "직접 의뢰";
+                    return (
+                      <li key={r.id} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                        <p className="text-sm font-bold text-slate-900">{headline}</p>
+                        <p className="mt-1 text-xs text-slate-600">
+                          받는 분:{" "}
+                          <span className="font-semibold text-slate-800">
+                            {ex?.display_name?.trim() || ex?.id || r.expert_id}
+                          </span>
+                          {" · "}
+                          {EXPERT_REQUEST_PURPOSE_LABEL[r.request_purpose]}
+                          {r.work_category ? ` · ${r.work_category}` : null}
+                        </p>
+                        <p className="mt-2 line-clamp-2 text-sm text-slate-700">{r.description}</p>
+                        <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                          <span className="rounded-full bg-white px-2.5 py-1 font-semibold text-slate-700 ring-1 ring-slate-200">
+                            {DIRECT_REQUEST_STATUS_LABEL[r.status]}
+                          </span>
+                          <span className="text-slate-500">
+                            {new Date(r.created_at).toLocaleString("ko-KR", { dateStyle: "short", timeStyle: "short" })}
+                          </span>
+                        </div>
+                        {ex ? (
+                          <Link
+                            to={`/creators/${encodeURIComponent(ex.id)}`}
+                            className="mt-2 inline-block text-xs font-bold text-brand-800 hover:underline"
+                          >
+                            전문가 프로필
+                          </Link>
+                        ) : null}
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : (
+                <p className="mt-3 rounded-xl border border-dashed border-slate-200 bg-slate-50/80 px-4 py-6 text-center text-sm text-slate-600">
+                  아직 보낸 직접 의뢰가 없습니다.
+                </p>
+              )}
+            </div>
+
+            <div>
+              <h3 className="text-sm font-bold text-slate-900">받은 의뢰</h3>
+              {myExpertProfileIds.size === 0 ? (
+                <p className="mt-3 rounded-xl border border-dashed border-slate-200 bg-slate-50/80 px-4 py-6 text-sm text-slate-600">
+                  전문가로 등록된 프로필이 연결되면 이곳에 들어오는 의뢰가 표시됩니다.
+                </p>
+              ) : myReceivedExpertRequests.length > 0 ? (
+                <ul className="mt-3 grid gap-3">
+                  {myReceivedExpertRequests.map((r) => {
+                    const ex = expertLookup.get(r.expert_id);
+                    const requester =
+                      platformUsers.find((u) => u.id === r.requester_id) ?? null;
+                    const requesterLabel =
+                      r.requester_name?.trim() ||
+                      requester?.name?.trim() ||
+                      requester?.email?.split("@")[0] ||
+                      "의뢰자";
+                    const headline = r.title?.trim() || r.work_category || "직접 의뢰";
+                    return (
+                      <li key={r.id} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                        <p className="text-sm font-bold text-slate-900">{headline}</p>
+                        <p className="mt-1 text-xs text-slate-600">
+                          보낸 분: <span className="font-semibold text-slate-800">{requesterLabel}</span>
+                          {" · "}
+                          {EXPERT_REQUEST_PURPOSE_LABEL[r.request_purpose]}
+                          {r.work_category ? ` · ${r.work_category}` : null}
+                        </p>
+                        <p className="mt-2 line-clamp-2 text-sm text-slate-700">{r.description}</p>
+                        <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                          <span className="rounded-full bg-white px-2.5 py-1 font-semibold text-slate-700 ring-1 ring-slate-200">
+                            {DIRECT_REQUEST_STATUS_LABEL[r.status]}
+                          </span>
+                          <span className="text-slate-500">
+                            {new Date(r.created_at).toLocaleString("ko-KR", { dateStyle: "short", timeStyle: "short" })}
+                          </span>
+                        </div>
+                        {ex ? (
+                          <Link
+                            to={`/creators/${encodeURIComponent(ex.id)}`}
+                            className="mt-2 inline-block text-xs font-bold text-brand-800 hover:underline"
+                          >
+                            내 전문가 프로필
+                          </Link>
+                        ) : null}
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : (
+                <p className="mt-3 rounded-xl border border-dashed border-slate-200 bg-slate-50/80 px-4 py-6 text-center text-sm text-slate-600">
+                  아직 받은 직접 의뢰가 없습니다.
+                </p>
+              )}
+            </div>
+          </div>
         </section>
       ) : null}
 

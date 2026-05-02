@@ -13,6 +13,8 @@ import { CreateCardForOthersPage } from "@/pages/CreateCardForOthersPage";
 import { CreatorDirectoryPage } from "@/pages/CreatorDirectoryPage";
 import { CreatorProfilePage } from "@/pages/CreatorProfilePage";
 import { DashboardPage } from "@/pages/DashboardPage";
+import { ExpertApplyPage } from "@/pages/ExpertApplyPage";
+import { ExpertDirectRequestPage } from "@/pages/ExpertDirectRequestPage";
 import { DesignerRequestsPage } from "@/pages/DesignerRequestsPage";
 import { DesignRequestPage } from "@/pages/DesignRequestPage";
 import { EducationPage } from "@/pages/EducationPage";
@@ -79,6 +81,22 @@ function AppRoutes() {
           <Route path="create-card" element={<CardEditorPage />} />
           <Route path="request" element={<DesignRequestPage />} />
         <Route path="creators" element={<CreatorDirectoryPage />} />
+        <Route
+          path="creators/apply"
+          element={
+            <ProtectedRoute>
+              <ExpertApplyPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="creators/:id/request"
+          element={
+            <ProtectedRoute>
+              <ExpertDirectRequestPage />
+            </ProtectedRoute>
+          }
+        />
         <Route path="creators/:id" element={<CreatorProfilePage />} />
         <Route path="requests" element={<RequestListPage />} />
 

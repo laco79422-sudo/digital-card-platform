@@ -195,24 +195,88 @@ export interface CardVisitLog {
   visited_at: string;
 }
 
-export type CreatorType =
-  | "blog_writer"
-  | "youtube_producer"
-  | "shortform_editor"
-  | "thumbnail_designer";
+export type ExpertType = "card_design" | "blog" | "video" | "program";
+/** 동일 타입 에일리어스 (`CreatorProfile.creator_type`) — 라벨은 `@/lib/expertLabels`. */
+export type CreatorType = ExpertType;
+
+/** DB·관리 화면용 전문가 노출 상태 (나중 검수 기능 대비) */
+export type ExpertStatus = "pending" | "active" | "hidden" | "rejected";
+
+export interface ExpertPortfolioPublic {
+  id: string;
+  title: string;
+  description?: string | null;
+  image_url?: string | null;
+  link_url?: string | null;
+  portfolio_type?: string | null;
+}
+
+export type ExpertRequestPurpose = "production" | "promotion" | "consult";
+
+/** 전문가에게 직접 보내는 의뢰 상태 */
+export type ExpertDirectRequestStatus =
+  | "requested"
+  | "discussing"
+  | "accepted"
+  | "completed"
+  | "canceled";
+
+/** 회원이 특정 전문가에게 보내는 직접 의뢰 (내 공간·전문가 모두 확인) */
+export interface ExpertDirectRequest {
+  id: string;
+  requester_id: string;
+  expert_id: string;
+  request_purpose: ExpertRequestPurpose;
+  /** 선택 제목 요약 */
+  title?: string | null;
+  /** 폼에서 선택한 작업 카테고리(명함·블로그 등 라벨) */
+  work_category?: string | null;
+  description: string;
+  reference_link?: string | null;
+  budget?: number | null;
+  due_date?: string | null;
+  contact?: string | null;
+  attachment_url?: string | null;
+  status: ExpertDirectRequestStatus;
+  created_at: string;
+  requester_name?: string | null;
+}
 
 export interface CreatorProfile {
   id: string;
-  user_id: string;
+  user_id: string | null;
   creator_type: CreatorType;
+  /** 한 줄 소개 */
   intro: string;
+  /** 상세 소개 (상세 페이지) */
+  bio_detail?: string | null;
   portfolio_url: string | null;
   portfolio_items_json: string[] | null;
+  /** 구조화된 포트폴리오 카드 목록 */
+  portfolios_rich_json?: ExpertPortfolioPublic[] | null;
+  /** 어떤 일을 잘하는지 · 적합 고객 · 작업 방식 등 (상세) */
+  who_for_text?: string | null;
+  work_style_text?: string | null;
   min_price: number | null;
   region: string | null;
+  /** 활동 가능 시간 문구 */
+  available_time_text?: string | null;
+  /** 주요 작업 분야 */
   categories_json: string[] | null;
+  /** 제공 서비스 라벨 (유형별로 필터링해 표시) */
+  offered_services_json?: string[] | null;
+  /** 희망 받는 의뢰유형 신청 시 기록 제작·홍보·둘다 */
+  request_channels_json?: ("production" | "promotion")[] | null;
+  /** 유형별 추가 필드(JSON) 신청폼 원본 저장 */
+  type_facets_json?: Record<string, unknown> | null;
   is_verified: boolean;
+  expert_status?: ExpertStatus;
   created_at: string;
+  portfolio_count_override?: number | null;
+  review_count?: number;
+  rating_avg?: number | null;
+  /** 노출 순·필터: 의뢰 받음 여부 */
+  accepting_requests?: boolean;
   /** Denormalized for directory UI when using mock store */
   display_name?: string;
 }
