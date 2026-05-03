@@ -7,6 +7,7 @@ import { AdminDashboardPage } from "@/pages/AdminDashboardPage";
 import { AdminDesignRequestsPage } from "@/pages/AdminDesignRequestsPage";
 import { ApplicationsPage } from "@/pages/ApplicationsPage";
 import { InstantCardClaimEffect } from "@/components/instant/InstantCardClaimEffect";
+import { PendingCardDraftFlushEffect } from "@/components/pending-card/PendingCardDraftFlushEffect";
 import { AuthCallbackPage } from "@/pages/AuthCallbackPage";
 import { CardEditorPage } from "@/pages/CardEditorPage";
 import { CreateCardForOthersPage } from "@/pages/CreateCardForOthersPage";
@@ -61,6 +62,7 @@ function AppRoutes() {
   return (
     <>
       <InstantCardClaimEffect />
+      <PendingCardDraftFlushEffect />
       <Routes>
         <Route path="/c/:slug" element={<PublicCardPage />} />
         <Route path="/pay/reservation/:reservationId" element={<ReservationPaymentPage />} />

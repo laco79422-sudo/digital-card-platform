@@ -2,6 +2,7 @@ import { AccountDeletionSection } from "@/components/account/AccountDeletionSect
 import { RewardAdsSection } from "@/components/reward-ads/RewardAdsSection";
 import { Input } from "@/components/ui/Input";
 import { CardQrAndExportPanel } from "@/components/card-print/CardQrAndExportPanel";
+import { SHOW_PENDING_CARD_SAVED_STATE } from "@/services/pendingCardDraftFlush";
 import { BRAND_DISPLAY_NAME } from "@/lib/brand";
 import { buildNfcAcceptUrl, canonicalSiteOrigin } from "@/lib/siteOrigin";
 import { buildCardShareUrl, resolveBusinessCardPublicUrl } from "@/lib/cardShareUrl";
@@ -315,6 +316,7 @@ export function DashboardPage() {
   const [referralSignupCountDb, setReferralSignupCountDb] = useState<number | null>(null);
   const [referralClickCountDb, setReferralClickCountDb] = useState<number | null>(null);
   const [referralRewardRows, setReferralRewardRows] = useState<ReferralRewardRow[]>([]);
+  const [cardJustSavedBanner, setCardJustSavedBanner] = useState(false);
   const [rewardClawbackPending, setRewardClawbackPending] = useState(0);
   const [withdrawalModalOpen, setWithdrawalModalOpen] = useState(false);
   const [withdrawalBankName, setWithdrawalBankName] = useState("");
@@ -341,6 +343,20 @@ export function DashboardPage() {
       navigate("/dashboard", { replace: true, state: {} });
     }
   }, [location.state, navigate]);
+
+  useEffect(() => {
+    const st = location.state as Partial<Record<string, unknown>> | null | undefined;
+    if (st?.[SHOW_PENDING_CARD_SAVED_STATE]) {
+      setCardJustSavedBanner(true);
+      navigate(".", { replace: true, state: {} });
+    }
+  }, [location.state, navigate]);
+
+  useEffect(() => {
+    if (!cardJustSavedBanner) return;
+    const t = window.setTimeout(() => setCardJustSavedBanner(false), 14000);
+    return () => window.clearTimeout(t);
+  }, [cardJustSavedBanner]);
 
   useEffect(() => {
     if (uid) ensureReferralRecord(uid);
@@ -1075,6 +1091,18 @@ export function DashboardPage() {
           </Link>
         </div>
       </div>
+
+      {cardJustSavedBanner ? (
+        <div
+          role="status"
+          className="mt-8 rounded-2xl border border-emerald-300/70 bg-emerald-50 px-5 py-4 text-sm leading-relaxed text-emerald-950 shadow-sm shadow-emerald-900/10"
+        >
+          <p className="font-bold text-emerald-950">명함이 저장되었습니다.</p>
+          <p className="mt-1 font-medium">
+            이제 내 공간에서 링크를 복사하고 홍보할 수 있습니다.
+          </p>
+        </div>
+      ) : null}
 
       <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {isCreator ? (

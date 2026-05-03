@@ -8,6 +8,7 @@ import { CardEditorGrowthLadder } from "@/components/card-editor/CardEditorGrowt
 import { CardEditorSaveCompletionPanel } from "@/components/card-editor/CardEditorSaveCompletionPanel";
 import { CardPreview } from "@/components/card-editor/CardPreview";
 import { FillSampleWizardModal, type FillSampleWizardResult } from "@/components/card-editor/FillSampleWizardModal";
+import { GuestSaveAuthModal } from "@/components/card-editor/GuestSaveAuthModal";
 import { DelegateExpertChoiceModal } from "@/components/card-editor/ExpertAssistModals";
 import { IndustryPickSection } from "@/components/card-editor/IndustryPickSection";
 import { Button } from "@/components/ui/Button";
@@ -69,7 +70,7 @@ import { recordPaymentAndReferralReward } from "@/services/referralRewardsServic
 import { clearInstantCardId } from "@/lib/instantCardStorage";
 import {
   clearLandingEmail,
-  consumePendingCardDraft,
+  clearPendingCardDraft,
   getLandingEmail,
   peekPendingCardDraft,
   savePendingCardDraft,
@@ -84,6 +85,7 @@ import {
   upsertCardRemote,
 } from "@/services/cardsService";
 import { syncQrImageAfterSave } from "@/services/cardQrSync";
+import { SHOW_PENDING_CARD_SAVED_STATE } from "@/services/pendingCardDraftFlush";
 import { ArrowRight, Check, Copy, Loader2, Share2, Sparkles } from "lucide-react";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
@@ -294,6 +296,22 @@ export function CardEditorPage() {
   const welcomeHighlight = searchParams.get("welcome") === "1";
 
   const [guestTempId, setGuestTempId] = useState<string | null>(null);
+  const [guestAuthSaveOpen, setGuestAuthSaveOpen] = useState(false);
+
+  const persistGuestPendingFromEditor = useCallback(() => {
+    const landing = getLandingEmail()?.trim();
+    const current = useCardEditorDraftStore.getState().draft;
+    if (landing && !current.email.trim()) {
+      replaceDraft({ ...current, email: landing });
+    }
+    const tid = guestTempId ?? getOrCreateGuestTempId();
+    setGuestTempId(tid);
+    savePendingCardDraft({
+      draft: useCardEditorDraftStore.getState().draft,
+      linkRows,
+      tempId: tid,
+    });
+  }, [guestTempId, linkRows, replaceDraft]);
 
   const completionShareUrl = useMemo(() => {
     const o = canonicalSiteOrigin();
@@ -409,12 +427,12 @@ export function CardEditorPage() {
     }
 
     if (!isGuestRoute && location.pathname === "/cards/new" && isNew && user) {
-      const pending = consumePendingCardDraft();
+      const pending = peekPendingCardDraft();
       if (pending) {
         pendingTempIdRef.current = pending.tempId ?? null;
         replaceDraft(mergeDraftDefaults(pending.draft));
         setLinkRows(
-          pending.linkRows.length > 0
+          pending.linkRows && pending.linkRows.length > 0
             ? pending.linkRows.map((r) => ({
                 id: r.id,
                 label: r.label,
@@ -1090,7 +1108,8 @@ export function CardEditorPage() {
         sort_order: i,
       }));
       setCardLinks(cardId, links);
-      navigate("/cards", { replace: true, state: { showSavedNotice: true } });
+      clearPendingCardDraft();
+      navigate("/dashboard", { replace: true, state: { [SHOW_PENDING_CARD_SAVED_STATE]: true } });
     } finally {
       setSubmitting(false);
     }
@@ -1117,29 +1136,7 @@ export function CardEditorPage() {
     }
 
     if (isGuestRoute && !user) {
-      const landing = getLandingEmail()?.trim();
-      const d = useCardEditorDraftStore.getState().draft;
-      if (landing && !d.email.trim()) {
-        replaceDraft({ ...d, email: landing });
-      }
-      const tid = guestTempId ?? getOrCreateGuestTempId();
-      setGuestTempId(tid);
-      savePendingCardDraft({
-        draft: useCardEditorDraftStore.getState().draft,
-        linkRows,
-        tempId: tid,
-      });
-      setSubmitting(true);
-      try {
-        navigate("/signup", {
-          state: {
-            signupNotice:
-              "지금 만든 명함은 가입 후 내 계정에 저장할 수 있어요. 가입을 완료하면 이어서 저장됩니다.",
-          },
-        });
-      } finally {
-        setSubmitting(false);
-      }
+      setGuestAuthSaveOpen(true);
       return;
     }
 
@@ -1222,7 +1219,10 @@ export function CardEditorPage() {
         clearGuestTempId();
         pendingTempIdRef.current = null;
       }
-      navigate("/cards", { replace: true, state: { showSavedNotice: true } });
+      if (isNew) {
+        clearPendingCardDraft();
+      }
+      navigate("/dashboard", { replace: true, state: { [SHOW_PENDING_CARD_SAVED_STATE]: true } });
     } finally {
       setSubmitting(false);
     }
@@ -1678,6 +1678,7 @@ export function CardEditorPage() {
             persistBrandImageCardId={null}
             getPersistBrandImageCardId={() => existing?.id ?? stagingEditorCardId ?? null}
             onBrandImagePersist={handleBrandImagePersist}
+            guestHeroStorageHint={isGuestRoute && !user}
             midSlot={
               isLiveGenerator ? (
                 <EditorFlowHint phase="mid" onTrySample={handleTrySample} showTrySample />
@@ -1800,6 +1801,21 @@ export function CardEditorPage() {
         {isGuestRoute && !user ? (
           <GuestSavePrompt className="scroll-mt-8" />
         ) : null}
+        {isGuestRoute && !user && peekPendingCardDraft() ? (
+          <div className="flex justify-end px-1">
+            <button
+              type="button"
+              className="text-xs font-semibold text-slate-500 underline underline-offset-2 hover:text-slate-800"
+              onClick={() => {
+                if (!window.confirm("임시 저장된 초안을 삭제할까요? 이 기기에서는 복구할 수 없습니다.")) return;
+                clearPendingCardDraft();
+                setGrowthFlash("브라우저 임시저장을 삭제했습니다.");
+              }}
+            >
+              임시저장 삭제
+            </button>
+          </div>
+        ) : null}
 
         <div id="final-save" className="scroll-mt-24 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end sm:gap-2">
           <Link
@@ -1820,6 +1836,28 @@ export function CardEditorPage() {
           </Button>
         </div>
       </form>
+
+      <GuestSaveAuthModal
+        open={guestAuthSaveOpen}
+        onClose={() => setGuestAuthSaveOpen(false)}
+        onContinueEditing={() => setGuestAuthSaveOpen(false)}
+        onSignup={() => {
+          persistGuestPendingFromEditor();
+          setGuestAuthSaveOpen(false);
+          navigate("/signup", {
+            state: {
+              pendingCardSignupFlow: true,
+              signupNotice:
+                "지금 만든 명함은 가입 후 내 계정에 저장할 수 있어요. 가입을 완료하면 이어서 저장됩니다.",
+            },
+          });
+        }}
+        onLogin={() => {
+          persistGuestPendingFromEditor();
+          setGuestAuthSaveOpen(false);
+          navigate("/login", { state: { pendingCardSaveLogin: true } });
+        }}
+      />
 
       <FillSampleWizardModal
         open={sampleWizardOpen}

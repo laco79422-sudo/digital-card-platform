@@ -188,7 +188,7 @@ export function SignupPage() {
   }
 
   if (user) {
-    return <Navigate to={hasPendingCardDraft() ? "/cards/new" : "/"} replace />;
+    return <Navigate to={hasPendingCardDraft() ? "/dashboard" : "/"} replace />;
   }
 
   const signupNoticeFromNav = (location.state as { signupNotice?: string } | null)?.signupNotice;
@@ -215,9 +215,17 @@ export function SignupPage() {
             <p className="mt-4 text-sm leading-relaxed text-slate-600">
               메일함에서 인증 버튼을 누르면 자동으로 린코로 돌아옵니다. 메일이 보이지 않으면 스팸함도 확인해 주세요.
             </p>
+            {hasPendingCardDraft() ? (
+              <p className="mt-3 rounded-xl border border-brand-100 bg-brand-50/80 px-3 py-2.5 text-sm font-medium leading-relaxed text-brand-950">
+                이메일 인증 후 로그인하면 임시 저장해 두신 명함이 내 공간에서 자동으로 저장됩니다.
+              </p>
+            ) : null}
             <Link
               to="/login"
-              state={{ signupNotice: SIGNUP_SUCCESS_NOTICE }}
+              state={{
+                signupNotice: SIGNUP_SUCCESS_NOTICE,
+                ...(hasPendingCardDraft() ? { pendingCardSaveLogin: true } : {}),
+              }}
               className="mt-6 inline-flex min-h-[52px] w-full items-center justify-center rounded-xl bg-cta-500 px-5 text-base font-bold text-white shadow-sm shadow-cta-900/20 hover:bg-cta-600"
             >
               로그인 화면으로 이동
@@ -230,9 +238,14 @@ export function SignupPage() {
           <p className="text-sm font-semibold text-brand-800">{BRAND_DISPLAY_NAME}</p>
           <h1 className="mt-1 text-2xl font-semibold leading-snug tracking-tight text-slate-900">회원가입</h1>
           <p className="mt-2 text-base leading-relaxed text-slate-600">
-            {hasPendingCardDraft()
-              ? "만들어 두신 명함을 저장하려면 계정이 필요해요. 가입 후 이메일 인증을 완료하면 이어서 저장할 수 있습니다."
-              : "가입 후 이메일 인증을 완료하면 내 공간에서 명함을 만들고 관리할 수 있어요."}
+            {hasPendingCardDraft() ? (
+              <>
+                <span className="font-semibold text-slate-900">작성한 명함을 저장하려면 회원가입이 필요합니다.</span>
+                <span className="mt-2 block">가입이 완료되면 방금 만든 명함이 자동으로 저장됩니다.</span>
+              </>
+            ) : (
+              "가입 후 이메일 인증을 완료하면 내 공간에서 명함을 만들고 관리할 수 있어요."
+            )}
           </p>
         </CardHeader>
         <CardContent>

@@ -12,9 +12,11 @@ import {
 import { BRAND_DISPLAY_NAME } from "@/lib/brand";
 import { layout } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
-import { clearInstantCardId, peekInstantCardId } from "@/lib/instantCardStorage";
+import { peekInstantCardId, clearInstantCardId } from "@/lib/instantCardStorage";
+import { hasPendingCardDraft } from "@/lib/pendingCardStorage";
 import { getSupabaseConfigErrorMessage, isSupabaseConfigured } from "@/lib/supabase/client";
 import { mapSupabaseUser } from "@/lib/supabase/mapAuthUser";
+import { SHOW_PENDING_CARD_SAVED_STATE, tryFlushPendingCardDraftForAuthenticatedUser } from "@/services/pendingCardDraftFlush";
 import { useDevMountLog } from "@/dev/renderDiagnostics";
 import { useAppDataStore } from "@/stores/appDataStore";
 import { useAuthStore } from "@/stores/authStore";
@@ -27,6 +29,8 @@ export function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const signupNotice = (location.state as { signupNotice?: string } | null)?.signupNotice;
+  const pendingCardSaveLogin = Boolean((location.state as { pendingCardSaveLogin?: boolean } | null)?.pendingCardSaveLogin);
+  const showPendingDraftLoginHint = pendingCardSaveLogin || hasPendingCardDraft();
   const user = useAuthStore((s) => s.user);
   const authReady = useAuthReady();
   const setUser = useAuthStore((s) => s.setUser);
@@ -75,12 +79,21 @@ export function LoginPage() {
       return;
     }
     if (sess) setSession(sess);
-    setUser(mapSupabaseUser(u));
+    const mapped = mapSupabaseUser(u);
+    setUser(mapped);
     touchActivity();
     const instantId = peekInstantCardId();
     if (instantId) {
       useAppDataStore.getState().claimInstantGuestCard(u.id, instantId);
       clearInstantCardId();
+    }
+    const flushed = await tryFlushPendingCardDraftForAuthenticatedUser(mapped);
+    if (flushed.saved) {
+      navigate("/dashboard", {
+        replace: true,
+        state: { [SHOW_PENDING_CARD_SAVED_STATE]: true },
+      });
+      return;
     }
     navigate("/", {
       replace: true,
@@ -162,6 +175,14 @@ export function LoginPage() {
               {signupNotice}
             </p>
           ) : null}
+          {showPendingDraftLoginHint ? (
+            <div
+              role="status"
+              className="mb-4 rounded-xl border border-brand-200 bg-brand-50 px-3 py-3 text-sm leading-relaxed text-brand-950"
+            >
+              로그인하면 임시 저장해 둔 명함이 내 계정으로 저장됩니다. 이메일 인증까지 완료된 계정이어야 해요.
+            </div>
+          ) : null}
           <StableLoginForm
             onCredentialsSubmit={handleCredentials}
             disabled={googleLoading}
@@ -208,7 +229,17 @@ export function LoginPage() {
           </div>
           <p className="mt-6 text-center text-base leading-relaxed text-slate-600">
             계정이 없으신가요?{" "}
-            <Link to="/signup" className="font-medium text-brand-700">
+            <Link
+              to="/signup"
+              state={
+                showPendingDraftLoginHint
+                  ? {
+                      signupNotice: "새로 가입하시면 작성 중인 명함을 이 계정에 이어서 저장할 수 있어요.",
+                    }
+                  : undefined
+              }
+              className="font-medium text-brand-700"
+            >
               회원가입
             </Link>
           </p>

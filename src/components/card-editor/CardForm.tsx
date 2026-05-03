@@ -54,6 +54,7 @@ export function CardForm({
   persistBrandImageCardId = null,
   getPersistBrandImageCardId,
   onBrandImagePersist,
+  guestHeroStorageHint = false,
 }: {
   errors?: FieldErrors;
   /** studio: 양식 느낌 완화, 실시간 명함 조정 톤 */
@@ -66,6 +67,7 @@ export function CardForm({
   persistBrandImageCardId?: string | null;
   getPersistBrandImageCardId?: () => string | null;
   onBrandImagePersist?: (payload: BrandImagePersistPayload) => Promise<void>;
+  guestHeroStorageHint?: boolean;
 }) {
   const draft = useCardEditorDraftStore((s) => s.draft);
   const setDraft = useCardEditorDraftStore((s) => s.setDraft);
@@ -427,6 +429,9 @@ export function CardForm({
             getPersistBrandImageCardId={getPersistBrandImageCardId}
             onBrandImagePersist={onBrandImagePersist}
           />
+          {guestHeroStorageHint ? (
+            <p className="mt-2 text-xs font-medium text-slate-600">이미지는 회원가입 후 안전하게 저장됩니다.</p>
+          ) : null}
       </div>
 
           <div className="grid gap-4 border-t border-slate-100 pt-4 sm:grid-cols-2">
