@@ -7,6 +7,7 @@ import {
   normalizePromotionContext,
   parsePromotionQuery,
 } from "@/lib/cardPromoTracking";
+import { syncPromotionTrackingSession } from "@/lib/promotionTrackingSession";
 import { resolveCardPreviewVariant } from "@/lib/previewCardType";
 import { parsePartnerIdFromSearch, rememberPartnerForCard, getStoredPartnerForCard } from "@/lib/linkoPartnerAttribution";
 import { savePromotionReferralCode } from "@/lib/promotionReferralStorage";
@@ -100,6 +101,11 @@ export function PublicCardPage() {
     () => normalizePromotionContext(parsePromotionQuery(location.search)),
     [location.search],
   );
+
+  useEffect(() => {
+    syncPromotionTrackingSession(promotionContext);
+  }, [promotionContext]);
+
   const [qr, setQr] = useState<string | null>(null);
 
   const canEditName = Boolean(card && cardBelongsToUser(card, user));

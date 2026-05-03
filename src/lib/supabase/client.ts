@@ -63,7 +63,17 @@ if (!isSupabaseConfigured) {
   logSupabaseConfigError();
 }
 
-/** 세션은 Supabase에 맡기고, 비활성 자동 로그아웃·`app_last_activity_at`은 `@/lib/auth/inactivityConstants`에서 관리합니다. */
+/** 세션은 Supabase에 맡기고, 비활성 자동 로그아웃·`app_last_activity_at`은 `@/lib/auth/inactivityConstants`에서 관리합니다.
+ *
+ * ── 보안 저장소 정책(요약) ──
+ * • 이 Vite SPA에서는 Supabase JS가 기본적으로 브라우저 저장소에 세션을 영속화합니다.
+ *   HttpOnly Secure 쿠키 기반으로 바꾸려면 서버(SSR, Edge, Functions)에서 세션 쿠키를 발급·갱신하는
+ *   `@supabase/ssr` 등 패턴이 필요합니다(프론트만으로 refresh_token을 HttpOnly에 둘 수 없음).
+ * • `VITE_*` 번들에 SERVICE_ROLE·결제 비밀키·원문 계좌번호를 넣지 마세요. 허용은 URL + anon 공개 키뿐입니다.
+ * • access/refresh 토큰·결제 키를 직접 localStorage/sessionStorage에 저장하지 않습니다(앱 코드 기준).
+ *
+ * @see https://supabase.com/docs/guides/auth/server-side
+ */
 export const supabase: SupabaseClient | null = isSupabaseConfigured
   ? createClient(url, anonKey, {
       auth: {

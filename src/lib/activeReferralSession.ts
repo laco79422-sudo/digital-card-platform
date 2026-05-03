@@ -1,6 +1,7 @@
 import { LINKO_REFERRAL_CODE_STORAGE_KEY } from "@/lib/linkoReferralStorage";
 import {
   getPersistentPlatformReferralCode,
+  pruneExpiredPersistentPlatformReferralCapture,
   tryPersistFirstTouchPlatformReferral,
 } from "@/lib/referralPersistentFirstTouch";
 
@@ -103,9 +104,11 @@ export function getActiveReferralCode(): string | null {
   return readRawReferralCodeFromSession();
 }
 
-/** 회원추천 가입 속성용: 브라우저 최초 저장값이 우선, 그다음 현재 세션 */
+/** 회원추천 가입 속성용: 브라우저 최초 저장값이 우선(30일 내), 그다음 현재 세션 */
 export function getEffectivePlatformReferralCode(): string | null {
-  return getPersistentPlatformReferralCode() || getActiveReferralCode();
+  pruneExpiredPersistentPlatformReferralCapture();
+  const p = getPersistentPlatformReferralCode();
+  return p || readRawReferralCodeFromSession();
 }
 
 export function clearActiveReferralCode(): void {

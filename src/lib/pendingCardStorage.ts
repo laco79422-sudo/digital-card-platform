@@ -2,6 +2,12 @@ import type { CardEditorDraft } from "@/stores/cardEditorDraftStore";
 import { mergeDraftDefaults } from "@/stores/cardEditorDraftStore";
 import type { CardLinkType } from "@/types/domain";
 
+/**
+ * 비회원 명함 임시 저장 (sessionStorage · `pendingCardDraft`)
+ * • 탭을 닫으면 사라져도 됩니다. 가입·로그인 후 서버 `cards` 로 옮기면 제거합니다.
+ * • 이미지 파일·data/blob URL 은 넣지 않습니다(용량·민감도). 회원가입 후 Storage 업로드만 사용합니다.
+ * • access_token, refresh_token, service_role, 계좌번호 원문 등은 절대 저장하지 않습니다.
+ */
 const LANDING_EMAIL_KEY = "linko-landing-email";
 
 /** 회원 전 임시 명함 — 세션 버킷 표준 키 */
