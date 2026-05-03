@@ -3,7 +3,6 @@ import {
   SAMPLE_APPLICATIONS,
   SAMPLE_BANNERS,
   SAMPLE_CARD_LINKS,
-  SAMPLE_CARDS,
   SAMPLE_CLICKS,
   SAMPLE_CREATORS,
   SAMPLE_EDUCATION_OFFERINGS,
@@ -137,7 +136,8 @@ interface AppDataState {
 export const useAppDataStore = create<AppDataState>()(
   persist(
     (set) => ({
-      businessCards: [...SAMPLE_CARDS],
+      /** 실제 사용자 명함은 Supabase에서만 채워집니다(샘플로 덮어쓰지 않음 — 배포/갱신 후에도 DB가 기준). */
+      businessCards: [],
       cardLinks: [...SAMPLE_CARD_LINKS],
       creators: [...SAMPLE_CREATORS],
       serviceRequests: [...SAMPLE_REQUESTS],

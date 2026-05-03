@@ -464,3 +464,32 @@ export async function upsertCardRemote(card: BusinessCard): Promise<boolean> {
   }
   return true;
 }
+
+/** 동일 슬러그가 다른 명함에 예약되어 있으면 true. Supabase 미설정이면 null(호출처에서 로컬 검사 폴백). */
+export async function isSlugTakenOnRemoteByAnotherCard(
+  slug: string,
+  excludeCardId?: string | null,
+): Promise<boolean | null> {
+  if (!isSupabaseConfigured || !supabase) return null;
+  const trimmed = slug.trim();
+  if (!trimmed) return false;
+
+  const variants = Array.from(
+    new Set([normalizeSlugLookup(trimmed), trimmed].filter((x) => x.length > 0)),
+  );
+  const skipId = excludeCardId?.trim() || null;
+
+  for (const v of variants) {
+    const { data, error } = await supabase.from(TABLE_CARDS).select("id").eq("slug", v).maybeSingle();
+    if (error) {
+      if (isMissingTableError(error.message, TABLE_CARDS)) return null;
+      console.warn("[cardsService] isSlugTakenOnRemoteByAnotherCard", error.message);
+      return null;
+    }
+    if (data && typeof data === "object" && "id" in data) {
+      const rowId = String((data as { id?: string }).id ?? "");
+      if (rowId && (!skipId || rowId !== skipId)) return true;
+    }
+  }
+  return false;
+}

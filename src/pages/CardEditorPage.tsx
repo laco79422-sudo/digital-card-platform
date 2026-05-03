@@ -78,6 +78,7 @@ import { buildViralShareText } from "@/lib/viralShareText";
 import {
   fetchBusinessCardByIdForOwner,
   fetchCardLinks,
+  isSlugTakenOnRemoteByAnotherCard,
   patchCardBrandHeroRemote,
   upsertCardRemote,
 } from "@/services/cardsService";
@@ -821,11 +822,12 @@ export function CardEditorPage() {
         user_id: uid,
         created_at: existing?.created_at ?? new Date().toISOString(),
       });
-      upsertBusinessCard({
+      const persistedCard = {
         ...card,
         expire_at: existing?.expire_at ?? card.expire_at,
         status: existing?.status ?? card.status,
-      });
+      };
+      upsertBusinessCard(persistedCard);
       setCardLinks(cardId, draftLinkRowsToCardLinks(nextDraft, linkRows, cardId));
       addPayment({
         id: crypto.randomUUID(),
@@ -836,9 +838,16 @@ export function CardEditorPage() {
         created_at: new Date().toISOString(),
       });
       if (uid !== INSTANT_GUEST_USER_ID) {
-        await recordPaymentAndReferralReward({ planType: "linko_card_pro", amount: price });
+        const remoteOk = await upsertCardRemote(persistedCard);
+        if (!remoteOk) {
+          setGrowthFlash("결제 처리는 했지만 서버에 명함을 저장하지 못했습니다. 「저장」으로 다시 시도해 주세요.");
+        } else {
+          await recordPaymentAndReferralReward({ planType: "linko_card_pro", amount: price });
+          setGrowthFlash("결제(데모) 완료 · 서버 명함 저장 · 공개가 켜졌습니다.");
+        }
+      } else {
+        setGrowthFlash("결제(데모) 완료 · 명함 저장 · 공개가 켜졌습니다.");
       }
-      setGrowthFlash("결제(데모) 완료 · 명함 저장 · 공개가 켜졌습니다.");
     } finally {
       setPaidBusy(false);
     }
@@ -852,6 +861,7 @@ export function CardEditorPage() {
     setCardLinks,
     setDraft,
     upsertBusinessCard,
+    upsertCardRemote,
     user,
   ]);
 
@@ -937,11 +947,16 @@ export function CardEditorPage() {
         created_at: new Date().toISOString(),
       });
       upsertBusinessCard(card);
-      await upsertCardRemote(card);
+      const persisted = await upsertCardRemote(card);
+      if (!persisted) {
+        setGrowthFlash("서버에 명함을 저장하지 못했습니다. 네트워크 또는 Supabase 설정을 확인한 뒤 다시 시도해 주세요.");
+        return;
+      }
       try {
         const synced = await syncQrImageAfterSave(card);
         upsertBusinessCard(synced);
-        await upsertCardRemote(synced);
+        const qrOk = await upsertCardRemote(synced);
+        if (!qrOk) console.warn("[CardEditorPage] quick QR 서버 업데이트 실패");
       } catch (err) {
         console.warn("[CardEditorPage] quick QR 동기화", err);
       }
@@ -956,7 +971,7 @@ export function CardEditorPage() {
         sort_order: i,
       }));
       setCardLinks(cardId, links);
-      navigate(`/cards/${encodeURIComponent(cardId)}/edit?saved=1&welcome=1&quick=1`, { replace: true });
+      navigate("/cards", { replace: true, state: { showSavedNotice: true } });
     } finally {
       setSubmitting(false);
     }
@@ -966,6 +981,7 @@ export function CardEditorPage() {
     location.pathname,
     upsertBusinessCard,
     upsertCardRemote,
+    setGrowthFlash,
     setCardLinks,
     navigate,
   ]);
@@ -1021,6 +1037,12 @@ export function CardEditorPage() {
         return;
       }
 
+      const remoteTaken = await isSlugTakenOnRemoteByAnotherCard(slugTrim, cardId);
+      if (remoteTaken === true) {
+        setFieldErrors({ slug: "이미 사용 중인 공개 주소예요. 다른 이름을 입력해 주세요." });
+        return;
+      }
+
       if (!existing) newCardIdRef.current = cardId;
 
       const card = draftToBusinessCard(draft, {
@@ -1034,12 +1056,19 @@ export function CardEditorPage() {
         status: existing?.status ?? card.status,
       };
       upsertBusinessCard(nextCard);
-      await upsertCardRemote(nextCard);
+      const persisted = await upsertCardRemote(nextCard);
+      if (!persisted) {
+        setGrowthFlash("서버에 명함을 저장하지 못했습니다. 네트워크 또는 Supabase 설정을 확인한 뒤 다시 시도해 주세요.");
+        return;
+      }
 
       try {
         const synced = await syncQrImageAfterSave(nextCard);
         upsertBusinessCard(synced);
-        await upsertCardRemote(synced);
+        const qrSynced = await upsertCardRemote(synced);
+        if (!qrSynced) {
+          console.warn("[CardEditorPage] QR 정보 서버 저장 실패");
+        }
       } catch (err) {
         console.warn("[CardEditorPage] QR 이미지 동기화", err);
       }
@@ -1074,7 +1103,7 @@ export function CardEditorPage() {
         clearGuestTempId();
         pendingTempIdRef.current = null;
       }
-      navigate(`/cards/${cardId}/edit?saved=1${!existing ? "&welcome=1" : ""}`, { replace: true });
+      navigate("/cards", { replace: true, state: { showSavedNotice: true } });
     } finally {
       setSubmitting(false);
     }

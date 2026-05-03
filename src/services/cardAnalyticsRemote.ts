@@ -103,6 +103,33 @@ export async function fetchRemoteActionCountForOwner(ownerUserId: string): Promi
   }
 }
 
+/** 내 명함 목록 카드별 조회수·문의 로그 건수(테이블 없으면 조용히 null) */
+export async function fetchRemoteStatsForCards(cardIds: string[]): Promise<Map<string, { views: number; inquiries: number }> | null> {
+  if (!isSupabaseConfigured || !supabase || cardIds.length === 0) return null;
+  const client = supabase;
+  const uniq = [...new Set(cardIds.map((id) => id.trim()).filter(Boolean))];
+  const out = new Map<string, { views: number; inquiries: number }>();
+
+  await Promise.all(
+    uniq.map(async (cardId) => {
+      const [vr, iq] = await Promise.all([
+        client.from("card_views").select("id", { count: "exact", head: true }).eq("card_id", cardId),
+        client.from("inquiry_logs").select("id", { count: "exact", head: true }).eq("card_id", cardId),
+      ]);
+      if (vr.error && !isLikelyMissingRelation(vr.error.message)) {
+        console.warn("[cardAnalyticsRemote] fetchRemoteStatsForCards views", vr.error.message);
+      }
+      if (iq.error && !isLikelyMissingRelation(iq.error.message)) {
+        console.warn("[cardAnalyticsRemote] fetchRemoteStatsForCards inquiries", iq.error.message);
+      }
+      const views = vr.error && !isLikelyMissingRelation(vr.error.message) ? 0 : vr.count ?? 0;
+      const inquiries = iq.error && !isLikelyMissingRelation(iq.error.message) ? 0 : iq.count ?? 0;
+      out.set(cardId, { views, inquiries });
+    }),
+  );
+  return out;
+}
+
 export async function fetchRemoteInquiryCountForOwner(ownerUserId: string): Promise<number | null> {
   if (!isSupabaseConfigured || !supabase) return null;
   try {
