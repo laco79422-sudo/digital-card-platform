@@ -41,6 +41,7 @@ export function promoChannelTypeLabel(type: PromoChannelPresetId): string {
 }
 
 /** 로컬·UI용 채널 행(DB card_channels 대응) */
+export interface StoredCardPromotionChannel {
   id: string;
   user_id: string;
   card_id: string;
