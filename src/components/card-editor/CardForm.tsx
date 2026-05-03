@@ -55,6 +55,10 @@ export function CardForm({
   getPersistBrandImageCardId,
   onBrandImagePersist,
   guestHeroStorageHint = false,
+  gateGuestHeroImagePick = false,
+  onGuestHeroImagePickBlocked,
+  postAuthHeroImageReminder = false,
+  onDismissPostAuthHeroReminder,
 }: {
   errors?: FieldErrors;
   /** studio: 양식 느낌 완화, 실시간 명함 조정 톤 */
@@ -68,6 +72,11 @@ export function CardForm({
   getPersistBrandImageCardId?: () => string | null;
   onBrandImagePersist?: (payload: BrandImagePersistPayload) => Promise<void>;
   guestHeroStorageHint?: boolean;
+  gateGuestHeroImagePick?: boolean;
+  onGuestHeroImagePickBlocked?: () => void;
+  /** 가입 후 히어로 재선택 안내 */
+  postAuthHeroImageReminder?: boolean;
+  onDismissPostAuthHeroReminder?: () => void;
 }) {
   const draft = useCardEditorDraftStore((s) => s.draft);
   const setDraft = useCardEditorDraftStore((s) => s.setDraft);
@@ -372,6 +381,28 @@ export function CardForm({
         {isStudio ? (
           <p className="mb-3 text-sm font-semibold text-brand-900">첫 인상을 만드는 대표 이미지</p>
         ) : null}
+        {postAuthHeroImageReminder ? (
+          <div
+            role="status"
+            className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-3 text-sm leading-relaxed text-emerald-950 sm:px-4"
+          >
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <p className="min-w-0 flex-1">
+                회원가입이 완료되었습니다. 아래에서 <strong className="font-semibold">이미지를 다시 선택</strong>해 주세요.
+                저장하면 내 공간에 명함이 올라갑니다.
+              </p>
+              {onDismissPostAuthHeroReminder ? (
+                <button
+                  type="button"
+                  className="shrink-0 rounded-lg px-2 py-1 text-xs font-semibold text-emerald-800 underline underline-offset-2 hover:text-emerald-950"
+                  onClick={onDismissPostAuthHeroReminder}
+                >
+                  닫기
+                </button>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
         <ImageUploader
           label={
             isStudio
@@ -428,7 +459,10 @@ export function CardForm({
             persistBrandImageCardId={persistBrandImageCardId}
             getPersistBrandImageCardId={getPersistBrandImageCardId}
             onBrandImagePersist={onBrandImagePersist}
-          />
+          gateGuestPick={gateGuestHeroImagePick}
+          onGuestPickBlocked={onGuestHeroImagePickBlocked}
+          sectionAnchorId="linko-editor-hero-upload"
+        />
           {guestHeroStorageHint ? (
             <p className="mt-2 text-xs font-medium text-slate-600">이미지는 회원가입 후 안전하게 저장됩니다.</p>
           ) : null}

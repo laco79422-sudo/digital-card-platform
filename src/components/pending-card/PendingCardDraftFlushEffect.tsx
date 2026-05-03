@@ -1,6 +1,6 @@
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { isEmailConfirmed } from "@/lib/auth/authActions";
-import { peekPendingCardDraft } from "@/lib/pendingCardStorage";
+import { peekPendingCardDraft, peekPendingHeroResumeAfterAuth } from "@/lib/pendingCardStorage";
 import {
   SHOW_PENDING_CARD_SAVED_STATE,
   tryFlushPendingCardDraftForAuthenticatedUser,
@@ -20,6 +20,20 @@ export function PendingCardDraftFlushEffect() {
   useEffect(() => {
     if (!authReady || !user?.id || !isEmailConfirmed({ email_confirmed_at: user.email_confirmed_at ?? undefined }))
       return;
+
+    /** 이미지 이어등록 플로우: 자동 플러시 안 함 · 로그인 직후 랜딩에서만 편집기로 안내합니다. */
+    if (peekPendingHeroResumeAfterAuth() && peekPendingCardDraft()) {
+      const funnel =
+        pathname === "/" ||
+        pathname === "/login" ||
+        pathname === "/signup" ||
+        pathname === "/auth/callback";
+      if (funnel) {
+        navigate("/cards/new", { replace: true });
+      }
+      return;
+    }
+
     if (!peekPendingCardDraft()) return;
 
     let cancelled = false;

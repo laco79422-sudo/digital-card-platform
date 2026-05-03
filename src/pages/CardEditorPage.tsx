@@ -8,6 +8,7 @@ import { CardEditorGrowthLadder } from "@/components/card-editor/CardEditorGrowt
 import { CardEditorSaveCompletionPanel } from "@/components/card-editor/CardEditorSaveCompletionPanel";
 import { CardPreview } from "@/components/card-editor/CardPreview";
 import { FillSampleWizardModal, type FillSampleWizardResult } from "@/components/card-editor/FillSampleWizardModal";
+import { GuestHeroImageAuthModal } from "@/components/card-editor/GuestHeroImageAuthModal";
 import { GuestSaveAuthModal } from "@/components/card-editor/GuestSaveAuthModal";
 import { DelegateExpertChoiceModal } from "@/components/card-editor/ExpertAssistModals";
 import { IndustryPickSection } from "@/components/card-editor/IndustryPickSection";
@@ -74,6 +75,8 @@ import {
   getLandingEmail,
   peekPendingCardDraft,
   savePendingCardDraft,
+  peekPendingHeroResumeAfterAuth,
+  setPendingHeroResumeAfterAuth,
 } from "@/lib/pendingCardStorage";
 import { removeTempCard, saveTempCard } from "@/lib/tempCardStorage";
 import { buildViralShareText } from "@/lib/viralShareText";
@@ -297,7 +300,13 @@ export function CardEditorPage() {
 
   const [guestTempId, setGuestTempId] = useState<string | null>(null);
   const [guestAuthSaveOpen, setGuestAuthSaveOpen] = useState(false);
+  const [guestHeroAuthOpen, setGuestHeroAuthOpen] = useState(false);
+  const [postAuthHeroReminderOpen, setPostAuthHeroReminderOpen] = useState(false);
 
+  /** 히어로 가입 플로우: 동일 페이지 생명 주기 안에서 안내 배너·스크롤을 한 번만 띄웁니다 */
+  const postAuthHeroCueOnceRef = useRef(false);
+
+  const hydratedKey = useCardEditorDraftStore((s) => s.hydratedKey);
   const persistGuestPendingFromEditor = useCallback(() => {
     const landing = getLandingEmail()?.trim();
     const current = useCardEditorDraftStore.getState().draft;
@@ -312,6 +321,11 @@ export function CardEditorPage() {
       tempId: tid,
     });
   }, [guestTempId, linkRows, replaceDraft]);
+
+  const prepareGuestHeroImageSignupResume = useCallback(() => {
+    persistGuestPendingFromEditor();
+    setPendingHeroResumeAfterAuth();
+  }, [persistGuestPendingFromEditor]);
 
   const completionShareUrl = useMemo(() => {
     const o = canonicalSiteOrigin();
@@ -374,6 +388,16 @@ export function CardEditorPage() {
     if (!el) return;
     requestAnimationFrame(() => el.scrollIntoView({ behavior: "smooth", block: "start" }));
   }, [savedHighlight, welcomeHighlight, draft.is_public, completionShareUrl]);
+
+  useEffect(() => {
+    if (!user || !isNew || existing || isGuestRoute) return;
+    if (!peekPendingHeroResumeAfterAuth()) return;
+    if (hydratedKey !== routeKey) return;
+    if (postAuthHeroCueOnceRef.current) return;
+    postAuthHeroCueOnceRef.current = true;
+    setPostAuthHeroReminderOpen(true);
+    requestAnimationFrame(() => scrollToId("linko-editor-hero-upload"));
+  }, [user, isNew, existing, isGuestRoute, hydratedKey, routeKey]);
 
   useEffect(() => {
     if (isGuestRoute) return;
@@ -1404,6 +1428,9 @@ export function CardEditorPage() {
               createdAt={existing?.created_at}
               guestTempHint={Boolean(isGuestRoute && !user)}
               isGuestPreview={!(user && !isGuestRoute)}
+              onGuestHeroImageBlocked={
+                isGuestRoute && !user ? () => setGuestHeroAuthOpen(true) : undefined
+              }
               persistUploadedHero={user && !isGuestRoute ? persistUploadedHero : undefined}
               persistClearHero={user && !isGuestRoute ? persistClearHero : undefined}
               analyticsCardId={existing?.id ?? stagingEditorCardId}
@@ -1679,6 +1706,10 @@ export function CardEditorPage() {
             getPersistBrandImageCardId={() => existing?.id ?? stagingEditorCardId ?? null}
             onBrandImagePersist={handleBrandImagePersist}
             guestHeroStorageHint={isGuestRoute && !user}
+            gateGuestHeroImagePick={isGuestRoute && !user}
+            onGuestHeroImagePickBlocked={() => setGuestHeroAuthOpen(true)}
+            postAuthHeroImageReminder={postAuthHeroReminderOpen && !isGuestRoute && Boolean(user)}
+            onDismissPostAuthHeroReminder={() => setPostAuthHeroReminderOpen(false)}
             midSlot={
               isLiveGenerator ? (
                 <EditorFlowHint phase="mid" onTrySample={handleTrySample} showTrySample />
@@ -1836,6 +1867,23 @@ export function CardEditorPage() {
           </Button>
         </div>
       </form>
+
+      <GuestHeroImageAuthModal
+        open={guestHeroAuthOpen}
+        onClose={() => setGuestHeroAuthOpen(false)}
+        onContinueEditing={() => setGuestHeroAuthOpen(false)}
+        onSignup={() => {
+          prepareGuestHeroImageSignupResume();
+          setGuestHeroAuthOpen(false);
+          navigate("/signup", {
+            state: {
+              pendingCardSignupFlow: true,
+              signupNotice:
+                "작성 중인 명함은 임시저장되어 있어요. 가입 후 아래 안내에 따라 이미지를 다시 선택하면 안전하게 저장됩니다.",
+            },
+          });
+        }}
+      />
 
       <GuestSaveAuthModal
         open={guestAuthSaveOpen}

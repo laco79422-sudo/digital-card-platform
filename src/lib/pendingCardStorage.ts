@@ -10,6 +10,12 @@ import type { CardLinkType } from "@/types/domain";
  */
 const LANDING_EMAIL_KEY = "linko-landing-email";
 
+/**
+ * 회원가입·로그인 직후 히어로 이미지를 이어 등록해야 할 때 세션 플래그.
+ * 해당 경우 pending 명함 초안 자동 플러시(내 공간 저장)를 건너뛰고 `/cards/new`에서 복원합니다.
+ */
+const PENDING_HERO_RESUME_AFTER_AUTH_KEY = "linko-pending-hero-resume-after-auth";
+
 /** 회원 전 임시 명함 — 세션 버킷 표준 키 */
 export const PENDING_CARD_SESSION_KEY = "pendingCardDraft";
 /** 이전 배포 호환용 */
@@ -244,4 +250,25 @@ export function hasPendingCardDraft(): boolean {
 /** 수동 초기화 또는 저장 성공 후 정리 등 */
 export function clearPendingCardDraft() {
   removeAllPendingKeys();
+  try {
+    sessionStorage.removeItem(PENDING_HERO_RESUME_AFTER_AUTH_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
+export function setPendingHeroResumeAfterAuth() {
+  try {
+    sessionStorage.setItem(PENDING_HERO_RESUME_AFTER_AUTH_KEY, "1");
+  } catch {
+    /* ignore */
+  }
+}
+
+export function peekPendingHeroResumeAfterAuth(): boolean {
+  try {
+    return sessionStorage.getItem(PENDING_HERO_RESUME_AFTER_AUTH_KEY) === "1";
+  } catch {
+    return false;
+  }
 }

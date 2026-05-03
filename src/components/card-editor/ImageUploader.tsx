@@ -45,6 +45,13 @@ type Props = {
   /** natural 없을 때만 적용 (구 카드) */
   legacyObjectPosition?: string | null;
   error?: string;
+  /** 비회원: 파일 선택 대신 업로드를 막고 콜백만 호출 */
+  gateGuestPick?: boolean;
+  onGuestPickBlocked?: () => void;
+  /** 업로드 실패 시 사용자 메시지(기본: 저장소 오류 안내) */
+  uploadFailMessage?: string;
+  /** 스크롤용 앵커 id · scroll-mt-24 클래스 적용 */
+  sectionAnchorId?: string;
   /** 저장된 명함이 있으면 업로드 직후 원격 DB에도 반영 — ID가 준비될 때까지 지연 필요 시 getter 사용 */
   persistBrandImageCardId?: string | null;
   getPersistBrandImageCardId?: () => string | null;
@@ -65,6 +72,10 @@ export function ImageUploader({
   onNaturalMeasured,
   legacyObjectPosition,
   error,
+  gateGuestPick = false,
+  onGuestPickBlocked,
+  uploadFailMessage = "이미지 저장에 실패했습니다. 저장소 설정을 확인해 주세요.",
+  sectionAnchorId,
   persistBrandImageCardId,
   getPersistBrandImageCardId,
   onBrandImagePersist,
@@ -110,6 +121,10 @@ export function ImageUploader({
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
+    if (gateGuestPick) {
+      onGuestPickBlocked?.();
+      return;
+    }
 
     const valid = validateBrandImageFile(file);
     if (!valid.ok) {
@@ -147,7 +162,7 @@ export function ImageUploader({
       const msg = err instanceof Error ? err.message : String(err);
       console.error("[ImageUploader] 이미지 저장 실패:", msg, err);
       setPreviewDuringUpload(null);
-      setUploadLine("이미지 저장에 실패했습니다. 저장소 설정을 확인해 주세요.");
+      setUploadLine(uploadFailMessage);
     } finally {
       setProcessing(false);
     }
@@ -229,8 +244,16 @@ export function ImageUploader({
     onUrlChange(null, { reset: true, naturalW: null, naturalH: null });
   };
 
+  const openFilePicker = () => {
+    if (gateGuestPick) {
+      onGuestPickBlocked?.();
+      return;
+    }
+    inputRef.current?.click();
+  };
+
   return (
-    <div className="space-y-3">
+    <div className={cn("space-y-3", sectionAnchorId && "scroll-mt-24")} id={sectionAnchorId}>
       <label className="text-base font-medium text-slate-800" htmlFor={inputId}>
         {label}
       </label>
@@ -251,7 +274,7 @@ export function ImageUploader({
           variant="secondary"
           className="min-h-11"
           disabled={processing}
-          onClick={() => inputRef.current?.click()}
+          onClick={openFilePicker}
         >
           {processing ? "이미지를 업로드하고 있습니다..." : "파일 선택"}
         </Button>

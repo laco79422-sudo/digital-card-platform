@@ -1,6 +1,11 @@
 import { isEmailConfirmed } from "@/lib/auth/authActions";
 import { parseCardEditorDraft } from "@/lib/cardEditorSchema";
-import { peekPendingCardDraft, consumePendingCardDraft, type PendingCardLinkRow } from "@/lib/pendingCardStorage";
+import {
+  peekPendingCardDraft,
+  consumePendingCardDraft,
+  peekPendingHeroResumeAfterAuth,
+  type PendingCardLinkRow,
+} from "@/lib/pendingCardStorage";
 import { removeTempCard } from "@/lib/tempCardStorage";
 import { clearGuestTempId } from "@/lib/guestTempSession";
 import {
@@ -82,6 +87,11 @@ export async function tryFlushPendingCardDraftForAuthenticatedUser(user: User): 
 
   const run = async (): Promise<PersistPendingCardDraftResult> => {
     if (!isEmailConfirmed({ email_confirmed_at: user.email_confirmed_at ?? undefined })) {
+      return { saved: false };
+    }
+
+    /** 히어로만 이어하기: 내용은 `/cards/new`에서 복원 — 자동 저장·초안 삭제 없음 */
+    if (peekPendingHeroResumeAfterAuth() && peekPendingCardDraft()) {
       return { saved: false };
     }
 
