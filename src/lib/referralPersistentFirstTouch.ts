@@ -2,6 +2,7 @@
  * 플랫폼 회원추천(?ref·/, /ref/*만): localStorage 에 최초 1회만 저장(덮어쓰기 없음).
  * • 인증 토큰·결제키·민감정보는 저장하지 않습니다.
  * • 헬퍼/캠페인 명함 ref 는 `promotionReferralStorage`(sessionStorage) — 이 모듈과 혼합하지 않습니다.
+ * @see `attributionModel` — 추천·헬퍼·채널 역할 분리
  */
 const PERSISTENT_REFERRAL_KEY = "referralCode";
 /** ISO 8601 — 최초 유입 시각(만료 및 감사용) */

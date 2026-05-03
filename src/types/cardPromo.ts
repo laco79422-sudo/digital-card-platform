@@ -6,6 +6,7 @@ export type PromoChannelPresetId =
   | "blog"
   | "youtube"
   | "acquaintances"
+  | "friend"
   | "instagram"
   | "sms"
   | "community"
@@ -32,8 +33,14 @@ export const PROMO_CHANNEL_OPTIONS: readonly { id: PromoChannelPresetId; label: 
   { id: "custom", label: "기타(직접 입력)" },
 ] as const;
 
+/** DB `type`(friend 등) → UI 라벨 */
+export function promoChannelTypeLabel(type: PromoChannelPresetId): string {
+  if (type === "friend") return "지인";
+  const row = PROMO_CHANNEL_OPTIONS.find((o) => o.id === type);
+  return row?.label ?? type;
+}
+
 /** 로컬·UI용 채널 행(DB card_channels 대응) */
-export interface StoredCardPromotionChannel {
   id: string;
   user_id: string;
   card_id: string;
@@ -70,5 +77,6 @@ export interface CardPromoAnalyticsEventRow {
   event_type: CardPromoEventType;
   button_type: string | null;
   visitor_id: string | null;
+  ip_hash?: string | null;
   created_at: string;
 }

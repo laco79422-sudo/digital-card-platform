@@ -11,8 +11,12 @@ import { canonicalSiteOrigin } from "@/lib/siteOrigin";
 import { useAppDataStore } from "@/stores/appDataStore";
 import { useAuthStore } from "@/stores/authStore";
 import type { BusinessCard } from "@/types/domain";
-import type { CardPromoAnalyticsEventRow, PromoChannelPresetId } from "@/types/cardPromo";
-import { PROMO_CHANNEL_OPTIONS } from "@/types/cardPromo";
+import {
+  PROMO_CHANNEL_OPTIONS,
+  promoChannelTypeLabel,
+  type CardPromoAnalyticsEventRow,
+  type PromoChannelPresetId,
+} from "@/types/cardPromo";
 import { Copy, Share2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
@@ -78,7 +82,7 @@ export function CardPromotionChannelsPanel({ card }: { card: BusinessCard }) {
       return;
     }
 
-    const labelFromPreset = PROMO_CHANNEL_OPTIONS.find((x) => x.id === preset)?.label ?? "채널";
+    const labelFromPreset = promoChannelTypeLabel(preset);
     const nameRaw = preset === "custom" ? customLabel.trim() : labelFromPreset;
     const name = nameRaw.trim() || labelFromPreset;
 
@@ -238,7 +242,7 @@ ${shareUrl}
                       당근 안내
                     </button>
                   ) : null}
-                  {ch.type === "acquaintances" || ch.type === "sms" ? (
+                  {ch.type === "acquaintances" || ch.type === "friend" || ch.type === "sms" ? (
                     <button
                       type="button"
                       className={linkButtonClassName({ variant: "outline", size: "sm", className: "gap-1" })}

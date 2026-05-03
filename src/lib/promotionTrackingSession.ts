@@ -3,6 +3,7 @@ import type { ParsedPromotionUrl } from "@/lib/cardPromoTracking";
 /**
  * 헬퍼/캠페인·채널 유입 세션 상태(탭 단위).
  * 회원추천 `referralCode`(localStorage)와 별개이며 여기 값으로 플랫폼 추천 코드를 덮어쓰지 않습니다.
+ * @see `attributionModel` — 추천·헬퍼·채널 역할 분리
  */
 export const SESSION_CURRENT_CHANNEL_KEY = "currentChannelId";
 export const SESSION_CURRENT_HELPER_KEY = "currentHelperId";
