@@ -2136,7 +2136,7 @@ export function DashboardPage() {
                   {referralRewardBalances.pending.toLocaleString()}원
                 </dd>
                 <p className="mt-1 text-xs leading-relaxed text-slate-500">
-                  추천 보상: 결제 금액의 10%가 적립됩니다. 결제 후 14일이 지나 출금 신청 가능 상태로 바뀝니다.
+                  추천 보상: 결제 금액의 10%가 적립됩니다. 결제 후 7일이 지나 출금 신청 가능 상태로 바뀝니다.
                 </p>
               </div>
               <div className="sm:col-span-2">
@@ -2166,6 +2166,9 @@ export function DashboardPage() {
             <p className="text-sm font-bold text-brand-900">추천 보상</p>
             <p className="mt-2 text-sm leading-relaxed text-slate-600">
               내가 추천할 링크로 가입한 사용자가 결제하면 결제 금액의 10%가 보상으로 적립됩니다. 추천 보상은 실제 결제 완료 건에 대해서만 적립되며, 환불 시 보상은 취소되거나 조정될 수 있습니다. 출금은 관리자 확인 후 지급됩니다.
+            </p>
+            <p className="mt-2 text-xs leading-relaxed text-slate-500">
+              정상적인 추천 활동만 보상이 지급됩니다. 부정 가입 또는 반복 생성 계정은 보상이 취소될 수 있습니다.
             </p>
             <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <StatBlock label="총 적립 보상" value={`${referralRewardBalances.totalAccrued.toLocaleString()}원`} />

@@ -13,8 +13,8 @@ function normalizePathname(pathname: string): string {
 }
 
 /**
- * 세션에는 `ref`를 남기고, 주소창에서만 `ref`를 제거해 일반 마케팅 유입처럼 보이게 합니다.
- * 회원가입 시 자동 추천 속성과 공개 헤더 마스킹에는 sessionStorage만 사용합니다.
+ * 주소줄에서는 `ref`만 제거해 일반 마케팅 유입처럼 보이게 하고,
+ * 회원추천 플랫폼 코드는 브라우저 최초 저장(localStorage)과 세션(sessionStorage)에 동기화됩니다.
  */
 export function ReferralLandingRouteSync() {
   const location = useLocation();

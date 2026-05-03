@@ -1,11 +1,15 @@
+import { getOrCreatePromotionVisitorId } from "@/lib/cardPromoTracking";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase/client";
 
-/** 브라우저 탭 세션당 추천 메인 유입 로그 1회 */
-export const LINKO_REFERRAL_VISIT_SESSION_KEY = "linko_referral_visit_logged";
+/**
+ * 코드별 세션 로그 플래그. 서버에서는 `visitor_client_id`로 중복을 막습니다.
+ */
+export function referralVisitLoggedSessionKey(normalizedUpperCode: string): string {
+  return `linko_referral_visit_logged:${normalizedUpperCode.trim().toUpperCase()}`;
+}
 
 /**
- * `/?ref=` 등으로 들어온 추천 유입을 `referral_link_visits`에 기록합니다.
- * 같은 세션(`sessionStorage`)에서는 1회만 서버에 기록합니다.
+ * `/?ref=` 등 플랫폼 추천 유입을 기록합니다. 동일 브라우저·코드 세션에서는 1회만 RPC를 보냅니다.
  */
 export async function maybeRecordReferralLinkVisit(
   refRaw: string | null | undefined,
@@ -17,12 +21,22 @@ export async function maybeRecordReferralLinkVisit(
   const code = trimmed.toUpperCase();
 
   try {
-    if (typeof sessionStorage !== "undefined" && sessionStorage.getItem(LINKO_REFERRAL_VISIT_SESSION_KEY)) return;
+    if (typeof sessionStorage !== "undefined" && sessionStorage.getItem(referralVisitLoggedSessionKey(code))) {
+      return;
+    }
   } catch {
     return;
   }
 
   if (!isSupabaseConfigured || !supabase) return;
+
+  const visitorClientIdRaw = getOrCreatePromotionVisitorId()?.trim();
+  const visitorParsed =
+    visitorClientIdRaw && /^[\da-f]{8}-[\da-f]{4}-[1-5][\da-f]{3}-[89ab][\da-f]{3}-[\da-f]{12}$/i.test(
+      visitorClientIdRaw,
+    )
+      ? visitorClientIdRaw
+      : null;
 
   const ua = typeof navigator !== "undefined" ? navigator.userAgent : "";
   const path = landingPath?.trim() || null;
@@ -31,6 +45,7 @@ export async function maybeRecordReferralLinkVisit(
     p_code: code,
     p_landing_path: path,
     p_user_agent: ua || null,
+    p_visitor_client_id: visitorParsed,
   });
 
   if (error) {
@@ -39,7 +54,7 @@ export async function maybeRecordReferralLinkVisit(
   }
 
   try {
-    sessionStorage.setItem(LINKO_REFERRAL_VISIT_SESSION_KEY, "true");
+    sessionStorage.setItem(referralVisitLoggedSessionKey(code), "true");
   } catch {
     /* ignore */
   }

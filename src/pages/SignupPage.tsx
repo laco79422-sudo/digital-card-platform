@@ -12,8 +12,7 @@ import { layout } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
 import { getLandingEmail, hasPendingCardDraft } from "@/lib/pendingCardStorage";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase/client";
-import { getActiveReferralCode } from "@/lib/activeReferralSession";
-import { getPromotionReferralCode } from "@/lib/promotionReferralStorage";
+import { getEffectivePlatformReferralCode } from "@/lib/activeReferralSession";
 import { claimReferralForAuthenticatedUser } from "@/services/referralService";
 import { useAppDataStore } from "@/stores/appDataStore";
 import { useAuthStore } from "@/stores/authStore";
@@ -77,18 +76,14 @@ export function SignupPage() {
   const emailValue = watch("email") ?? "";
   const emailFieldStatus = useMemo(() => getSignupEmailFieldStatus(emailValue), [emailValue]);
 
-  /** UI·미리보기: 홈/?ref 또는 /ref/* 로 활성된 세션 추천만 */
-  const platformReferralCode = useMemo(() => getActiveReferralCode(), [
+  /** 회원추천: 플랫폼 ref만 인정(?ref·/ref/* 저장값). 헬퍼·명함 프로모 ref는 포함하지 않습니다. */
+  const platformReferralCode = useMemo(() => getEffectivePlatformReferralCode(), [
     location.pathname,
     location.search,
     location.key,
   ]);
 
-  /** 가입 제출 시: 활성 플랫폼 추천 또는 명함 헬퍼 등 프로모션 ref */
-  const referralCode = useMemo(
-    () => platformReferralCode ?? getPromotionReferralCode(),
-    [platformReferralCode],
-  );
+  const referralCode = platformReferralCode;
 
   /** 이메일 칸 아래: 형식 안내만 (서버 중복 메시지는 errorMessage로만 표시) */
   const emailFormatHint = useMemo(() => {
@@ -264,6 +259,11 @@ export function SignupPage() {
               className="mb-4 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-center text-sm font-medium text-slate-700"
             >
               추천을 통해 가입되었습니다
+            </p>
+          ) : null}
+          {platformReferralCode ? (
+            <p className="mb-4 text-center text-xs leading-relaxed text-slate-500">
+              정상적인 추천 활동만 보상이 지급됩니다. 부정 가입 또는 반복 생성 계정은 보상이 취소될 수 있습니다.
             </p>
           ) : null}
           {!isSupabaseConfigured ? (

@@ -1,4 +1,8 @@
-import { clearActiveReferralCode, getActiveReferralCode } from "@/lib/activeReferralSession";
+import {
+  clearActiveReferralCode,
+  getEffectivePlatformReferralCode,
+} from "@/lib/activeReferralSession";
+import { clearPersistentPlatformReferralCapture } from "@/lib/referralPersistentFirstTouch";
 import { clearStoredLinkoReferralCode } from "@/lib/linkoReferralStorage";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase/client";
 
@@ -74,6 +78,7 @@ export async function claimReferralForAuthenticatedUser(rawCode: string | null):
     return false;
   }
   clearStoredLinkoReferralCode();
+  clearPersistentPlatformReferralCapture();
   clearActiveReferralCode();
   return true;
 }
@@ -81,7 +86,7 @@ export async function claimReferralForAuthenticatedUser(rawCode: string | null):
 /** 로그인 세션 기준으로 활성 세션 플랫폼 추천 코드를 서버에 반영합니다. 성공 시 저장값을 지웁니다. */
 export async function claimPendingReferral(): Promise<boolean> {
   if (!isSupabaseConfigured || !supabase) return false;
-  const code = getActiveReferralCode();
+  const code = getEffectivePlatformReferralCode();
   if (!code) return false;
 
   const { data: sessionData } = await supabase.auth.getSession();
@@ -95,6 +100,7 @@ export async function claimPendingReferral(): Promise<boolean> {
   }
 
   clearStoredLinkoReferralCode();
+  clearPersistentPlatformReferralCapture();
   clearActiveReferralCode();
   return true;
 }

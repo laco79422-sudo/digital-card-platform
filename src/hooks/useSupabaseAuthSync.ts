@@ -16,6 +16,7 @@ import { isSupabaseConfigured, supabase } from "@/lib/supabase/client";
 import { mapSupabaseUser } from "@/lib/supabase/mapAuthUser";
 import { fetchProfilePartnerFlagRemote, fetchProfilesSelfFlagsRemote } from "@/services/partnerProgramService";
 import { claimPendingReferral } from "@/services/referralService";
+import { resetSignupSignalSubmitCache, submitSignupSignalForAuthenticatedUser } from "@/services/signupSignalsRemote";
 import { useAuthStore } from "@/stores/authStore";
 import type { Session } from "@supabase/supabase-js";
 import { useEffect } from "react";
@@ -52,6 +53,7 @@ export function useSupabaseAuthSync() {
           setUser(null);
           setSession(null);
           setLastActivityAt(null);
+          resetSignupSignalSubmitCache();
           clearLastActivity();
           setAuthLoading(false);
           return;
@@ -69,6 +71,7 @@ export function useSupabaseAuthSync() {
             setUser(null);
             setSession(null);
             setLastActivityAt(null);
+            resetSignupSignalSubmitCache();
             clearLastActivity();
             setAuthLoading(false);
             return;
@@ -84,10 +87,12 @@ export function useSupabaseAuthSync() {
         setSession(session);
         setLastActivityAt(readLastActivityMs());
         void claimPendingReferral();
+        void submitSignupSignalForAuthenticatedUser(session.user.id);
       } else {
         setUser(null);
         setSession(null);
         setLastActivityAt(null);
+        resetSignupSignalSubmitCache();
         clearLastActivity();
       }
       setAuthLoading(false);

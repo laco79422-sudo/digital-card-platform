@@ -15,6 +15,8 @@ export type ReferralRewardRow = {
   forfeited_at?: string | null;
   forfeited_reason?: string | null;
   withdrawal_request_id: string | null;
+  /** pending → confirmed 가능 시점(결제 후 7일 등, DB 트리거 기본값) */
+  available_at?: string | null;
 };
 
 export type WithdrawalRequestRow = {
@@ -41,7 +43,13 @@ export type ReferralRewardBalances = {
   pendingClawback: number;
 };
 
-/** 결제 후 14일이 지난 pending 보상을 출금 가능(confirmed)으로 전환 (추천인 본인 세션) */
+function mapWithdrawRpcErrorMessage(raw: string): string {
+  return raw.includes("withdrawal_blocked_pending_review")
+    ? "계정 검수 중입니다. 부정 이용 의심이 해제되면 출금을 신청할 수 있습니다."
+    : raw;
+}
+
+/** 결제 후 `available_at`이 되면 pending 보상을 출금 가능(confirmed)으로 전환 (추천인 세션 호출 시) */
 export async function finalizeEligibleReferrerRewards(): Promise<number | null> {
   if (!isSupabaseConfigured || !supabase) return null;
   const { data, error } = await supabase.rpc("finalize_eligible_referrer_rewards");
@@ -145,7 +153,7 @@ export async function createWithdrawalRequestRemote(opts: {
     p_account_holder: opts.accountHolder,
   });
   if (error) {
-    return { ok: false, message: error.message };
+    return { ok: false, message: mapWithdrawRpcErrorMessage(error.message ?? "") };
   }
   return { ok: true, id: typeof data === "string" ? data : undefined };
 }
@@ -311,7 +319,7 @@ export async function createPartnerCommissionWithdrawalRemote(opts: {
     p_account_holder: opts.accountHolder,
   });
   if (error) {
-    return { ok: false, message: error.message };
+    return { ok: false, message: mapWithdrawRpcErrorMessage(error.message ?? "") };
   }
   return { ok: true, id: typeof data === "string" ? data : undefined };
 }

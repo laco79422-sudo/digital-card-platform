@@ -35,6 +35,7 @@ export async function insertCardPromoEventRemote(row: {
     const { error } = await supabase.from("card_events").insert(payload);
 
     if (error) {
+      if ((error as { code?: string }).code === "23505") return true;
       if (!missingRelation(error.message)) {
         console.warn("[cardPromoAnalyticsRemote]", error.message);
       }

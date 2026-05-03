@@ -1,6 +1,10 @@
 import { LINKO_REFERRAL_CODE_STORAGE_KEY } from "@/lib/linkoReferralStorage";
+import {
+  getPersistentPlatformReferralCode,
+  tryPersistFirstTouchPlatformReferral,
+} from "@/lib/referralPersistentFirstTouch";
 
-/** 플랫폼 추천 코드 — 세션 전용(localStorage 미사용), 탭 닫으면 삭제됨 */
+/** 플랫폼 추천 코드 키(세션, sessionStorage). 최초 터치는 `referralPersistentFirstTouch`(localStorage)와 동일 키명으로 저장 */
 export const REFERRAL_CODE_SESSION_KEY = "referralCode";
 /**
  * 추천 경로로 유입된 탭에서 공개 상단바(로그인/회원가입)만 보이게 할 때.
@@ -77,8 +81,13 @@ export function syncActiveReferralSessionFromNavigation(pathname: string, search
   const detected = extractPlatformReferralFromLocation(pathname, search);
 
   if (detected) {
-    persistReferralCodeInSession(detected);
-    return;
+    tryPersistFirstTouchPlatformReferral(detected);
+  }
+
+  const firstTouch =
+    getPersistentPlatformReferralCode() || detected || readRawReferralCodeFromSession();
+  if (firstTouch) {
+    persistReferralCodeInSession(firstTouch);
   }
 
   try {
@@ -92,6 +101,11 @@ export function syncActiveReferralSessionFromNavigation(pathname: string, search
 
 export function getActiveReferralCode(): string | null {
   return readRawReferralCodeFromSession();
+}
+
+/** 회원추천 가입 속성용: 브라우저 최초 저장값이 우선, 그다음 현재 세션 */
+export function getEffectivePlatformReferralCode(): string | null {
+  return getPersistentPlatformReferralCode() || getActiveReferralCode();
 }
 
 export function clearActiveReferralCode(): void {
