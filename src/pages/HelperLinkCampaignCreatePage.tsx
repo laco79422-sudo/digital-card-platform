@@ -67,7 +67,7 @@ export function HelperLinkCampaignCreatePage() {
       return;
     }
     if (draft.status !== "draft") {
-      navigate("/dashboard#dashboard-section-helper-partner-performance", { replace: true });
+      navigate("/dashboard#dashboard-section-helper-mgmt", { replace: true });
       return;
     }
     const res = await fetchMyCardsForUser({ id: user.id, email: user.email ?? null });
@@ -185,7 +185,7 @@ export function HelperLinkCampaignCreatePage() {
       });
 
       window.alert("헬퍼링크 파트너 모집이 시작되었습니다. 파트너 메뉴에 요청이 노출됩니다.");
-      navigate("/dashboard#dashboard-section-helper-partner-performance", { replace: true });
+      navigate("/dashboard#dashboard-section-helper-mgmt", { replace: true });
     } finally {
       setBusy(false);
     }

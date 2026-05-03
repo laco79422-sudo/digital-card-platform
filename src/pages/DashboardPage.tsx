@@ -68,17 +68,20 @@ import {
   updatePromotionApplicationRemote,
 } from "@/services/promotionService";
 import {
+  buildHelperCampaignStatsComputed,
   fetchApplicationsForCampaign,
+  fetchCardEventsLeanForCampaign,
+  fetchConsultationsAggregatesForCampaign,
   fetchHelperCampaignsForOwner,
   fetchHelperPartnersByIds,
+  fetchShareLinksForCampaign,
   insertPaidHelperCampaignDraft,
-  selectPartnerApplicationAndActivate,
 } from "@/services/helperCampaignPartnerService";
 import { HELPER_LINK_PAYMENT_CTA, HELPER_LINK_PAYMENT_LEAD } from "@/lib/helperLinkPricing";
 import type {
   HelperCampaignRow,
+  HelperCampaignStatsComputed,
   HelperPartnerApplicationRow,
-  HelperPartnerRow,
 } from "@/types/helperCampaignPartner";
 import { useAuthStore } from "@/stores/authStore";
 import { useAppDataStore } from "@/stores/appDataStore";
@@ -349,7 +352,7 @@ export function DashboardPage() {
 
   const [helperCampaignRows, setHelperCampaignRows] = useState<HelperCampaignRow[]>([]);
   const [helperCampaignApps, setHelperCampaignApps] = useState<Record<string, HelperPartnerApplicationRow[]>>({});
-  const [helperPartnerProfileMap, setHelperPartnerProfileMap] = useState<Record<string, HelperPartnerRow>>({});
+  const [helperCampaignMetrics, setHelperCampaignMetrics] = useState<Record<string, HelperCampaignStatsComputed>>({});
   const [helperCampaignPerfBusy, setHelperCampaignPerfBusy] = useState(false);
 
   const uid = user?.id ?? "";
@@ -425,7 +428,7 @@ export function DashboardPage() {
     if (!uid || !isSupabaseConfigured) {
       setHelperCampaignRows([]);
       setHelperCampaignApps({});
-      setHelperPartnerProfileMap({});
+      setHelperCampaignMetrics({});
       return;
     }
     setHelperCampaignPerfBusy(true);
@@ -440,7 +443,28 @@ export function DashboardPage() {
     }
     setHelperCampaignApps(appMap);
     const partners = await fetchHelperPartnersByIds([...partnerIds]);
-    setHelperPartnerProfileMap(Object.fromEntries(partners.map((p) => [p.id, p])));
+    const partnerMapObj = Object.fromEntries(partners.map((p) => [p.id, p]));
+
+    const metricsEntries = await Promise.all(
+      rows.map(async (row) => {
+        const apps = appMap[row.id] ?? [];
+        const [events, links, consult] = await Promise.all([
+          fetchCardEventsLeanForCampaign(row.id),
+          fetchShareLinksForCampaign(row.id),
+          fetchConsultationsAggregatesForCampaign(row.id),
+        ]);
+        const built = buildHelperCampaignStatsComputed({
+          events,
+          shareLinks: links,
+          consultationTotal: consult.total,
+          consultationByPartnerId: consult.byPartnerId,
+          applications: apps,
+          partnersById: partnerMapObj,
+        });
+        return [row.id, built] as const;
+      }),
+    );
+    setHelperCampaignMetrics(Object.fromEntries(metricsEntries));
     setHelperCampaignPerfBusy(false);
   }, [uid]);
 
@@ -883,9 +907,30 @@ export function DashboardPage() {
     }
   };
 
-  const openPromotionPayment = (card: BusinessCard) => {
-    setPromotionPaymentCard(card);
-  };
+  const openHelperCampaignPrimaryAction = useCallback(
+    (card: BusinessCard, cm: HelperCampaignRow | null | undefined) => {
+      if (cm?.status === "draft") {
+        navigate(`/helperlink/create?campaignId=${encodeURIComponent(cm.id)}`);
+        return;
+      }
+      if (cm && cm.status !== "canceled") {
+        if (cm.status === "recruiting") {
+          navigate(`/dashboard/helper-campaigns/${encodeURIComponent(cm.id)}/applications`);
+          return;
+        }
+        if (cm.status === "active" || cm.status === "completed") {
+          navigate(`/dashboard/helper-campaigns/${encodeURIComponent(cm.id)}/stats`);
+          return;
+        }
+      }
+      if (card.promotion_enabled && !cm) {
+        document.getElementById("dashboard-section-helper-mgmt")?.scrollIntoView({ behavior: "smooth", block: "start" });
+        return;
+      }
+      setPromotionPaymentCard(card);
+    },
+    [navigate],
+  );
 
   const confirmPromotionPayment = async () => {
     if (!promotionPaymentCard || !uid) return;
@@ -1294,7 +1339,8 @@ export function DashboardPage() {
                 ownerPromotionApplications.some((a) => a.card_id === card.id);
 
               const cm = pickPrimaryHelperCampaignForCard(helperCampaignRows, card.id);
-              const helperPerfHashLink = "/dashboard#dashboard-section-helper-partner-performance";
+              const hm = cm?.id ? helperCampaignMetrics[cm.id] : undefined;
+              const appListForCard = cm?.id ? helperCampaignApps[cm.id] ?? [] : [];
 
               return (
                 <li
@@ -1474,19 +1520,7 @@ export function DashboardPage() {
                         className="inline-flex min-h-10 items-center justify-center rounded-xl bg-cta-500 px-3 text-sm font-bold text-white hover:bg-cta-600"
                         onClick={(e) => {
                           e.stopPropagation();
-                          if (cm?.status === "draft") {
-                            navigate(`/helperlink/create?campaignId=${encodeURIComponent(cm.id)}`);
-                            return;
-                          }
-                          if (cm && cm.status !== "canceled") {
-                            navigate(helperPerfHashLink);
-                            return;
-                          }
-                          if (card.promotion_enabled && !cm) {
-                            navigate(helperPerfHashLink);
-                            return;
-                          }
-                          openPromotionPayment(card);
+                          openHelperCampaignPrimaryAction(card, cm);
                         }}
                       >
                         {cm?.status === "draft"
@@ -1500,7 +1534,7 @@ export function DashboardPage() {
                                   ? "결과 보기"
                                   : HELPER_LINK_PAYMENT_CTA
                             : card.promotion_enabled && !cm
-                              ? "지원자 확인하기"
+                              ? "헬퍼링크 관리"
                               : HELPER_LINK_PAYMENT_CTA}
                       </button>                    </div>
                   {cardShareHintId === card.id ? (
@@ -1517,18 +1551,76 @@ export function DashboardPage() {
                     {cm ? (
                       <p className="mt-2 rounded-lg bg-white/70 px-2 py-1.5 text-[11px] font-bold text-slate-800 ring-1 ring-brand-100 sm:text-xs">
                         {cm.status === "draft"
-                          ? "헬퍼링크 결제 완료 · 홍보 요청서 작성 필요"
+                          ? "헬퍼링크 결제 완료 · 홍보 요청서 작성이 필요합니다."
                           : cm.status === "recruiting"
-                            ? "헬퍼링크 파트너 모집 중"
+                            ? "헬퍼링크 파트너 모집 중입니다."
                             : cm.status === "active"
-                              ? "헬퍼링크 홍보 진행 중"
+                              ? "헬퍼링크 홍보가 진행 중입니다."
                               : cm.status === "completed"
-                                ? "홍보 종료"
+                                ? "헬퍼링크 홍보가 종료되었습니다."
                                 : null}
                       </p>
                     ) : card.promotion_enabled ? (
                       <p className="mt-2 rounded-lg bg-white/70 px-2 py-1.5 text-[11px] font-bold text-slate-800 ring-1 ring-brand-100 sm:text-xs">
                         헬퍼링크 파트너 모집 중
+                      </p>
+                    ) : null}
+                    {cm && hm ? (
+                      <dl className="mt-4 grid gap-2 rounded-xl border border-brand-100 bg-white/90 px-3 py-3 text-[11px] sm:grid-cols-2 lg:grid-cols-3">
+                        <div>
+                          <dt className="font-semibold text-slate-500">지원자 수</dt>
+                          <dd className="mt-0.5 tabular-nums font-bold text-slate-900">{appListForCard.length}</dd>
+                        </div>
+                        <div>
+                          <dt className="font-semibold text-slate-500">선택된 파트너</dt>
+                          <dd className="mt-0.5 tabular-nums font-bold text-slate-900">{hm.selectedPartnerIds.length}</dd>
+                        </div>
+                        <div>
+                          <dt className="font-semibold text-slate-500">캠페인 방문</dt>
+                          <dd className="mt-0.5 tabular-nums font-bold text-slate-900">{hm.totalViews}</dd>
+                        </div>
+                        <div>
+                          <dt className="font-semibold text-slate-500">문의 클릭</dt>
+                          <dd className="mt-0.5 tabular-nums font-bold text-slate-900">{hm.inquiryClicks}</dd>
+                        </div>
+                        <div>
+                          <dt className="font-semibold text-slate-500">상담·폼 접수</dt>
+                          <dd className="mt-0.5 tabular-nums font-bold text-slate-900">{hm.consultationRows + hm.formSubmits}</dd>
+                        </div>
+                        <div>
+                          <dt className="font-semibold text-slate-500">진행 기간</dt>
+                          <dd className="mt-0.5 font-semibold text-slate-800">
+                            {(cm.start_date ?? "—") + " ~ " + (cm.end_date ?? "—")}
+                          </dd>
+                        </div>
+                        <div className="sm:col-span-2 lg:col-span-3">
+                          <dt className="font-semibold text-slate-500">마지막 유입</dt>
+                          <dd className="mt-0.5 font-semibold text-slate-800">
+                            {hm.lastEventAt ? new Date(hm.lastEventAt).toLocaleString("ko-KR") : "—"}
+                          </dd>
+                        </div>
+                        {Object.entries(hm.byPartnerId).length > 0 ? (
+                          <div className="sm:col-span-2 lg:col-span-3">
+                            <dt className="font-semibold text-slate-500">파트너별 방문 요약</dt>
+                            <dd className="mt-1 flex flex-wrap gap-2">
+                              {Object.entries(hm.byPartnerId)
+                                .sort(([, a], [, b]) => b.views - a.views)
+                                .slice(0, 4)
+                                .map(([pid, pv]) => (
+                                  <span
+                                    key={pid}
+                                    className="rounded-lg bg-brand-50 px-2 py-1 text-[11px] font-semibold text-brand-950 ring-1 ring-brand-100"
+                                  >
+                                    {pv.name}: 방문 {pv.views}, 문의 {pv.inquiryClicks}
+                                  </span>
+                                ))}
+                            </dd>
+                          </div>
+                        ) : null}
+                      </dl>
+                    ) : cm && cm.status === "draft" ? (
+                      <p className="mt-4 text-[11px] leading-relaxed text-slate-600">
+                        결제 후 요청서 작성이 끝나면 지원자·성과 현황이 이곳에 표시됩니다.
                       </p>
                     ) : null}
                     <div className="mt-3 space-y-3">
@@ -1574,21 +1666,7 @@ export function DashboardPage() {
                     <button
                       type="button"
                       className="mt-3 inline-flex min-h-10 items-center justify-center rounded-xl bg-cta-500 px-4 text-sm font-bold text-white shadow-sm shadow-cta-900/20 hover:bg-cta-600"
-                      onClick={() => {
-                        if (cm?.status === "draft") {
-                          navigate(`/helperlink/create?campaignId=${encodeURIComponent(cm.id)}`);
-                          return;
-                        }
-                        if (cm && cm.status !== "canceled") {
-                          navigate(helperPerfHashLink);
-                          return;
-                        }
-                        if (card.promotion_enabled && !cm) {
-                          navigate(helperPerfHashLink);
-                          return;
-                        }
-                        openPromotionPayment(card);
-                      }}
+                      onClick={() => openHelperCampaignPrimaryAction(card, cm)}
                     >
                       {cm?.status === "draft"
                         ? "요청서 작성하기"
@@ -1601,15 +1679,16 @@ export function DashboardPage() {
                                 ? "결과 보기"
                                 : HELPER_LINK_PAYMENT_CTA
                             : card.promotion_enabled && !cm
-                              ? "지원자 확인하기"
+                              ? "헬퍼링크 관리"
                               : HELPER_LINK_PAYMENT_CTA}
                     </button>                  </div>
                   {showPromotionPerf ? (
                     <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-4">
                       <h3 className="text-sm font-bold text-slate-900">홍보 파트너별 성과</h3>
                       {promotionPerfRows.length === 0 ? (
-                        <p className="mt-3 text-sm text-slate-500">
-                          아직 헬퍼링크 방문 기록이 없어요. 헬퍼링크를 승인하고 공유가 시작되면 이곳에 데이터가 쌓입니다.
+                        <p className="mt-3 text-sm leading-relaxed text-slate-500">
+                          아직 헬퍼링크 홍보가 시작되지 않았습니다. 파트너를 선택하면 전용 링크가 생성되고, 방문·문의·상담
+                          데이터가 이곳에 쌓입니다.
                         </p>
                       ) : (
                         <div className="mt-3 overflow-x-auto">
@@ -1781,9 +1860,9 @@ export function DashboardPage() {
           </p>
           {visitOwnerStats.totalVisits === 0 ? (
             <div className="mt-5 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center">
-              <p className="text-base font-medium text-slate-700">아직 헬퍼링크 방문 기록이 없어요.</p>
+              <p className="text-base font-medium text-slate-700">아직 헬퍼링크 홍보가 시작되지 않았습니다.</p>
               <p className="mt-2 text-sm text-slate-500">
-                헬퍼링크를 승인하고 공유가 시작되면 이곳에 데이터가 쌓입니다.
+                파트너를 선택하면 전용 링크가 생성되고, 방문·문의·상담 데이터가 이곳에 쌓입니다.
               </p>
             </div>
           ) : (
@@ -1799,14 +1878,17 @@ export function DashboardPage() {
       ) : null}
 
       {uid ? (
-        <section className="mt-10 rounded-2xl border border-brand-200/80 bg-gradient-to-br from-brand-50 via-white to-sky-50 p-4 shadow-sm sm:p-6">
+        <section
+          id="dashboard-section-helper-mgmt"
+          className="mt-10 rounded-2xl border border-brand-200/80 bg-gradient-to-br from-brand-50 via-white to-sky-50 p-4 shadow-sm sm:p-6"
+          aria-labelledby="dashboard-section-helper-mgmt-heading"
+        >
           <div>
-            <h2 id="dashboard-section-helper-partner-performance" className="text-lg font-semibold text-slate-900 sm:text-xl">
-              내 헬퍼링크 파트너 성과
+            <h2 id="dashboard-section-helper-mgmt-heading" className="text-lg font-semibold text-slate-900 sm:text-xl">
+              내 헬퍼링크 파트너 관리
             </h2>
             <p className="mt-2 text-sm leading-relaxed text-slate-600 sm:text-base">
-              유료 헬퍼링크 파트너 캠페인을 만들고 지원 파트너를 선택하면 전용 링크가 발급됩니다. 파트너와 함께 조회·문의 성과가
-              캠페인·채널·파트너 기준으로 기록됩니다.
+              헬퍼링크 파트너 모집, 지원자 확인, 홍보 성과를 한곳에서 관리합니다.
             </p>
             <div className="mt-4 flex flex-wrap gap-3">
               <Link
@@ -1843,76 +1925,76 @@ export function DashboardPage() {
                 {helperCampaignRows.map((c) => {
                   const apps = helperCampaignApps[c.id] ?? [];
                   const card = businessCards.find((bc) => bc.id === c.card_id);
+                  const met = helperCampaignMetrics[c.id];
                   return (
                     <li key={c.id} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
                       <p className="text-xs font-semibold uppercase text-slate-500">캠페인</p>
                       <p className="mt-1 text-sm font-bold text-slate-900">{c.title || "제목 없음"}</p>
                       <p className="mt-2 text-xs text-slate-600">
-                        상태: <span className="font-semibold">{c.status}</span> · 명함:{" "}
+                        상태: <span className="font-semibold">{c.status}</span> · 홍보 명함:{" "}
                         {card ? cardDisplayName(card) : c.card_id}
                       </p>
-                      <p className="mt-1 text-xs text-slate-500">
+                      <dl className="mt-3 grid gap-2 text-[11px] text-slate-700 sm:grid-cols-2">
+                        <div>
+                          <dt className="font-semibold text-slate-500">지원자 수</dt>
+                          <dd className="tabular-nums font-bold">{apps.length}</dd>
+                        </div>
+                        <div>
+                          <dt className="font-semibold text-slate-500">선택 파트너</dt>
+                          <dd className="tabular-nums font-bold">{met?.selectedPartnerIds.length ?? 0}</dd>
+                        </div>
+                        <div>
+                          <dt className="font-semibold text-slate-500">방문</dt>
+                          <dd className="tabular-nums font-bold">{met?.totalViews ?? 0}</dd>
+                        </div>
+                        <div>
+                          <dt className="font-semibold text-slate-500">문의 클릭 · 상담</dt>
+                          <dd className="tabular-nums font-bold">
+                            {(met?.inquiryClicks ?? 0) + (met?.consultationRows ?? 0) + (met?.formSubmits ?? 0)} (클릭{" "}
+                            {met?.inquiryClicks ?? 0})
+                          </dd>
+                        </div>
+                      </dl>
+                      <p className="mt-2 text-xs text-slate-500">
                         기간 {(c.start_date ?? "—") + " ~ " + (c.end_date ?? "—")}
                       </p>
-                      <p className="mt-2 text-xs leading-relaxed text-slate-600">
-                        채널 {JSON.stringify(c.target_channels)} · 지역 {c.region || "—"} · 목적 {c.goal || "—"}
-                      </p>
-                      <p className="mt-2 text-xs leading-relaxed text-slate-500">
-                        성과 카드_EVENTS에 campaign · channel · helper_partner 기준으로 집계됩니다. 상세 집계 UI는 순차 적용 예정입니다.
-                      </p>
-                      {apps.length ? (
-                        <div className="mt-4 space-y-2 border-t border-slate-100 pt-3">
-                          <p className="text-xs font-bold text-brand-900">파트너 선택 안내 · 지원한 파트너의 채널과 전략을 확인한 뒤 선택해 주세요.</p>
-                          {apps.map((app) => {
-                            const hp = helperPartnerProfileMap[app.partner_id];
-                            const canSelect =
-                              (c.status === "recruiting" || c.status === "active") &&
-                              app.status === "applied" &&
-                              hp;
-                            return (
-                              <div key={app.id} className="rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-800">
-                                <p className="font-semibold">
-                                  {(hp?.display_name ?? hp?.bio?.slice(0, 40) ?? "파트너") + ` · 상태 ${app.status}`}
-                                </p>
-                                {hp?.region ? <p className="mt-1 text-slate-600">활동 지역 {hp.region}</p> : null}
-                                <p className="mt-1 text-slate-600 line-clamp-3">{app.proposal_message || "전략 제안 미입력"}</p>
-                                {canSelect ? (
-                                  <button
-                                    type="button"
-                                    className="mt-2 inline-flex rounded-lg bg-brand-700 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-brand-800"
-                                    onClick={() =>
-                                      void (async () => {
-                                        if (!card?.slug?.trim()) {
-                                          window.alert("명함 슬러그를 찾을 수 없습니다.");
-                                          return;
-                                        }
-                                        const link = await selectPartnerApplicationAndActivate({
-                                          campaignId: c.id,
-                                          applicationId: app.id,
-                                          card,
-                                          partnerProfileId: app.partner_id,
-                                        });
-                                        if (!link?.share_url) {
-                                          window.alert("전용 링크 생성에 실패했습니다. Supabase 설정·테이블을 확인해 주세요.");
-                                          return;
-                                        }
-                                        await reloadHelperCampaignBoard();
-                                        window.alert(
-                                          `선택이 완료되었습니다.\n파트너 전용 링크:\n${link.share_url}`,
-                                        );
-                                      })()
-                                    }
-                                  >
-                                    선택하기
-                                  </button>
-                                ) : null}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      ) : (
-                        <p className="mt-3 text-xs text-slate-500">아직 파트너 지원 제안이 없습니다.</p>
-                      )}
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        {c.status === "draft" ? (
+                          <Link
+                            to={`/helperlink/create?campaignId=${encodeURIComponent(c.id)}`}
+                            className="inline-flex rounded-lg bg-slate-900 px-3 py-2 text-xs font-bold text-white hover:bg-black"
+                          >
+                            요청서 작성하기
+                          </Link>
+                        ) : null}
+                        {c.status === "recruiting" ? (
+                          <Link
+                            to={`/dashboard/helper-campaigns/${encodeURIComponent(c.id)}/applications`}
+                            className="inline-flex rounded-lg bg-brand-700 px-3 py-2 text-xs font-bold text-white hover:bg-brand-800"
+                          >
+                            지원자 확인하기
+                          </Link>
+                        ) : null}
+                        {c.status === "active" ? (
+                          <Link
+                            to={`/dashboard/helper-campaigns/${encodeURIComponent(c.id)}/stats`}
+                            className="inline-flex rounded-lg bg-emerald-700 px-3 py-2 text-xs font-bold text-white hover:bg-emerald-800"
+                          >
+                            성과 보기
+                          </Link>
+                        ) : null}
+                        {c.status === "completed" ? (
+                          <Link
+                            to={`/dashboard/helper-campaigns/${encodeURIComponent(c.id)}/stats`}
+                            className="inline-flex rounded-lg bg-slate-700 px-3 py-2 text-xs font-bold text-white hover:bg-slate-900"
+                          >
+                            결과 보기
+                          </Link>
+                        ) : null}
+                      </div>
+                      {apps.length === 0 && c.status === "recruiting" ? (
+                        <p className="mt-3 text-xs text-slate-500">아직 파트너 지원이 없습니다.</p>
+                      ) : null}
                     </li>
                   );
                 })}

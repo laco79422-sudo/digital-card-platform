@@ -12,6 +12,7 @@ export function buildCampaignPartnerShareUrl(opts: {
   const origin = (opts.origin ?? canonicalSiteOrigin()).replace(/\/$/, "");
   const u = new URL(`${origin}/c/${encodeURIComponent(opts.slug.trim())}`);
   if (isPromotionUuid(opts.campaignId)) u.searchParams.set("campaign", opts.campaignId.trim());
+  /** 채널별 전용 링크 — campaign_share_links 행 UUID */
   if (opts.channelId?.trim() && isPromotionUuid(opts.channelId)) u.searchParams.set("channel", opts.channelId.trim());
   u.searchParams.set("type", "helper");
   if (isPromotionUuid(opts.partnerProfileId)) u.searchParams.set("helper", opts.partnerProfileId.trim());

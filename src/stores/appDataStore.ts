@@ -376,12 +376,14 @@ export const useAppDataStore = create<AppDataState>()(
             user_id: evtIn.user_id,
             campaign_id: evtIn.campaign_id ?? null,
             channel_id: evtIn.channel_id ?? null,
+            campaign_share_link_id: evtIn.campaign_share_link_id ?? null,
             share_type: evtIn.share_type,
             helper_id: evtIn.helper_id ?? null,
             helper_partner_id: evtIn.helper_partner_id ?? null,
             event_type: evtIn.event_type,
             button_type: evtIn.button_type ?? null,
             visitor_id: evtIn.visitor_id ?? null,
+            user_agent: evtIn.user_agent ?? null,
           };
           const next = [...s.cardPromoEvents, evt];
           const cap = 2000;

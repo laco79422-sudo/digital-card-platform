@@ -32,7 +32,13 @@ export function buildPromotionCardUrl(opts: {
 
 export type ParsedPromotionUrl = {
   campaignId: string | null;
+  /** 레거시: card_channels 의 UUID (?channel=) */
   channelId: string | null;
+  /**
+   * 헬퍼 캠페인 유입: campaign + helper 가 있으면 channel 쿼리는 campaign_share_links.id(uuid)
+   * (카드 채널 행과 겹치면 안 되지만, 헬퍼 URL은 보통 해당 조합으로만 생성함)
+   */
+  campaignShareLinkId: string | null;
   shareType: PromoShareType;
   /** 레거시 public.helpers 행 참조 (?helper= 에 캠페인 미지정 시) */
   helperId: string | null;
@@ -48,7 +54,7 @@ export function parsePromotionQuery(searchOrParams: string | URLSearchParams): P
   const campaignId = isPromotionUuid(campaignRaw) ? campaignRaw : null;
 
   const ch = p.get("channel")?.trim() ?? "";
-  const channelId = isPromotionUuid(ch) ? ch : null;
+  const chUuid = isPromotionUuid(ch) ? ch : null;
 
   const typeRaw = p.get("type")?.trim().toLowerCase() ?? "";
   const wantsHelperType = typeRaw === "helper";
@@ -58,8 +64,12 @@ export function parsePromotionQuery(searchOrParams: string | URLSearchParams): P
 
   if (campaignId) {
     const shareType: PromoShareType = helperUuid ? "helper" : "direct";
+    /** 캠페인+헬퍼 모드에서는 channel 파라미터가 전용 링크 행 UUID */
+    const campaignShareLinkId = helperUuid && chUuid ? chUuid : null;
+    const channelId = helperUuid ? null : chUuid;
     return {
       campaignId,
+      campaignShareLinkId,
       channelId,
       shareType,
       helperId: null,
@@ -73,7 +83,8 @@ export function parsePromotionQuery(searchOrParams: string | URLSearchParams): P
 
   return {
     campaignId: null,
-    channelId,
+    campaignShareLinkId: null,
+    channelId: chUuid,
     shareType,
     helperId,
     helperPartnerProfileId: null,

@@ -10,6 +10,9 @@ export async function insertCardConsultationRemote(row: {
   customer_name: string;
   customer_contact: string;
   message: string;
+  campaign_id?: string | null;
+  helper_partner_id?: string | null;
+  channel_link_id?: string | null;
 }): Promise<{ ok: true } | { ok: false; message: string }> {
   if (!isSupabaseConfigured || !supabase) {
     return { ok: false, message: "서버 설정이 필요합니다." };
@@ -20,6 +23,9 @@ export async function insertCardConsultationRemote(row: {
     customer_contact: row.customer_contact.trim(),
     message: row.message.trim(),
     status: "new",
+    campaign_id: row.campaign_id?.trim() || null,
+    helper_partner_id: row.helper_partner_id?.trim() || null,
+    channel_link_id: row.channel_link_id?.trim() || null,
   });
   if (error) {
     if (!missingRelation(error.message)) {

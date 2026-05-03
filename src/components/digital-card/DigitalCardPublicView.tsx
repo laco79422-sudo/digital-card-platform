@@ -37,6 +37,7 @@ import { insertCardConsultationRemote } from "@/services/cardConsultationsServic
 import { insertCardPromoEventRemote } from "@/services/cardPromoAnalyticsRemote";
 import { insertCardActionLogRemote } from "@/services/cardAnalyticsRemote";
 import { getStoredPartnerForCard } from "@/lib/linkoPartnerAttribution";
+import type { PromoShareType } from "@/types/cardPromo";
 import type { BusinessCard, CardLink } from "@/types/domain";
 import {
   ArrowRight,
@@ -120,6 +121,13 @@ type Props = {
   onHeroImageRemove?: () => void | Promise<void>;
   /** 공개 명함만 — 히어로·sticky를 「지금 예약하기」 단일 CTA로 통합 */
   enableReservationBooking?: boolean;
+  /** 헬퍼 캠페인 유입 — 문의·폼 이벤트를 캠페인·채널별로 저장 */
+  promotionAttribution?: {
+    campaignId: string | null;
+    campaignShareLinkId: string | null;
+    helperPartnerId: string | null;
+    shareType: PromoShareType;
+  } | null;
 };
 
 export function DigitalCardPublicView({
@@ -145,6 +153,7 @@ export function DigitalCardPublicView({
   onHeroImagePick,
   onHeroImageRemove,
   enableReservationBooking = false,
+  promotionAttribution = null,
 }: Props) {
   const navigate = useNavigate();
   const grad = themeClass[card.theme] ?? themeClass.navy;
@@ -268,19 +277,23 @@ export function DigitalCardPublicView({
     const oid = `${ownerUidForLog ?? ""}`.trim();
     if (!CARD_EVENT_UUID.test(cid)) return;
     if (!CARD_EVENT_UUID.test(oid)) return;
+    const pa = promotionAttribution;
+    const shareType: PromoShareType = pa?.shareType === "helper" ? "helper" : "direct";
     await insertCardPromoEventRemote({
       card_id: cid,
       user_id: oid,
-      share_type: "direct",
-      campaign_id: null,
+      share_type: shareType,
+      campaign_id: pa?.campaignId ?? null,
       channel_id: null,
+      campaign_share_link_id: pa?.campaignShareLinkId ?? null,
       helper_id: null,
-      helper_partner_id: null,
+      helper_partner_id: pa?.helperPartnerId ?? null,
       event_type: "contact_click",
       button_type: "consultation",
       visitor_id: null,
+      user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
     });
-  }, [analyticsTargetCardId, ownerUidForLog]);
+  }, [analyticsTargetCardId, ownerUidForLog, promotionAttribution]);
 
   const navigatePlain = useCallback((href: string) => {
     const t = href.trim();
@@ -384,11 +397,15 @@ export function DigitalCardPublicView({
       setConsultBusy(true);
       setConsultErr(null);
       try {
+        const pa = promotionAttribution;
         const r = await insertCardConsultationRemote({
           card_id: cid,
           customer_name: payload.name,
           customer_contact: payload.contact,
           message: payload.message,
+          campaign_id: pa?.campaignId ?? null,
+          helper_partner_id: pa?.helperPartnerId ?? null,
+          channel_link_id: pa?.campaignShareLinkId ?? null,
         });
         if (!r.ok) {
           const lower = r.message?.toLowerCase() ?? "";
@@ -399,12 +416,26 @@ export function DigitalCardPublicView({
           setConsultErr("문의 전송에 실패했습니다. 잠시 후 다시 시도해 주세요.");
           return;
         }
+        void insertCardPromoEventRemote({
+          card_id: cid,
+          user_id: `${ownerUidForLog ?? ""}`.trim(),
+          share_type: pa?.shareType === "helper" ? "helper" : "direct",
+          campaign_id: pa?.campaignId ?? null,
+          channel_id: null,
+          campaign_share_link_id: pa?.campaignShareLinkId ?? null,
+          helper_id: null,
+          helper_partner_id: pa?.helperPartnerId ?? null,
+          event_type: "form_submit",
+          button_type: "consultation_form",
+          visitor_id: null,
+          user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
+        });
         setConsultSuccessNotice("문의가 접수되었습니다. 명함 주인이 확인 후 연락드릴 수 있습니다.");
       } finally {
         setConsultBusy(false);
       }
     },
-    [analyticsTargetCardId],
+    [analyticsTargetCardId, ownerUidForLog, promotionAttribution],
   );
 
   const dismissConsultLead = useCallback(() => {

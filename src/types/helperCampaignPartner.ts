@@ -78,7 +78,31 @@ export interface CampaignShareLinkRow {
   partner_id: string;
   card_id: string;
   channel_id: string | null;
+  /** HELPER_PROMO_CHANNELS id — URL의 channel 은 보통 campaign_share_links 행 UUID */
+  promo_channel_key: string;
   share_url: string;
   status: CampaignShareLinkStatus;
   created_at: string;
 }
+
+/** card_events Supabase row — 대시보드 집계용 최소 필드 */
+export type HelperCardEventLean = {
+  event_type: string;
+  helper_partner_id: string | null;
+  campaign_share_link_id: string | null;
+  created_at: string;
+};
+
+export type HelperCampaignStatsComputed = {
+  totalViews: number;
+  inquiryClicks: number;
+  formSubmits: number;
+  consultationRows: number;
+  lastEventAt: string | null;
+  byChannelKey: Record<string, { views: number; inquiryClicks: number }>;
+  byPartnerId: Record<
+    string,
+    { name: string; views: number; inquiryClicks: number; formSubmits: number; consultations: number }
+  >;
+  selectedPartnerIds: string[];
+};

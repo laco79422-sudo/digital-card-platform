@@ -1,13 +1,15 @@
 /**
  * 헬퍼링크 파트너 캠페인 — Supabase 연동
  */
-import { buildCampaignPartnerShareUrl } from "@/lib/helperCampaignPartnerUrls";
+import { buildCampaignPartnerShareUrl, HELPER_PROMO_CHANNELS } from "@/lib/helperCampaignPartnerUrls";
 import { HELPER_LINK_PRICE_KRW } from "@/lib/helperLinkPricing";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase/client";
 import type { BusinessCard } from "@/types/domain";
 import type {
   CampaignShareLinkRow,
   HelperCampaignRow,
+  HelperCampaignStatsComputed,
+  HelperCardEventLean,
   HelperPartnerApplicationRow,
   HelperPartnerRow,
 } from "@/types/helperCampaignPartner";
@@ -24,6 +26,14 @@ function asStringArr(v: unknown): string[] {
   if (!v) return [];
   if (Array.isArray(v)) return v.filter((x) => typeof x === "string").map(String);
   return [];
+}
+
+const PROMO_CHANNEL_KEYS = new Set<string>(HELPER_PROMO_CHANNELS.map((c) => c.id));
+
+/** 파트너가 제안한 채널 → DB promo_channel_key (없으면 카카오 1종 기본) */
+function normalizeProposedChannelKeys(raw: unknown): string[] {
+  const arr = asStringArr(raw).filter((id) => PROMO_CHANNEL_KEYS.has(id));
+  return arr.length ? [...new Set(arr)] : ["kakao"];
 }
 
 function patchCampaignRow(c: HelperCampaignRow): HelperCampaignRow {
@@ -286,13 +296,205 @@ export async function insertPartnerCampaignApplication(row: {
   return data as HelperPartnerApplicationRow;
 }
 
+export async function rejectPartnerApplication(opts: {
+  campaignId: string;
+  applicationId: string;
+  ownerUserId: string;
+}): Promise<boolean> {
+  if (!isSupabaseConfigured || !supabase) return false;
+  const camp = await fetchHelperCampaignByIdForOwner(opts.campaignId, opts.ownerUserId);
+  if (!camp) return false;
+  const now = new Date().toISOString();
+  const { error } = await supabase
+    .from(T_APPS)
+    .update({ status: "rejected", updated_at: now })
+    .eq("id", opts.applicationId)
+    .eq("campaign_id", opts.campaignId);
+  if (error) {
+    console.warn("[helperCampaignPartnerService] rejectPartnerApplication", error.message);
+    return false;
+  }
+  return true;
+}
+
+function patchShareLinkRow(raw: Record<string, unknown>): CampaignShareLinkRow {
+  return {
+    id: String(raw.id),
+    campaign_id: String(raw.campaign_id),
+    partner_id: String(raw.partner_id),
+    card_id: String(raw.card_id),
+    channel_id: raw.channel_id == null ? null : String(raw.channel_id),
+    promo_channel_key: typeof raw.promo_channel_key === "string" ? raw.promo_channel_key : "",
+    share_url: String(raw.share_url ?? ""),
+    status: (raw.status as CampaignShareLinkRow["status"]) ?? "active",
+    created_at: String(raw.created_at ?? ""),
+  };
+}
+
+export async function fetchShareLinksForCampaign(campaignId: string): Promise<CampaignShareLinkRow[]> {
+  if (!isSupabaseConfigured || !supabase) return [];
+  const { data, error } = await supabase
+    .from(T_LINKS)
+    .select("*")
+    .eq("campaign_id", campaignId.trim())
+    .order("created_at", { ascending: true });
+  if (error) {
+    console.warn("[helperCampaignPartnerService] fetchShareLinksForCampaign", error.message);
+    return [];
+  }
+  return ((data as Record<string, unknown>[]) ?? []).map(patchShareLinkRow);
+}
+
+export async function fetchCardEventsLeanForCampaign(campaignId: string): Promise<HelperCardEventLean[]> {
+  if (!isSupabaseConfigured || !supabase) return [];
+  const { data, error } = await supabase
+    .from("card_events")
+    .select("event_type, helper_partner_id, campaign_share_link_id, created_at")
+    .eq("campaign_id", campaignId.trim());
+  if (error) {
+    console.warn("[helperCampaignPartnerService] fetchCardEventsLeanForCampaign", error.message);
+    return [];
+  }
+  return (
+    (data as {
+      event_type: string;
+      helper_partner_id: string | null;
+      campaign_share_link_id: string | null;
+      created_at: string;
+    }[]) ?? []
+  );
+}
+
+export async function fetchConsultationsAggregatesForCampaign(campaignId: string): Promise<{
+  total: number;
+  byPartnerId: Record<string, number>;
+}> {
+  if (!isSupabaseConfigured || !supabase) return { total: 0, byPartnerId: {} };
+  const { data, error } = await supabase
+    .from("consultations")
+    .select("id, helper_partner_id")
+    .eq("campaign_id", campaignId.trim());
+  if (error) {
+    console.warn("[helperCampaignPartnerService] fetchConsultationsAggregatesForCampaign", error.message);
+    return { total: 0, byPartnerId: {} };
+  }
+  const rows =
+    (data as { id: string; helper_partner_id: string | null }[]) ?? ([] as { id: string; helper_partner_id: string | null }[]);
+  const byPartnerId: Record<string, number> = {};
+  for (const r of rows) {
+    const pid = r.helper_partner_id?.trim();
+    if (pid) byPartnerId[pid] = (byPartnerId[pid] ?? 0) + 1;
+  }
+  return { total: rows.length, byPartnerId };
+}
+
+export function buildHelperCampaignStatsComputed(input: {
+  events: HelperCardEventLean[];
+  shareLinks: CampaignShareLinkRow[];
+  consultationTotal: number;
+  consultationByPartnerId: Record<string, number>;
+  applications: HelperPartnerApplicationRow[];
+  partnersById: Record<string, HelperPartnerRow>;
+}): HelperCampaignStatsComputed {
+  const linkKeyById = new Map(input.shareLinks.map((l) => [l.id, l.promo_channel_key || "기타"]));
+  const inquiryTypes = new Set(["contact_click", "call_click", "kakao_click"]);
+
+  const byChannelKey: Record<string, { views: number; inquiryClicks: number }> = {};
+  for (const { id } of input.shareLinks) {
+    const k = linkKeyById.get(id) ?? "기타";
+    if (!byChannelKey[k]) byChannelKey[k] = { views: 0, inquiryClicks: 0 };
+  }
+  byChannelKey["기타"] = byChannelKey["기타"] ?? { views: 0, inquiryClicks: 0 };
+
+  let totalViews = 0;
+  let inquiryClicks = 0;
+  let formSubmits = 0;
+  let lastEventAt: string | null = null;
+
+  const byPid: HelperCampaignStatsComputed["byPartnerId"] = {};
+
+  const bumpPartner = (
+    pid: string | null,
+    field: "views" | "inquiryClicks" | "formSubmits",
+  ) => {
+    if (!pid?.trim()) return;
+    const id = pid.trim();
+    if (!byPid[id]) {
+      const nm = input.partnersById[id]?.display_name?.trim() || "파트너";
+      byPid[id] = {
+        name: nm,
+        views: 0,
+        inquiryClicks: 0,
+        formSubmits: 0,
+        consultations: input.consultationByPartnerId[id] ?? 0,
+      };
+    }
+    byPid[id][field] += 1;
+  };
+
+  for (const e of input.events) {
+    const ts = e.created_at;
+    if (!lastEventAt || ts > lastEventAt) lastEventAt = ts;
+
+    if (e.event_type === "view") {
+      totalViews += 1;
+      const chRaw = e.campaign_share_link_id?.trim()
+        ? linkKeyById.get(e.campaign_share_link_id.trim()) ?? "기타"
+        : "기타";
+      if (!byChannelKey[chRaw]) byChannelKey[chRaw] = { views: 0, inquiryClicks: 0 };
+      byChannelKey[chRaw].views += 1;
+      bumpPartner(e.helper_partner_id, "views");
+      continue;
+    }
+    if (inquiryTypes.has(e.event_type)) {
+      inquiryClicks += 1;
+      const chRaw = e.campaign_share_link_id?.trim()
+        ? linkKeyById.get(e.campaign_share_link_id.trim()) ?? "기타"
+        : "기타";
+      if (!byChannelKey[chRaw]) byChannelKey[chRaw] = { views: 0, inquiryClicks: 0 };
+      byChannelKey[chRaw].inquiryClicks += 1;
+      bumpPartner(e.helper_partner_id, "inquiryClicks");
+      continue;
+    }
+    if (e.event_type === "form_submit") {
+      formSubmits += 1;
+      bumpPartner(e.helper_partner_id, "formSubmits");
+    }
+  }
+
+  for (const [pid, cnt] of Object.entries(input.consultationByPartnerId)) {
+    if (!byPid[pid]) {
+      const nm = input.partnersById[pid]?.display_name?.trim() || "파트너";
+      byPid[pid] = { name: nm, views: 0, inquiryClicks: 0, formSubmits: 0, consultations: cnt };
+    } else {
+      byPid[pid].consultations = cnt;
+    }
+  }
+
+  const selectedPartnerIds = [...new Set(input.applications.filter((a) => a.status === "selected").map((a) => a.partner_id))];
+
+  return {
+    totalViews,
+    inquiryClicks,
+    formSubmits,
+    consultationRows: input.consultationTotal,
+    lastEventAt,
+    byChannelKey,
+    byPartnerId: byPid,
+    selectedPartnerIds,
+  };
+}
+
 export async function selectPartnerApplicationAndActivate(opts: {
   campaignId: string;
   applicationId: string;
   card: Pick<BusinessCard, "id" | "slug">;
   partnerProfileId: string;
-}): Promise<CampaignShareLinkRow | null> {
+}): Promise<CampaignShareLinkRow[] | null> {
   if (!isSupabaseConfigured || !supabase) return null;
+
+  const slug = opts.card.slug?.trim();
+  if (!slug) return null;
 
   const { data: others } = await supabase.from(T_APPS).select("id").eq("campaign_id", opts.campaignId);
   const otherIds = (others ?? []).map((r: { id: string }) => r.id).filter((id) => id !== opts.applicationId);
@@ -306,45 +508,68 @@ export async function selectPartnerApplicationAndActivate(opts: {
     .update({ status: "selected", updated_at: new Date().toISOString() })
     .eq("id", opts.applicationId);
 
+  await supabase.from(T_LINKS).delete().eq("campaign_id", opts.campaignId);
+
   const apps = await fetchApplicationsForCampaign(opts.campaignId);
   const selected = apps.find((a) => a.id === opts.applicationId);
-  const chans = selected ? asStringArr(selected.proposed_channels) : [];
-  const channelId = chans.find((c) => /^[0-9a-f-]{36}$/i.test(c)) ?? null;
+  const channelKeys = normalizeProposedChannelKeys(selected?.proposed_channels ?? []);
 
-  const slug = opts.card.slug?.trim();
-  if (!slug) return null;
+  const created: CampaignShareLinkRow[] = [];
+  const now = new Date().toISOString();
 
-  const share_url = buildCampaignPartnerShareUrl({
-    slug,
-    campaignId: opts.campaignId,
-    channelId,
-    partnerProfileId: opts.partnerProfileId,
-  });
+  for (const promo_channel_key of channelKeys) {
+    const { data: ins, error } = await supabase
+      .from(T_LINKS)
+      .insert({
+        campaign_id: opts.campaignId,
+        partner_id: opts.partnerProfileId,
+        card_id: opts.card.id,
+        promo_channel_key,
+        channel_id: null,
+        share_url: "https://placeholder.invalid/pending-link",
+        status: "active" as const,
+      })
+      .select("*")
+      .single();
 
-  const { data: link, error: e3 } = await supabase
-    .from(T_LINKS)
-    .insert({
-      campaign_id: opts.campaignId,
-      partner_id: opts.partnerProfileId,
-      card_id: opts.card.id,
-      channel_id: channelId,
-      share_url,
-      status: "active",
-    })
-    .select("*")
-    .single();
+    if (error || !ins) {
+      console.warn("[helperCampaignPartnerService] insert campaign_share_links", error?.message);
+      return null;
+    }
 
-  if (e3) {
-    console.warn("[helperCampaignPartnerService] insert share link", e3.message);
+    const row = patchShareLinkRow(ins as Record<string, unknown>);
+    const share_url = buildCampaignPartnerShareUrl({
+      slug,
+      campaignId: opts.campaignId,
+      channelId: row.id,
+      partnerProfileId: opts.partnerProfileId,
+    });
+
+    const { data: fin, error: e2 } = await supabase
+      .from(T_LINKS)
+      .update({ share_url })
+      .eq("id", row.id)
+      .select("*")
+      .single();
+
+    if (e2 || !fin) {
+      console.warn("[helperCampaignPartnerService] update campaign_share_links url", e2?.message);
+      return null;
+    }
+    created.push(patchShareLinkRow(fin as Record<string, unknown>));
+  }
+
+  const { error: eCamp } = await supabase
+    .from(T_CAMPAIGNS)
+    .update({ status: "active", updated_at: now })
+    .eq("id", opts.campaignId);
+
+  if (eCamp) {
+    console.warn("[helperCampaignPartnerService] activate campaign", eCamp.message);
     return null;
   }
 
-  await supabase
-    .from(T_CAMPAIGNS)
-    .update({ status: "active", updated_at: new Date().toISOString() })
-    .eq("id", opts.campaignId);
-
-  return link as CampaignShareLinkRow;
+  return created;
 }
 
 export async function fetchShareLinksForOwner(ownerUserId: string): Promise<CampaignShareLinkRow[]> {
@@ -355,14 +580,14 @@ export async function fetchShareLinksForOwner(ownerUserId: string): Promise<Camp
   const ids = campaigns.map((c: { id: string }) => c.id);
   const { data: links, error: e2 } = await supabase.from(T_LINKS).select("*").in("campaign_id", ids);
   if (e2) return [];
-  return (links as CampaignShareLinkRow[]) ?? [];
+  return ((links as Record<string, unknown>[]) ?? []).map(patchShareLinkRow);
 }
 
 export async function fetchShareLinksForPartner(partnerProfileId: string): Promise<CampaignShareLinkRow[]> {
   if (!isSupabaseConfigured || !supabase) return [];
   const { data, error } = await supabase.from(T_LINKS).select("*").eq("partner_id", partnerProfileId);
   if (error) return [];
-  return (data as CampaignShareLinkRow[]) ?? [];
+  return ((data as Record<string, unknown>[]) ?? []).map(patchShareLinkRow);
 }
 
 export async function fetchHelperPartnersByIds(ids: string[]): Promise<HelperPartnerRow[]> {
