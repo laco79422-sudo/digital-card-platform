@@ -45,8 +45,9 @@ type Props = {
   /** natural 없을 때만 적용 (구 카드) */
   legacyObjectPosition?: string | null;
   error?: string;
-  /** 저장된 명함이 있으면 업로드 직후 원격 DB에도 반영 */
+  /** 저장된 명함이 있으면 업로드 직후 원격 DB에도 반영 — ID가 준비될 때까지 지연 필요 시 getter 사용 */
   persistBrandImageCardId?: string | null;
+  getPersistBrandImageCardId?: () => string | null;
   onBrandImagePersist?: (payload: BrandImagePersistPayload) => Promise<void>;
 };
 
@@ -65,6 +66,7 @@ export function ImageUploader({
   legacyObjectPosition,
   error,
   persistBrandImageCardId,
+  getPersistBrandImageCardId,
   onBrandImagePersist,
 }: Props) {
   const inputId = useId();
@@ -126,7 +128,8 @@ export function ImageUploader({
       onUrlChange(publicUrl, { reset: true, naturalW: width, naturalH: height });
       setPreviewDuringUpload(null);
 
-      if (persistBrandImageCardId && onBrandImagePersist) {
+      const id = getPersistBrandImageCardId?.() ?? persistBrandImageCardId ?? null;
+      if (id && onBrandImagePersist) {
         await onBrandImagePersist({
           publicUrl,
           naturalW: width,

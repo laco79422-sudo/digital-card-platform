@@ -1,5 +1,6 @@
 import { CardConnectionModesHint } from "@/components/digital-card/CardConnectionModesHint";
 import { ReservationModal } from "@/components/digital-card/ReservationModal";
+import { CardConsultLeadModal } from "@/components/digital-card/CardConsultLeadModal";
 import { BrandHeroFrame } from "@/components/digital-card/BrandHeroFrame";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -30,7 +31,10 @@ import {
 import { tempPreviewKakaoFeedFromCard } from "@/lib/previewShareMeta";
 import { layout } from "@/lib/ui-classes";
 import { buildViralShareText } from "@/lib/viralShareText";
+import { LINKO_CONSULT_MODAL_FRAGMENT } from "@/lib/consultLead";
 import { cn } from "@/lib/utils";
+import { insertCardConsultationRemote } from "@/services/cardConsultationsService";
+import { insertCardPromoEventRemote } from "@/services/cardPromoAnalyticsRemote";
 import { insertCardActionLogRemote } from "@/services/cardAnalyticsRemote";
 import { getStoredPartnerForCard } from "@/lib/linkoPartnerAttribution";
 import type { BusinessCard, CardLink } from "@/types/domain";
@@ -76,22 +80,8 @@ function iconForLinkType(t: CardLink["type"]) {
   }
 }
 
-function navigateCta(href: string) {
-  const t = href.trim();
-  if (t.startsWith("tel:") || t.startsWith("mailto:")) {
-    window.location.href = t;
-    return;
-  }
-  if (t.startsWith("#")) {
-    document.querySelector(t)?.scrollIntoView({ behavior: "smooth", block: "start" });
-    return;
-  }
-  if (t.startsWith("/") && !t.startsWith("//")) {
-    window.location.assign(t);
-    return;
-  }
-  window.open(t, "_blank", "noopener,noreferrer");
-}
+const CARD_EVENT_UUID =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 type Props = {
   card: BusinessCard;
@@ -122,6 +112,12 @@ type Props = {
   onNameChange?: (name: string) => void | Promise<void>;
   /** 카카오 공유 직전 — Supabase에 임시 명함 동기화(크롤러 OG와 일치) */
   onBeforeKakaoShare?: () => void | Promise<void>;
+  /** 공통 문의 접수 카드 조회 성과 저장용 실제 카드 UUID */
+  analyticsCardId?: string | null;
+  /** 미리보기 히어로 이미지 편집 (변경·삭제) — 있으면 히어로 위에 버튼 */
+  editorHeroEditable?: boolean;
+  onHeroImagePick?: () => void;
+  onHeroImageRemove?: () => void | Promise<void>;
   /** 공개 명함만 — 히어로·sticky를 「지금 예약하기」 단일 CTA로 통합 */
   enableReservationBooking?: boolean;
 };
@@ -144,6 +140,10 @@ export function DigitalCardPublicView({
   namePlaceholder = "이름을 입력하세요",
   onNameChange,
   onBeforeKakaoShare,
+  analyticsCardId = null,
+  editorHeroEditable = false,
+  onHeroImagePick,
+  onHeroImageRemove,
   enableReservationBooking = false,
 }: Props) {
   const navigate = useNavigate();
@@ -232,6 +232,12 @@ export function DigitalCardPublicView({
   const [nameDraft, setNameDraft] = useState(name);
   const nameInputRef = useRef<HTMLInputElement>(null);
   const [reservationOpen, setReservationOpen] = useState(false);
+  const [consultOpen, setConsultOpen] = useState(false);
+  const [consultBusy, setConsultBusy] = useState(false);
+  const [consultErr, setConsultErr] = useState<string | null>(null);
+  const [consultSuccessNotice, setConsultSuccessNotice] = useState<string | null>(null);
+
+  const analyticsTargetCardId = ((analyticsCardId?.trim() ? analyticsCardId.trim() : card.id.trim()) || "").trim();
 
   /** BrowserRouter 환경에서는 useBlocker를 쓸 수 없음 — 예약 모달 열린 상태에서만 탭 닫기 경고 */
   useEffect(() => {
@@ -257,7 +263,89 @@ export function DigitalCardPublicView({
     if (editingName) nameInputRef.current?.focus();
   }, [editingName]);
 
-  const logAndOpenKakaoConsult = useCallback(() => {
+  const recordConsultClick = useCallback(async () => {
+    const cid = analyticsTargetCardId.trim();
+    const oid = `${ownerUidForLog ?? ""}`.trim();
+    if (!CARD_EVENT_UUID.test(cid)) return;
+    if (!CARD_EVENT_UUID.test(oid)) return;
+    await insertCardPromoEventRemote({
+      card_id: cid,
+      user_id: oid,
+      share_type: "direct",
+      campaign_id: null,
+      channel_id: null,
+      helper_id: null,
+      helper_partner_id: null,
+      event_type: "contact_click",
+      button_type: "consultation",
+      visitor_id: null,
+    });
+  }, [analyticsTargetCardId, ownerUidForLog]);
+
+  const navigatePlain = useCallback((href: string) => {
+    const t = href.trim();
+    if (t.startsWith("tel:") || t.startsWith("mailto:")) {
+      window.location.href = t;
+      return;
+    }
+    if (t.startsWith("#") && !t.startsWith("#__")) {
+      document.querySelector(t)?.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
+    if (t.startsWith("/") && !t.startsWith("//")) {
+      window.location.assign(t);
+      return;
+    }
+    window.open(t, "_blank", "noopener,noreferrer");
+  }, []);
+
+  const navigateCta = useCallback(
+    (href: string) => {
+      const t = href.trim();
+      if (t === LINKO_CONSULT_MODAL_FRAGMENT) {
+        void recordConsultClick();
+        setConsultErr(null);
+        setConsultSuccessNotice(null);
+        setConsultOpen(true);
+        return;
+      }
+      navigatePlain(t);
+    },
+    [navigatePlain, recordConsultClick],
+  );
+
+  const openHeroSecondaryConsult = useCallback(async () => {
+    if (!conversionUx && hero.mode === "legacy") {
+      await recordConsultClick();
+    }
+    const h = hero.secondary.href.trim();
+    if (h === LINKO_CONSULT_MODAL_FRAGMENT) {
+      setConsultErr(null);
+      setConsultSuccessNotice(null);
+      setConsultOpen(true);
+      return;
+    }
+    navigatePlain(h);
+  }, [conversionUx, hero.mode, hero.secondary.href, navigatePlain, recordConsultClick]);
+
+  const stickyEligibleForConsultLog = useCallback((href: string) => {
+    const t = href.trim();
+    if (t === LINKO_CONSULT_MODAL_FRAGMENT) return false;
+    return t.startsWith("tel:") || /(?:open\.)?kakao|kakaocorp\.com/i.test(t);
+  }, []);
+
+  const openStickyHref = useCallback(
+    async (href: string) => {
+      if (stickyEligibleForConsultLog(href)) {
+        await recordConsultClick();
+      }
+      navigateCta(href);
+    },
+    [navigateCta, recordConsultClick, stickyEligibleForConsultLog],
+  );
+
+  const logAndOpenKakaoConsult = useCallback(async () => {
+    await recordConsultClick();
     if (kakaoConsultHref) {
       const pid = getStoredPartnerForCard(card.id);
       void insertCardActionLogRemote({
@@ -268,9 +356,68 @@ export function DigitalCardPublicView({
       });
       window.open(kakaoConsultHref, "_blank", "noopener,noreferrer");
     } else if (hasPhone) {
-      navigateCta(`tel:${card.phone!.replace(/\D/g, "")}`);
+      navigatePlain(`tel:${card.phone!.replace(/\D/g, "")}`);
     }
-  }, [card.id, ownerUidForLog, kakaoConsultHref, hasPhone, card.phone]);
+  }, [
+    card.id,
+    ownerUidForLog,
+    kakaoConsultHref,
+    hasPhone,
+    card.phone,
+    navigatePlain,
+    recordConsultClick,
+  ]);
+
+  const consultCardDisplayTitle =
+    card.brand_name?.trim() ||
+    card.person_name?.trim() ||
+    previewMeta.headline?.trim() ||
+    "디지털 명함";
+
+  const submitConsultLead = useCallback(
+    async (payload: { name: string; contact: string; message: string }) => {
+      const cid = analyticsTargetCardId.trim();
+      if (!CARD_EVENT_UUID.test(cid)) {
+        setConsultErr("명함 저장 후 문의 접수가 가능합니다. 먼저 「명함 저장하기」를 눌러 주세요.");
+        return;
+      }
+      setConsultBusy(true);
+      setConsultErr(null);
+      try {
+        const r = await insertCardConsultationRemote({
+          card_id: cid,
+          customer_name: payload.name,
+          customer_contact: payload.contact,
+          message: payload.message,
+        });
+        if (!r.ok) {
+          const lower = r.message?.toLowerCase() ?? "";
+          if (lower.includes("does not exist") || lower.includes("could not find") || lower.includes("schema cache")) {
+            setConsultErr("문의 기능을 위해 DB 마이그레이션(public.consultations)을 적용해 주세요.");
+            return;
+          }
+          setConsultErr("문의 전송에 실패했습니다. 잠시 후 다시 시도해 주세요.");
+          return;
+        }
+        setConsultSuccessNotice("문의가 접수되었습니다. 명함 주인이 확인 후 연락드릴 수 있습니다.");
+      } finally {
+        setConsultBusy(false);
+      }
+    },
+    [analyticsTargetCardId],
+  );
+
+  const dismissConsultLead = useCallback(() => {
+    setConsultOpen(false);
+    setConsultErr(null);
+    setConsultSuccessNotice(null);
+  }, []);
+
+  const confirmConsultLeadSuccess = useCallback(() => {
+    setConsultOpen(false);
+    setConsultSuccessNotice(null);
+    setConsultErr(null);
+  }, []);
 
   const cardPublicUrl = useMemo(() => {
     if (shareUrlOverride) return shareUrlOverride;
@@ -459,6 +606,26 @@ export function DigitalCardPublicView({
                   />
                 )}
               </div>
+              {editorHeroEditable && heroFrameUrl && onHeroImagePick ? (
+                <div className="flex flex-wrap items-center justify-center gap-2 border-t border-white/15 px-3 py-3">
+                  <button
+                    type="button"
+                    className="rounded-full bg-white/15 px-3 py-1.5 text-xs font-bold text-white ring-1 ring-white/30 transition hover:bg-white/25"
+                    onClick={onHeroImagePick}
+                  >
+                    이미지 변경
+                  </button>
+                  {onHeroImageRemove ? (
+                    <button
+                      type="button"
+                      className="rounded-full bg-black/35 px-3 py-1.5 text-xs font-bold text-white/95 ring-1 ring-white/20 transition hover:bg-black/45"
+                      onClick={() => void onHeroImageRemove()}
+                    >
+                      이미지 삭제
+                    </button>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
             {conversionUx ? (
               <div className="mt-5 w-full max-w-md space-y-2 px-2">
@@ -612,7 +779,7 @@ export function DigitalCardPublicView({
                     type="button"
                     variant="secondary"
                     className="min-h-[54px] w-full flex-1 border-2 border-white/55 bg-white/15 text-base font-bold text-white shadow-lg backdrop-blur hover:bg-white/25 sm:min-h-[52px]"
-                    onClick={() => navigateCta(hero.secondary.href)}
+                    onClick={() => void openHeroSecondaryConsult()}
                   >
                     {(() => {
                       const SecondaryHeroIcon =
@@ -1071,7 +1238,7 @@ export function DigitalCardPublicView({
                 type="button"
                 variant={a.label === "문의하기" ? "primary" : "secondary"}
                 className="min-h-[48px] flex-1 px-2 text-sm font-semibold sm:text-base"
-                onClick={() => navigateCta(a.href)}
+                onClick={() => void openStickyHref(a.href)}
               >
                 {a.label}
               </Button>
@@ -1079,6 +1246,17 @@ export function DigitalCardPublicView({
           </div>
         </div>
       ) : null}
+
+      <CardConsultLeadModal
+        open={consultOpen}
+        cardTitle={consultCardDisplayTitle}
+        busy={consultBusy}
+        errorMsg={consultErr}
+        successNotice={consultSuccessNotice}
+        onClose={dismissConsultLead}
+        onConfirmSuccess={confirmConsultLeadSuccess}
+        onSubmit={(p) => void submitConsultLead(p)}
+      />
 
       {enableReservationBooking ? (
         <ReservationModal

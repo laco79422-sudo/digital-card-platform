@@ -1,4 +1,5 @@
 import type { BusinessCard, CardLink, DigitalCardServiceLine, TrustTestimonial } from "@/types/domain";
+import { LINKO_CONSULT_MODAL_FRAGMENT } from "@/lib/consultLead";
 
 const PLACEHOLDER_GALLERY = [
   "https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&q=80",
@@ -156,16 +157,15 @@ export function resolveHeroCtas(card: BusinessCard, links: CardLink[]): HeroCtaB
           external: true,
         };
 
+  const phoneDigits = (card.phone ?? "").replace(/\D/g, "");
+  const kakaoTrim = kakaoLink?.trim() || "";
   let secondary: CtaAction;
-  if (kakaoLink) {
-    secondary = { label: "상담하기", href: kakaoLink, external: true };
-  } else if (card.email?.trim()) {
-    secondary = { label: "상담하기", href: mailHref(card.email), external: true };
+  if (kakaoTrim.length > 0) {
+    secondary = { label: "상담하기", href: kakaoTrim, external: true };
+  } else if (phoneDigits.length > 0) {
+    secondary = { label: "상담하기", href: telHref(card.phone!), external: true };
   } else {
-    const web = card.website_url || links.find((l) => l.type === "website")?.url;
-    secondary = web
-      ? { label: "상담하기", href: web, external: true }
-      : { label: "서비스 보기", href: "#services", external: false };
+    secondary = { label: "상담하기", href: LINKO_CONSULT_MODAL_FRAGMENT, external: false };
   }
 
   return {
@@ -173,7 +173,7 @@ export function resolveHeroCtas(card: BusinessCard, links: CardLink[]): HeroCtaB
     secondary,
     mode: "legacy",
     primaryLinkType: card.phone?.trim() ? "phone" : card.email?.trim() ? "email" : "website",
-    secondaryLinkType: kakaoLink ? "kakao" : card.email?.trim() ? "email" : "website",
+    secondaryLinkType: kakaoTrim.length > 0 ? "kakao" : phoneDigits.length > 0 ? "phone" : "custom",
   };
 }
 

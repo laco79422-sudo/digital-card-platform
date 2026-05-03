@@ -51,6 +51,7 @@ import {
 import { getLinksForCard, useAppDataStore } from "@/stores/appDataStore";
 import type { BusinessCard, CardLink, CardLinkType, User } from "@/types/domain";
 import { parseWantsSample } from "@/lib/cardEditorSampleData";
+import { partialDraftQuickSample, SAMPLE_HERO_EDITOR_URL } from "@/lib/cardEditorQuickSample";
 import {
   applyCardSamplePhrase,
   SAMPLE_TEMPLATE_PHONE,
@@ -262,6 +263,8 @@ export function CardEditorPage() {
   const [editorBootstrap, setEditorBootstrap] = useState<"pending" | "ready" | "missing">("pending");
 
   const newCardIdRef = useRef<string | null>(null);
+  /** 신규 편집용 임시 카드 UUID — 업로드·원격 업서트에 사용 (저장 버튼과 동일한 id 우선 확보) */
+  const [stagingEditorCardId, setStagingEditorCardId] = useState<string | null>(null);
   /** 가입 후 첫 저장 시 로컬 임시 미리보기 삭제 */
   const pendingTempIdRef = useRef<string | null>(null);
   const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -330,6 +333,12 @@ export function CardEditorPage() {
   useEffect(() => {
     setShareOrigin(typeof window !== "undefined" ? window.location.origin : "");
   }, []);
+
+  useEffect(() => {
+    if (isGuestRoute || !isNew || existing || !user) return;
+    if (!newCardIdRef.current) newCardIdRef.current = crypto.randomUUID();
+    setStagingEditorCardId((prev) => prev ?? newCardIdRef.current);
+  }, [isGuestRoute, isNew, existing, user]);
 
   useEffect(() => {
     if (wantsSample) setSampleLadderActive(true);
@@ -729,6 +738,7 @@ export function CardEditorPage() {
       }
       clearInstantCardId();
       newCardIdRef.current = null;
+      setStagingEditorCardId(null);
       setSampleLadderActive(true);
       setSampleWizardOpen(false);
     },
@@ -751,6 +761,7 @@ export function CardEditorPage() {
     }
     clearInstantCardId();
     newCardIdRef.current = null;
+    setStagingEditorCardId(null);
     setSampleLadderActive(false);
   }, [replaceDraft, user?.email, user?.name, isGuestRoute, user]);
 
@@ -759,29 +770,137 @@ export function CardEditorPage() {
     scrollToId("card-preview-hero");
   }, []);
 
-  const handleBrandImagePersist = useCallback(
+  const applyQuickEditorSample = useCallback(() => {
+    const snap = useCardEditorDraftStore.getState().draft;
+    const part = partialDraftQuickSample(snap.card_type);
+    const imageExtras =
+      snap.card_type !== "person"
+        ? {
+            imageUrl: SAMPLE_HERO_EDITOR_URL,
+            brand_image_url: SAMPLE_HERO_EDITOR_URL,
+            brand_image_natural_width: null as number | null,
+            brand_image_natural_height: null as number | null,
+            brand_image_zoom: 1,
+            brand_image_pan_x: 0,
+            brand_image_pan_y: 0,
+            brand_image_legacy_object_position: null as string | null,
+          }
+        : {
+            imageUrl: null as string | null,
+            brand_image_url: null as string | null,
+            brand_image_natural_width: null as number | null,
+            brand_image_natural_height: null as number | null,
+            brand_image_zoom: 1,
+            brand_image_pan_x: 0,
+            brand_image_pan_y: 0,
+            brand_image_legacy_object_position: null as string | null,
+          };
+    replaceDraft(
+      mergeDraftDefaults({
+        ...snap,
+        ...part,
+        ...imageExtras,
+      }),
+    );
+    setFieldErrors({});
+  }, [replaceDraft]);
+
+  const persistUploadedHero = useCallback(
     async (payload: BrandImagePersistPayload) => {
-      const cardId = existing?.id;
-      if (!cardId) return;
-      const patch = {
-        imageUrl: payload.publicUrl,
-        brand_image_url: payload.publicUrl,
+      if (!user || isGuestRoute) return;
+      const cid = existing?.id ?? stagingEditorCardId;
+      if (!cid) return;
+
+      let dly = useCardEditorDraftStore.getState().draft;
+      const stagedSlug =
+        dly.slug.trim().length >= 2 ? dly.slug.trim() : `staging-${cid.replace(/-/g, "").slice(0, 18)}`;
+      if (dly.slug.trim().length < 2) {
+        setDraft({ slug: stagedSlug });
+        dly = useCardEditorDraftStore.getState().draft;
+      }
+
+      const introFallback = dly.intro.trim() || "-";
+      const jobFallback = dly.job_title.trim() || "-";
+      let brand = dly.brand_name.trim();
+      if ((dly.card_type === "store" || dly.card_type === "location") && !brand) {
+        brand = "브랜드명";
+      }
+      if (introFallback !== dly.intro.trim() || jobFallback !== dly.job_title.trim() || brand !== dly.brand_name.trim()) {
+        setDraft({
+          intro: introFallback,
+          job_title: jobFallback,
+          brand_name: brand,
+        });
+        dly = useCardEditorDraftStore.getState().draft;
+      }
+
+      const nw = payload.naturalW ?? 1;
+      const nh = payload.naturalH ?? 1;
+
+      const cardRow = draftToBusinessCard(dly, {
+        id: cid,
+        user_id: user.id,
+        created_at: existing?.created_at ?? new Date().toISOString(),
+      });
+      const next = {
+        ...cardRow,
         image_url: payload.publicUrl,
-        brand_image_natural_width: payload.naturalW,
-        brand_image_natural_height: payload.naturalH,
-        brand_image_zoom: 1,
-        brand_image_pan_x: 0,
-        brand_image_pan_y: 0,
+        brand_image_url: payload.publicUrl,
+        imageUrl: payload.publicUrl,
+        profile_image_url: null as string | null,
+        brand_image_natural_width: nw,
+        brand_image_natural_height: nh,
+        brand_image_zoom: 1 as number | null,
+        brand_image_pan_x: 0 as number | null,
+        brand_image_pan_y: 0 as number | null,
         brand_image_object_position: null as string | null,
       };
-      const remoteOk = await patchCardBrandHeroRemote(cardId, patch);
-      const row = businessCards.find((c) => c.id === cardId);
-      if (remoteOk && row) {
-        upsertBusinessCard({ ...row, ...patch });
-      }
+      const persistedCard = {
+        ...next,
+        expire_at: existing?.expire_at ?? next.expire_at,
+        status: existing?.status ?? next.status,
+        qr_image_url: existing?.qr_image_url ?? next.qr_image_url,
+      };
+      upsertBusinessCard(persistedCard);
+      await upsertCardRemote(persistedCard);
     },
-    [businessCards, existing?.id, upsertBusinessCard],
+    [
+      user,
+      isGuestRoute,
+      existing?.id,
+      existing?.created_at,
+      existing?.expire_at,
+      existing?.status,
+      existing?.qr_image_url,
+      stagingEditorCardId,
+      upsertBusinessCard,
+      upsertCardRemote,
+      setDraft,
+    ],
   );
+
+  const persistClearHero = useCallback(async () => {
+    if (!user || isGuestRoute) return;
+    const cid = existing?.id ?? stagingEditorCardId;
+    if (!cid) return;
+    const patch = {
+      imageUrl: null as string | null,
+      brand_image_url: null as string | null,
+      image_url: null as string | null,
+      profile_image_url: null as string | null,
+      brand_image_natural_width: null as number | null,
+      brand_image_natural_height: null as number | null,
+      brand_image_zoom: null as number | null,
+      brand_image_pan_x: null as number | null,
+      brand_image_pan_y: null as number | null,
+      brand_image_object_position: null as string | null,
+    };
+    const remoteOk = await patchCardBrandHeroRemote(cid, patch);
+    const row = businessCards.find((c) => c.id === cid);
+    if (remoteOk && row) upsertBusinessCard({ ...row, ...patch });
+  }, [businessCards, existing?.id, isGuestRoute, stagingEditorCardId, user, upsertBusinessCard]);
+
+  const handleBrandImagePersist = persistUploadedHero;
 
   const runPaidActivation = useCallback(async () => {
     if (isGuestRoute && !user) {
@@ -1284,6 +1403,12 @@ export function CardEditorPage() {
               existingCardId={existing?.id}
               createdAt={existing?.created_at}
               guestTempHint={Boolean(isGuestRoute && !user)}
+              isGuestPreview={!(user && !isGuestRoute)}
+              persistUploadedHero={user && !isGuestRoute ? persistUploadedHero : undefined}
+              persistClearHero={user && !isGuestRoute ? persistClearHero : undefined}
+              analyticsCardId={existing?.id ?? stagingEditorCardId}
+              showQuickSample
+              onQuickSample={applyQuickEditorSample}
             />
           </div>
         </div>
@@ -1550,7 +1675,8 @@ export function CardEditorPage() {
             }
             guestTempId={isGuestRoute && !user ? guestTempId : null}
             onPrepareGuestKakaoShare={prepareGuestPreviewForKakao}
-            persistBrandImageCardId={existing?.id ?? null}
+            persistBrandImageCardId={null}
+            getPersistBrandImageCardId={() => existing?.id ?? stagingEditorCardId ?? null}
             onBrandImagePersist={handleBrandImagePersist}
             midSlot={
               isLiveGenerator ? (
@@ -1690,7 +1816,7 @@ export function CardEditorPage() {
             취소
           </Link>
           <Button type="submit" className="w-full min-h-[52px] sm:w-auto sm:min-h-11" size="lg" loading={submitting}>
-            {isGuestRoute ? "이 명함 저장하기" : "저장"}
+            {isGuestRoute ? "이 명함 저장하기" : "명함 저장하기"}
           </Button>
         </div>
       </form>

@@ -1,14 +1,15 @@
 import { DigitalCardPublicView } from "@/components/digital-card/DigitalCardPublicView";
+import { Button } from "@/components/ui/Button";
+import type { BrandImagePersistPayload } from "@/components/card-editor/ImageUploader";
 import {
   BRAND_IMAGE_ACCEPT,
   validateBrandImageFile,
 } from "@/lib/brandImageConstraints";
 import { optimizeImageFileToDataUrl } from "@/lib/brandImageProcess";
 import { uploadBrandImageDataUrl } from "@/lib/brandImageUpload";
-import { patchCardBrandHeroRemote } from "@/services/cardsService";
+import { cn } from "@/lib/utils";
 import { DEFAULT_CARD_PERSON_NAME, draftToPreviewBusinessCard } from "@/stores/cardEditorDraftStore";
 import { useCardEditorDraftStore } from "@/stores/cardEditorDraftStore";
-import { useAppDataStore } from "@/stores/appDataStore";
 import { useAuthStore } from "@/stores/authStore";
 import type { CardLink, CardLinkType } from "@/types/domain";
 import { useEffect, useRef, useState } from "react";
@@ -21,7 +22,7 @@ function navigatePreviewLink(url: string) {
     window.location.href = t;
     return;
   }
-  if (t.startsWith("#")) {
+  if (t.startsWith("#") && !t.startsWith("#__")) {
     document.querySelector(t)?.scrollIntoView({ behavior: "smooth", block: "start" });
     return;
   }
@@ -36,19 +37,34 @@ type Props = {
   linkRows: CardPreviewLinkRow[];
   existingCardId?: string;
   createdAt?: string;
-  /** 게스트 체험 — 임시 미리보기 안내 띠 */
   guestTempHint?: boolean;
+  /** 로그인 멤버: 업로드 직후 원격 카드 레코드에 반영 */
+  persistUploadedHero?: (payload: BrandImagePersistPayload) => Promise<void>;
+  persistClearHero?: () => Promise<void>;
+  /** card_events 등 기록용 실제 카드 id */
+  analyticsCardId?: string | null;
+  showQuickSample?: boolean;
+  onQuickSample?: () => void;
+  isGuestPreview?: boolean;
 };
 
-export function CardPreview({ linkRows, existingCardId, createdAt, guestTempHint }: Props) {
+export function CardPreview({
+  linkRows,
+  existingCardId,
+  createdAt,
+  guestTempHint,
+  persistUploadedHero,
+  persistClearHero,
+  analyticsCardId,
+  showQuickSample = false,
+  onQuickSample,
+  isGuestPreview = false,
+}: Props) {
   const draft = useCardEditorDraftStore((s) => s.draft);
   const setDraft = useCardEditorDraftStore((s) => s.setDraft);
   const user = useAuthStore((s) => s.user);
-  const businessCards = useAppDataStore((s) => s.businessCards);
-  const upsertBusinessCard = useAppDataStore((s) => s.upsertBusinessCard);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  /** 업로드 완료 전에만 사용하는 로컬 data URL 미리보기 */
   const [localImagePreview, setLocalImagePreview] = useState<string | null>(null);
   const [imageMessage, setImageMessage] = useState<string | null>(null);
   const successClearRef = useRef<number | null>(null);
@@ -61,7 +77,7 @@ export function CardPreview({ linkRows, existingCardId, createdAt, guestTempHint
 
   const card = draftToPreviewBusinessCard(draft, {
     userId: user?.id ?? "preview",
-    cardId: existingCardId,
+    cardId: existingCardId ?? analyticsCardId ?? undefined,
     createdAt,
   });
 
@@ -106,23 +122,8 @@ export function CardPreview({ linkRows, existingCardId, createdAt, guestTempHint
         brand_image_legacy_object_position: null,
       });
 
-      if (existingCardId) {
-        const patch = {
-          imageUrl: publicUrl,
-          brand_image_url: publicUrl,
-          image_url: publicUrl,
-          brand_image_natural_width: width,
-          brand_image_natural_height: height,
-          brand_image_zoom: 1,
-          brand_image_pan_x: 0,
-          brand_image_pan_y: 0,
-          brand_image_object_position: null,
-        };
-        const remoteOk = await patchCardBrandHeroRemote(existingCardId, patch);
-        const row = businessCards.find((c) => c.id === existingCardId);
-        if (remoteOk && row) {
-          upsertBusinessCard({ ...row, ...patch });
-        }
+      if (!isGuestPreview && persistUploadedHero) {
+        await persistUploadedHero({ publicUrl, naturalW: width, naturalH: height });
       }
 
       setLocalImagePreview(null);
@@ -140,8 +141,45 @@ export function CardPreview({ linkRows, existingCardId, createdAt, guestTempHint
     }
   };
 
+  const removeHero = async () => {
+    setDraft({
+      imageUrl: null,
+      brand_image_url: null,
+      brand_image_natural_width: null,
+      brand_image_natural_height: null,
+      brand_image_zoom: 1,
+      brand_image_pan_x: 0,
+      brand_image_pan_y: 0,
+      brand_image_legacy_object_position: null,
+    });
+    if (!isGuestPreview && persistClearHero) {
+      try {
+        await persistClearHero();
+      } catch (err) {
+        console.warn("[CardPreview] 이미지 삭제 동기화", err);
+      }
+    }
+  };
+
+  const editorHeroEditable = Boolean(!isGuestPreview && persistUploadedHero);
+
   return (
     <>
+      <div className={cn("px-2 pt-2", showQuickSample && onQuickSample ? "pb-2" : "pb-0")}>
+        {showQuickSample && onQuickSample ? (
+          <div className="flex justify-center">
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              className="min-h-10 w-full font-bold sm:w-auto sm:min-w-[10rem]"
+              onClick={() => onQuickSample()}
+            >
+              샘플로 채우기
+            </Button>
+          </div>
+        ) : null}
+      </div>
       {guestTempHint ? (
         <div className="mb-2 rounded-xl border border-amber-200/90 bg-amber-50 px-3 py-2 text-center text-[11px] font-medium leading-snug text-amber-950 sm:text-xs">
           이 화면은 실제 명함과 같이 보입니다. 아래에서 임시 링크로 열어 확인·공유할 수 있어요.
@@ -165,6 +203,10 @@ export function CardPreview({ linkRows, existingCardId, createdAt, guestTempHint
         imageUrlOverride={localImagePreview}
         imageHelperText={imageMessage}
         onEmptyImageClick={() => fileInputRef.current?.click()}
+        analyticsCardId={analyticsCardId?.trim() || existingCardId?.trim() || null}
+        editorHeroEditable={editorHeroEditable}
+        onHeroImagePick={() => fileInputRef.current?.click()}
+        onHeroImageRemove={() => void removeHero()}
         editableName
         namePlaceholder={DEFAULT_CARD_PERSON_NAME}
         onNameChange={(name) => setDraft({ person_name: name.trim() || DEFAULT_CARD_PERSON_NAME })}

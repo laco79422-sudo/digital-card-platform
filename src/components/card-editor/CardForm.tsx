@@ -52,6 +52,7 @@ export function CardForm({
   guestTempId = null,
   onPrepareGuestKakaoShare,
   persistBrandImageCardId = null,
+  getPersistBrandImageCardId,
   onBrandImagePersist,
 }: {
   errors?: FieldErrors;
@@ -63,6 +64,7 @@ export function CardForm({
   guestTempId?: string | null;
   onPrepareGuestKakaoShare?: () => Promise<boolean>;
   persistBrandImageCardId?: string | null;
+  getPersistBrandImageCardId?: () => string | null;
   onBrandImagePersist?: (payload: BrandImagePersistPayload) => Promise<void>;
 }) {
   const draft = useCardEditorDraftStore((s) => s.draft);
@@ -422,6 +424,7 @@ export function CardForm({
               })
             }
             persistBrandImageCardId={persistBrandImageCardId}
+            getPersistBrandImageCardId={getPersistBrandImageCardId}
             onBrandImagePersist={onBrandImagePersist}
           />
       </div>
