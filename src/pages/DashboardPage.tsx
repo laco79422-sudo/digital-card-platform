@@ -7,6 +7,12 @@ import { buildNfcAcceptUrl, canonicalSiteOrigin } from "@/lib/siteOrigin";
 import { buildCardShareUrl, resolveBusinessCardPublicUrl } from "@/lib/cardShareUrl";
 import { shareCardLinkNativeOrder } from "@/lib/kakaoWebShare";
 import { buildReferralCode, buildSignupReferralGuestPreviewUrl, buildSignupReferralUrl, rewardMonthsForReferralCount } from "@/lib/referrals";
+import {
+  REFERRAL_PROMO_IMAGE_URL,
+  buildReferralShareMessageText,
+  copyReferralPromoImage,
+  downloadReferralPromoImage,
+} from "@/lib/referralPromo";
 import { layout } from "@/lib/ui-classes";
 import {
   DESIGN_REQUEST_PAYMENT_STATUS_LABEL,
@@ -277,6 +283,8 @@ export function DashboardPage() {
   const [promoCopyId, setPromoCopyId] = useState<string | null>(null);
   const [cardShareHintId, setCardShareHintId] = useState<string | null>(null);
   const [referralLinkCopiedFlash, setReferralLinkCopiedFlash] = useState(false);
+  const [referralMessageCopiedFlash, setReferralMessageCopiedFlash] = useState(false);
+  const [referralPromoCopiedFlash, setReferralPromoCopiedFlash] = useState(false);
   const [qrCard, setQrCard] = useState<BusinessCard | null>(null);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [qrLink, setQrLink] = useState("");
@@ -680,6 +688,41 @@ export function DashboardPage() {
       window.setTimeout(() => setReferralLinkCopiedFlash(false), 4000);
     } catch {
       window.prompt("추천 링크를 복사해 주세요", referralLink);
+    }
+  };
+
+  const copyReferralMessage = async () => {
+    if (!referralLink) return;
+    const text = buildReferralShareMessageText(referralLink);
+    try {
+      await navigator.clipboard.writeText(text);
+      setReferralMessageCopiedFlash(true);
+      window.setTimeout(() => setReferralMessageCopiedFlash(false), 5000);
+    } catch {
+      window.prompt("추천 문구를 복사해 주세요", text);
+    }
+  };
+
+  const saveReferralPromoImage = async () => {
+    try {
+      await downloadReferralPromoImage();
+    } catch {
+      window.alert("이미지를 저장하지 못했습니다. 브라우저 설정 또는 네트워크를 확인해 주세요.");
+    }
+  };
+
+  const pasteReferralPromoImage = async () => {
+    const result = await copyReferralPromoImage();
+    if (result === "ok") {
+      setReferralPromoCopiedFlash(true);
+      window.setTimeout(() => setReferralPromoCopiedFlash(false), 5000);
+      return;
+    }
+    window.alert("이 브라우저에서는 이미지 복사가 어렵습니다. 홍보 이미지 저장하기를 이용해 주세요.");
+    try {
+      await downloadReferralPromoImage();
+    } catch {
+      /* ignore duplicate alert */
     }
   };
 
@@ -1697,8 +1740,8 @@ export function DashboardPage() {
                 목적이 다릅니다. 고객에게 보여 줄 때는 명함 링크, 플랫폼 소개에는 추천 링크를 사용하세요.
               </p>
               <p className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs leading-relaxed text-slate-600">
-                「추천 링크 확인하기」는 같은 브라우저에서도 비로그인 상단바와 일반 메인 화면만 보이는 전용 미리보기
-                탭을 엽니다. 시크릿 창에서 테스트해 보셔도 됩니다.
+                같은 브라우저에서는 추천 링크 미리보기가 비로그인 상단바 기준일 수 있습니다. 아래 「새 탭에서 미리보기」로
+                테스트해 보실 수 있습니다.
               </p>
             </div>
             <div className="rounded-xl bg-white px-4 py-3 text-sm font-semibold text-slate-900 shadow-sm ring-1 ring-slate-200">
@@ -1706,60 +1749,151 @@ export function DashboardPage() {
             </div>
           </div>
 
-          <div className="mt-5">
-            <p className="text-sm font-semibold text-slate-800">내가 추천할 링크 주소</p>
-            {referralLink ? (
-              <a
-                href={referralLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-2 block break-all rounded-xl border border-slate-200 bg-white px-4 py-3 font-mono text-sm font-semibold text-brand-900 underline underline-offset-2 hover:text-brand-950"
-                onClick={(e) => e.stopPropagation()}
-              >
-                {referralLink}
-              </a>
-            ) : (
-              <p className="mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3 font-mono text-sm font-semibold text-slate-500">
-                링크를 불러오는 중입니다.
+          <div className="mt-5 space-y-6">
+            <div className="rounded-xl border border-amber-200/90 bg-gradient-to-br from-amber-50 to-white px-4 py-4 shadow-sm shadow-amber-900/5">
+              <p className="text-sm font-bold text-amber-950">공유 순서 안내</p>
+              <p className="mt-2 text-sm leading-relaxed text-amber-950/85">
+                링크만 보내면 미리보기 이미지가 보이지 않을 수 있습니다. 그럴 때는 홍보 이미지를 먼저 보내고,
+                아래 추천 링크를 함께 보내 주세요.
               </p>
-            )}
-            <p className="mt-3 text-xs leading-relaxed text-slate-600">
-              지인에게 보낼 주소입니다. 미리 보기는 아래 버튼으로 확인할 수 있어요.
-            </p>
-            <div className="mt-3 flex flex-wrap gap-2">
+              <ul className="mt-3 space-y-1.5 text-sm leading-relaxed text-amber-950/90">
+                <li>
+                  <span className="font-semibold">카카오톡:</span> 이미지 → 추천 링크 순서로 보내면 이해가 빠릅니다.
+                </li>
+                <li>
+                  <span className="font-semibold">당근:</span> 게시글에는 이미지를 첨부하고, 본문에 추천 링크를 넣어 주세요.
+                </li>
+                <li>
+                  <span className="font-semibold">블로그/유튜브:</span> 이미지와 함께 추천 링크를 본문이나 설명란에 넣어 주세요.
+                </li>
+              </ul>
+            </div>
+
+            <div>
+              <p className="text-sm font-semibold text-slate-800">내가 추천할 링크 주소</p>
+              {referralLink ? (
+                <a
+                  href={referralLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-2 block break-all rounded-xl border border-slate-200 bg-white px-4 py-3 font-mono text-sm font-semibold text-brand-900 underline underline-offset-2 hover:text-brand-950"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {referralLink}
+                </a>
+              ) : (
+                <p className="mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3 font-mono text-sm font-semibold text-slate-500">
+                  링크를 불러오는 중입니다.
+                </p>
+              )}
+            </div>
+
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+              <h4 className="text-base font-bold text-slate-900">함께 보낼 추천 이미지</h4>
+              <p className="mt-2 text-sm leading-relaxed text-slate-600">
+                링크 미리보기가 보이지 않을 때 이 이미지를 먼저 보내고,
+                그다음 추천 링크를 보내면 더 쉽게 이해됩니다.
+              </p>
+              <div className="mt-4 overflow-hidden rounded-xl border border-slate-200 bg-slate-50 shadow-inner">
+                <img
+                  src={REFERRAL_PROMO_IMAGE_URL}
+                  alt="Linko 디지털 명함 추천용 홍보 이미지"
+                  className="mx-auto block max-h-[min(520px,70vh)] w-full max-w-xl object-contain"
+                  loading="lazy"
+                  decoding="async"
+                />
+              </div>
+
+              <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                <button
+                  type="button"
+                  className="inline-flex min-h-11 items-center justify-center rounded-xl bg-cta-500 px-4 text-sm font-bold text-white shadow-sm shadow-cta-900/20 hover:bg-cta-600 disabled:pointer-events-none disabled:opacity-50"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    void copyReferralLink();
+                  }}
+                  disabled={!referralLink}
+                >
+                  추천 링크 복사하기
+                </button>
+                <button
+                  type="button"
+                  className="inline-flex min-h-11 items-center justify-center rounded-xl border border-brand-300 bg-brand-50 px-4 text-sm font-bold text-brand-900 hover:bg-brand-100 disabled:pointer-events-none disabled:opacity-50"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    void copyReferralMessage();
+                  }}
+                  disabled={!referralLink}
+                >
+                  추천 문구 복사하기
+                </button>
+                <button
+                  type="button"
+                  className="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 text-sm font-bold text-slate-900 hover:bg-slate-50"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    void saveReferralPromoImage();
+                  }}
+                >
+                  홍보 이미지 저장하기
+                </button>
+                <button
+                  type="button"
+                  className="inline-flex min-h-11 items-center justify-center rounded-xl bg-slate-900 px-4 text-sm font-bold text-white shadow-sm hover:bg-slate-800"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    void pasteReferralPromoImage();
+                  }}
+                >
+                  홍보 이미지 복사하기
+                </button>
+              </div>
+
               <button
                 type="button"
-                className="inline-flex min-h-11 items-center justify-center rounded-xl bg-slate-900 px-4 text-sm font-bold text-white shadow-sm hover:bg-slate-800 disabled:pointer-events-none disabled:opacity-50"
+                className="mt-4 text-xs font-semibold text-brand-800 underline underline-offset-2 hover:text-brand-950 disabled:text-slate-400 disabled:no-underline"
                 disabled={!refCode}
                 onClick={(e) => {
                   e.stopPropagation();
-                  const href = refCode
-                    ? buildSignupReferralGuestPreviewUrl(refCode, canonicalSiteOrigin())
-                    : "";
+                  const href = refCode ? buildSignupReferralGuestPreviewUrl(refCode, canonicalSiteOrigin()) : "";
                   if (href) window.open(href, "_blank", "noopener,noreferrer");
                 }}
               >
-                추천 링크 확인하기
+                새 탭에서 추천 링크 미리보기 열기
               </button>
-              <button
-                type="button"
-                className="inline-flex min-h-11 items-center justify-center rounded-xl bg-cta-500 px-4 text-sm font-bold text-white shadow-sm shadow-cta-900/20 hover:bg-cta-600 disabled:pointer-events-none disabled:opacity-50"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  void copyReferralLink();
-                }}
-                disabled={!referralLink}
-              >
-                추천 링크 복사하기
-              </button>
-            </div>
-            {referralLinkCopiedFlash ? (
-              <p className="mt-3 text-xs leading-relaxed text-emerald-800">
-                <span className="font-semibold">추천 링크가 복사되었습니다.</span>
-                <br />
-                카카오톡, 문자, SNS에 붙여넣어 린코를 소개해 주세요.
+
+              <div className="mt-5 space-y-3 rounded-xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm leading-relaxed text-slate-700">
+                <p>
+                  <span className="font-bold text-slate-900">카카오톡</span>: 카카오톡에서 이미지가 보이지 않으면 홍보
+                  이미지를 먼저 보내고, 추천 링크를 이어서 보내 주세요.
+                </p>
+                <p>
+                  <span className="font-bold text-slate-900">당근</span>: 당근에서는 이미지가 먼저 보이는 것이 중요합니다.
+                  홍보 이미지를 저장해 게시글에 올리고, 본문에 추천 링크를 붙여 넣어 주세요.
+                </p>
+              </div>
+
+              <p className="mt-4 rounded-xl border border-slate-100 bg-white px-3 py-2 text-xs leading-relaxed text-slate-600">
+                <span className="font-semibold text-slate-800">안내:</span> 이미지가 안 보이는 앱에서는 홍보 이미지를 먼저
+                보내고 추천 링크를 이어서 보내 주세요.
               </p>
-            ) : null}
+
+              {referralLinkCopiedFlash ? (
+                <p className="mt-3 text-xs leading-relaxed text-emerald-800" role="status">
+                  추천 링크가 복사되었습니다.
+                </p>
+              ) : null}
+              {referralMessageCopiedFlash ? (
+                <p className="mt-2 text-xs leading-relaxed text-emerald-800" role="status">
+                  추천 문구가 복사되었습니다. 카카오톡 등에 바로 붙여 넣을 수 있어요.
+                </p>
+              ) : null}
+              {referralPromoCopiedFlash ? (
+                <p className="mt-2 text-xs leading-relaxed text-emerald-800" role="status">
+                  홍보 이미지가 클립보드에 복사되었습니다. 채팅창에서 붙여 넣어 보세요.
+                </p>
+              ) : null}
+            </div>
           </div>
 
           <div className="mt-8 rounded-xl border border-slate-200 bg-white px-4 py-5 shadow-sm">
