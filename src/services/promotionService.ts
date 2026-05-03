@@ -3,9 +3,13 @@ import { buildCardShareUrl } from "@/lib/cardShareUrl";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase/client";
 import type { BusinessCard, PromotionApplication } from "@/types/domain";
 
+import { HELPER_LINK_PRICE_KRW } from "@/lib/helperLinkPricing";
+
 const TABLE_CARDS = "business_cards";
 const TABLE_PROMOTION_APPLICATIONS = "promotion_applications";
-export const PROMOTION_LINK_PRICE = 10900;
+
+/** 명함 헬퍼링크(파트너 신청) 활성화 결제 금액 — 헬퍼 파트너 캠페인과 동일 */
+export const PROMOTION_LINK_PRICE = HELPER_LINK_PRICE_KRW;
 
 export async function startPromotionLinkPayment(cardId: string): Promise<{ ok: boolean; cardId: string }> {
   // Toss Payments 연결 시 이 함수에서 결제창을 시작합니다.

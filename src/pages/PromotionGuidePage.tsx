@@ -45,7 +45,7 @@ export function PromotionGuidePage() {
             내 명함 만들기
           </Link>
           <Link
-            to="/helper-link/campaign/start"
+            to="/helperlink/pay"
             className={linkButtonClassName({
               variant: "secondary",
               size: "lg",
@@ -123,7 +123,7 @@ export function PromotionGuidePage() {
             </ul>
             <p className="mt-4 text-sm leading-relaxed text-slate-700">홍보를 맡기고 결과를 확인하세요.</p>
             <Link
-              to="/helper-link/campaign/start"
+              to="/helperlink/pay"
               className={linkButtonClassName({
                 variant: "primary",
                 size: "md",
@@ -226,7 +226,7 @@ ${DEMO_LINK_PLACEHOLDER}`}
               3초 명함 만들기
             </Link>
             <Link
-              to="/helper-link/campaign/start"
+              to="/helperlink/pay"
               className={linkButtonClassName({
                 size: "lg",
                 variant: "outline",

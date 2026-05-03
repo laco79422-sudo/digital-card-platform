@@ -2,6 +2,7 @@
  * 헬퍼링크 파트너 캠페인 — Supabase 연동
  */
 import { buildCampaignPartnerShareUrl } from "@/lib/helperCampaignPartnerUrls";
+import { HELPER_LINK_PRICE_KRW } from "@/lib/helperLinkPricing";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase/client";
 import type { BusinessCard } from "@/types/domain";
 import type {
@@ -16,13 +17,29 @@ const T_PARTNERS = "helper_partners";
 const T_APPS = "helper_partner_applications";
 const T_LINKS = "campaign_share_links";
 
-/** 유료 헬퍼링크 상품 안내 금액(데모·결제창 연동 전) */
-export const HELPER_LINK_CAMPAIGN_PRICE_KRW = 19900;
+/** @deprecated 별칭 — UI·결제 모듈에서는 `HELPER_LINK_PRICE_KRW` 또는 `lib/helperLinkPricing` 사용 */
+export const HELPER_LINK_CAMPAIGN_PRICE_KRW = HELPER_LINK_PRICE_KRW;
 
 function asStringArr(v: unknown): string[] {
   if (!v) return [];
   if (Array.isArray(v)) return v.filter((x) => typeof x === "string").map(String);
   return [];
+}
+
+function patchCampaignRow(c: HelperCampaignRow): HelperCampaignRow {
+  const r = c as HelperCampaignRow & {
+    price?: number;
+    request_note?: string;
+    custom_channel_text?: string;
+    custom_goal_text?: string;
+  };
+  return {
+    ...c,
+    price: typeof r.price === "number" ? r.price : HELPER_LINK_PRICE_KRW,
+    request_note: r.request_note ?? "",
+    custom_channel_text: r.custom_channel_text ?? "",
+    custom_goal_text: r.custom_goal_text ?? "",
+  };
 }
 
 export async function fetchHelperCampaignsForOwner(ownerUserId: string): Promise<HelperCampaignRow[]> {
@@ -36,7 +53,130 @@ export async function fetchHelperCampaignsForOwner(ownerUserId: string): Promise
     console.warn("[helperCampaignPartnerService] fetchHelperCampaignsForOwner", error.message);
     return [];
   }
-  return (data as HelperCampaignRow[]) ?? [];
+  return ((data as HelperCampaignRow[]) ?? []).map(patchCampaignRow);
+}
+
+export async function fetchHelperCampaignByIdForOwner(
+  campaignId: string,
+  ownerUserId: string,
+): Promise<HelperCampaignRow | null> {
+  if (!isSupabaseConfigured || !supabase) return null;
+  const { data, error } = await supabase
+    .from(T_CAMPAIGNS)
+    .select("*")
+    .eq("id", campaignId.trim())
+    .eq("owner_id", ownerUserId)
+    .maybeSingle();
+  if (error || !data) {
+    if (error) console.warn("[helperCampaignPartnerService] fetchHelperCampaignByIdForOwner", error.message);
+    return null;
+  }
+  return patchCampaignRow(data as HelperCampaignRow);
+}
+
+export async function insertPaidHelperCampaignDraft(input: {
+  ownerId: string;
+  cardId: string;
+  paymentId?: string | null;
+}): Promise<HelperCampaignRow | null> {
+  if (!isSupabaseConfigured || !supabase) return null;
+  const payload = {
+    owner_id: input.ownerId,
+    card_id: input.cardId.trim(),
+    payment_id: input.paymentId?.trim() || crypto.randomUUID(),
+    status: "draft" as const,
+    price: HELPER_LINK_PRICE_KRW,
+  };
+
+  const { data, error } = await supabase.from(T_CAMPAIGNS).insert(payload).select("*").single();
+  if (error) {
+    console.warn("[helperCampaignPartnerService] insertPaidHelperCampaignDraft", error.message);
+    return null;
+  }
+  return patchCampaignRow(data as HelperCampaignRow);
+}
+
+/** 홍보 요청서 작성 완료 → recruiting 및 파트너 메뉴 노출 */
+export async function publishHelperCampaignAsRecruiting(input: {
+  campaignId: string;
+  ownerUserId: string;
+  cardId: string;
+  title: string;
+  targetChannels: string[];
+  customChannelText: string;
+  targetCustomer: string;
+  region: string;
+  goalDisplay: string;
+  customGoalText: string;
+  requiredMessage: string;
+  forbiddenMessage: string;
+  startDate: string | null;
+  endDate: string | null;
+  requestNote: string;
+}): Promise<HelperCampaignRow | null> {
+  if (!isSupabaseConfigured || !supabase) return null;
+
+  const now = new Date().toISOString();
+  const goalLine =
+    input.goalDisplay.trim() === "기타"
+      ? input.customGoalText.trim() || "기타"
+      : input.goalDisplay.trim();
+
+  const patch = {
+    card_id: input.cardId.trim(),
+    title: input.title.trim() || "헬퍼링크 캠페인",
+    target_channels: input.targetChannels,
+    custom_channel_text: input.customChannelText.trim(),
+    target_customer: input.targetCustomer.trim(),
+    region: input.region.trim(),
+    goal: goalLine,
+    custom_goal_text: input.customGoalText.trim(),
+    required_message: input.requiredMessage.trim(),
+    forbidden_message: input.forbiddenMessage.trim(),
+    start_date: input.startDate || null,
+    end_date: input.endDate || null,
+    request_note: input.requestNote.trim(),
+    owner_note_for_partner: input.requestNote.trim(),
+    budget: "",
+    status: "recruiting" as const,
+    updated_at: now,
+  };
+
+  const { data, error } = await supabase
+    .from(T_CAMPAIGNS)
+    .update(patch)
+    .eq("id", input.campaignId.trim())
+    .eq("owner_id", input.ownerUserId)
+    .eq("status", "draft")
+    .select("*")
+    .single();
+
+  if (error) {
+    console.warn("[helperCampaignPartnerService] publishHelperCampaignAsRecruiting", error.message);
+    return null;
+  }
+  return patchCampaignRow(data as HelperCampaignRow);
+}
+
+export type HelperCardSummary = { id: string; label: string; industry: string | null };
+
+export async function fetchCardSummariesByIds(cardIds: string[]): Promise<HelperCardSummary[]> {
+  const uniq = [...new Set(cardIds.map((id) => id.trim()).filter(Boolean))];
+  if (!isSupabaseConfigured || !supabase || uniq.length === 0) return [];
+  const { data, error } = await supabase
+    .from("business_cards")
+    .select("id, brand_name, person_name, slug, industry")
+    .in("id", uniq);
+  if (error) {
+    console.warn("[helperCampaignPartnerService] fetchCardSummariesByIds", error.message);
+    return [];
+  }
+  const rows = (data as { id: string; brand_name: string | null; person_name: string | null; slug: string; industry: string | null }[]) ?? [];
+  return rows.map((r) => ({
+    id: r.id,
+    label: (r.brand_name?.trim() || r.person_name?.trim() || r.slug || r.id).trim(),
+    industry: r.industry?.trim() || null,
+  }));
 }
 
 export async function fetchRecruitingHelperCampaigns(): Promise<HelperCampaignRow[]> {
@@ -50,7 +190,7 @@ export async function fetchRecruitingHelperCampaigns(): Promise<HelperCampaignRo
     console.warn("[helperCampaignPartnerService] fetchRecruitingHelperCampaigns", error.message);
     return [];
   }
-  return (data as HelperCampaignRow[]) ?? [];
+  return ((data as HelperCampaignRow[]) ?? []).map(patchCampaignRow);
 }
 
 export async function fetchHelperPartnerProfileForUser(userId: string): Promise<HelperPartnerRow | null> {
@@ -100,50 +240,6 @@ export async function insertHelperPartnerProfile(row: {
     return null;
   }
   return data as HelperPartnerRow;
-}
-
-export async function insertHelperCampaignAfterPayment(input: {
-  ownerId: string;
-  cardId: string;
-  paymentId?: string | null;
-  title: string;
-  targetChannels: string[];
-  targetCustomer: string;
-  region: string;
-  goal: string;
-  requiredMessage: string;
-  forbiddenMessage: string;
-  budget: string;
-  startDate?: string | null;
-  endDate?: string | null;
-  ownerNoteForPartner: string;
-}): Promise<HelperCampaignRow | null> {
-  if (!isSupabaseConfigured || !supabase) return null;
-
-  const payload = {
-    owner_id: input.ownerId,
-    card_id: input.cardId,
-    payment_id: input.paymentId ?? null,
-    title: input.title.trim() || "헬퍼링크 캠페인",
-    target_channels: input.targetChannels,
-    target_customer: input.targetCustomer.trim(),
-    region: input.region.trim(),
-    goal: input.goal.trim(),
-    required_message: input.requiredMessage.trim(),
-    forbidden_message: input.forbiddenMessage.trim(),
-    budget: input.budget.trim(),
-    start_date: input.startDate ?? null,
-    end_date: input.endDate ?? null,
-    owner_note_for_partner: input.ownerNoteForPartner.trim(),
-    status: "recruiting" as const,
-  };
-
-  const { data, error } = await supabase.from(T_CAMPAIGNS).insert(payload).select("*").single();
-  if (error) {
-    console.warn("[helperCampaignPartnerService] insertHelperCampaignAfterPayment", error.message);
-    return null;
-  }
-  return data as HelperCampaignRow;
 }
 
 export async function fetchApplicationsForCampaign(campaignId: string): Promise<HelperPartnerApplicationRow[]> {

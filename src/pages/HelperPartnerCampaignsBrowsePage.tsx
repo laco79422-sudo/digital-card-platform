@@ -1,9 +1,11 @@
 import { linkButtonClassName } from "@/components/ui/buttonStyles";
 import { Input } from "@/components/ui/Input";
-import { HELPER_PROMO_CHANNELS } from "@/lib/helperCampaignPartnerUrls";
+import { HELPER_PROMO_CHANNELS, helperPromoChannelLabel } from "@/lib/helperCampaignPartnerUrls";
+import { HELPER_LINK_PAYMENT_LEAD } from "@/lib/helperLinkPricing";
 import { layout } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
 import {
+  fetchCardSummariesByIds,
   fetchHelperPartnerProfileForUser,
   fetchRecruitingHelperCampaigns,
   insertPartnerCampaignApplication,
@@ -26,10 +28,30 @@ export function HelperPartnerCampaignsBrowsePage() {
   const [canConsult, setCanConsult] = useState(true);
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
+  const [cardSummaryById, setCardSummaryById] = useState<Record<string, string>>({});
+  const [cardSummariesReady, setCardSummariesReady] = useState(false);
 
   useEffect(() => {
     void fetchRecruitingHelperCampaigns().then(setRows);
   }, []);
+
+  useEffect(() => {
+    if (!rows.length) {
+      setCardSummaryById({});
+      setCardSummariesReady(false);
+      return;
+    }
+    setCardSummariesReady(false);
+    const ids = [...new Set(rows.map((r) => r.card_id))];
+    void fetchCardSummariesByIds(ids).then((list) => {
+      const m: Record<string, string> = {};
+      for (const s of list) {
+        m[s.id] = [s.label, s.industry?.trim() || null].filter(Boolean).join(" · ");
+      }
+      setCardSummaryById(m);
+      setCardSummariesReady(true);
+    });
+  }, [rows]);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -38,6 +60,16 @@ export function HelperPartnerCampaignsBrowsePage() {
 
   const toggleChannel = (id: string) =>
     setPickedChannels((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]));
+
+  const formatCampaignChannels = (c: HelperCampaignRow): string => {
+    const raw = c.target_channels;
+    const arr = Array.isArray(raw) ? raw.filter((x): x is string => typeof x === "string") : [];
+    const parts = arr.map(helperPromoChannelLabel);
+    if (arr.includes("other") && c.custom_channel_text?.trim()) {
+      parts.push(`기타 상세: ${c.custom_channel_text.trim()}`);
+    }
+    return parts.length ? parts.join(", ") : "—";
+  };
 
   const sendApply = async () => {
     if (!partnerId || !applyFor?.id) return;
@@ -80,8 +112,10 @@ export function HelperPartnerCampaignsBrowsePage() {
         <ArrowLeft className="h-4 w-4" aria-hidden /> 내 공간
       </Link>
       <h1 className="mt-6 text-2xl font-bold text-slate-900">헬퍼링크 파트너 — 모집 중 캠페인</h1>
+      <p className="mt-2 text-sm font-medium leading-relaxed text-slate-700">{HELPER_LINK_PAYMENT_LEAD}</p>
       <p className="mt-2 text-sm leading-relaxed text-slate-600">
-        선택이 완료되면 결제자 쪽에서 파트너 전용 링크가 생성되고, 조회와 문의 성과가 자동으로 기록됩니다.
+        결제자가 요청서를 제출해 모집 중(recruiting)인 캠페인만 목록에 나타납니다. 지원 후 결제자가 선택하면 전용 헬퍼링크가
+        발급됩니다.
       </p>
 
       {!partnerId ? (
@@ -98,8 +132,18 @@ export function HelperPartnerCampaignsBrowsePage() {
           <li key={c.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
             <p className="text-xs font-semibold uppercase text-slate-500">캠페인</p>
             <p className="mt-1 text-lg font-bold text-slate-900">{c.title || "헬퍼링크 캠페인"}</p>
-            <p className="mt-2 text-sm text-slate-600">목적 · {c.goal || "—"}</p>
-            <p className="mt-1 text-xs text-slate-500">{c.region}</p>
+            <p className="mt-2 text-xs font-semibold text-slate-500">홍보할 명함</p>
+            <p className="mt-1 text-sm text-slate-800">
+              {!cardSummariesReady
+                ? "명함 정보를 불러오는 중입니다…"
+                : cardSummaryById[c.card_id]?.trim() || "명함이 비공개 설정이어서 요약을 표시할 수 없습니다."}
+            </p>
+            <p className="mt-3 text-xs font-semibold text-slate-500">원하는 채널</p>
+            <p className="mt-1 text-sm leading-relaxed text-slate-700">{formatCampaignChannels(c)}</p>
+            <p className="mt-2 text-xs font-semibold text-slate-500">홍보 목적 · 지역</p>
+            <p className="mt-1 text-sm text-slate-700">{c.goal || "—"} · {c.region?.trim() || "—"}</p>
+            <p className="mt-3 text-xs font-semibold text-slate-500">요청 문구</p>
+            <p className="mt-1 line-clamp-4 text-sm leading-relaxed text-slate-700">{c.required_message?.trim() || "—"}</p>
             <button
               type="button"
               disabled={!partnerId}
@@ -113,7 +157,7 @@ export function HelperPartnerCampaignsBrowsePage() {
                 setMessage("");
               }}
             >
-              이 요청에 지원
+              지원하기
             </button>
           </li>
         ))}

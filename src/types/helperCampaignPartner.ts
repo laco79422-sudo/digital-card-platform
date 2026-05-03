@@ -2,6 +2,7 @@
 
 export type HelperCampaignStatus = "draft" | "recruiting" | "active" | "completed" | "canceled";
 
+
 export type HelperPartnerProfileStatus = "pending" | "approved" | "rejected" | "suspended";
 
 export type HelperPartnerApplicationStatus = "applied" | "selected" | "rejected" | "canceled" | "completed";
@@ -27,6 +28,10 @@ export interface HelperCampaignRow {
   start_date: string | null;
   end_date: string | null;
   owner_note_for_partner: string;
+  request_note: string;
+  custom_channel_text: string;
+  custom_goal_text: string;
+  price: number;
   status: HelperCampaignStatus;
   created_at: string;
   updated_at: string;

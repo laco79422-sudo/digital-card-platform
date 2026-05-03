@@ -63,7 +63,6 @@ import {
   buildPromotionUrl,
   fetchPromotionApplicationsForApplicant,
   fetchPromotionApplicationsForOwner,
-  handlePromotionLinkPaymentSuccess,
   PROMOTION_LINK_PRICE,
   startPromotionLinkPayment,
   updatePromotionApplicationRemote,
@@ -72,9 +71,10 @@ import {
   fetchApplicationsForCampaign,
   fetchHelperCampaignsForOwner,
   fetchHelperPartnersByIds,
-  HELPER_LINK_CAMPAIGN_PRICE_KRW,
+  insertPaidHelperCampaignDraft,
   selectPartnerApplicationAndActivate,
 } from "@/services/helperCampaignPartnerService";
+import { HELPER_LINK_PAYMENT_CTA, HELPER_LINK_PAYMENT_LEAD } from "@/lib/helperLinkPricing";
 import type {
   HelperCampaignRow,
   HelperPartnerApplicationRow,
@@ -90,6 +90,23 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 
 const CARD_MONTHLY_PRICE = 14900;
 const MIN_WITHDRAWAL_KRW = 10000;
+
+/** 카드별 우선 표시할 헬퍼링크 캠페인 (draft 최우선 → recruiting → active → completed) */
+function pickPrimaryHelperCampaignForCard(rows: HelperCampaignRow[], cardId: string): HelperCampaignRow | null {
+  const list = rows.filter((c) => c.card_id === cardId && c.status !== "canceled");
+  if (!list.length) return null;
+  const drafts = list.filter((c) => c.status === "draft");
+  if (drafts.length > 0) {
+    return [...drafts].sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())[0];
+  }
+  const order: Record<string, number> = { recruiting: 0, active: 1, completed: 2 };
+  return [...list].sort((a, b) => {
+    const ao = order[a.status] ?? 9;
+    const bo = order[b.status] ?? 9;
+    if (ao !== bo) return ao - bo;
+    return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+  })[0];
+}
 
 function safeDisplayName(user: User | null): string {
   if (!user) return "사용자";
@@ -873,7 +890,12 @@ export function DashboardPage() {
   const confirmPromotionPayment = async () => {
     if (!promotionPaymentCard || !uid) return;
     await startPromotionLinkPayment(promotionPaymentCard.id);
-    await handlePromotionLinkPaymentSuccess(promotionPaymentCard.id);
+    const paymentUuid = crypto.randomUUID();
+    const draft = await insertPaidHelperCampaignDraft({
+      ownerId: uid,
+      cardId: promotionPaymentCard.id,
+      paymentId: paymentUuid,
+    });
     await recordPaymentAndReferralReward({
       planType: "promotion_link",
       amount: PROMOTION_LINK_PRICE,
@@ -887,14 +909,16 @@ export function DashboardPage() {
       status: "completed",
       created_at: new Date().toISOString(),
     });
-    upsertBusinessCard({
-      ...promotionPaymentCard,
-      promotion_enabled: true,
-      promotion_payment_status: "paid",
-      promotion_price: PROMOTION_LINK_PRICE,
-    });
     void reloadReferralRewards();
     setPromotionPaymentCard(null);
+    await reloadHelperCampaignBoard();
+    if (draft?.id) {
+      navigate(`/helperlink/create?campaignId=${encodeURIComponent(draft.id)}`);
+    } else {
+      window.alert(
+        "결제는 기록했지만 헬퍼링크 초안 생성에 실패했습니다. Supabase helper_campaigns 마이그레이션을 확인해 주세요.",
+      );
+    }
   };
 
   const openWithdrawalModal = () => {
@@ -1269,6 +1293,9 @@ export function DashboardPage() {
                 Boolean(card.promotion_enabled) ||
                 ownerPromotionApplications.some((a) => a.card_id === card.id);
 
+              const cm = pickPrimaryHelperCampaignForCard(helperCampaignRows, card.id);
+              const helperPerfHashLink = "/dashboard#dashboard-section-helper-partner-performance";
+
               return (
                 <li
                   key={card.id}
@@ -1447,12 +1474,35 @@ export function DashboardPage() {
                         className="inline-flex min-h-10 items-center justify-center rounded-xl bg-cta-500 px-3 text-sm font-bold text-white hover:bg-cta-600"
                         onClick={(e) => {
                           e.stopPropagation();
+                          if (cm?.status === "draft") {
+                            navigate(`/helperlink/create?campaignId=${encodeURIComponent(cm.id)}`);
+                            return;
+                          }
+                          if (cm && cm.status !== "canceled") {
+                            navigate(helperPerfHashLink);
+                            return;
+                          }
+                          if (card.promotion_enabled && !cm) {
+                            navigate(helperPerfHashLink);
+                            return;
+                          }
                           openPromotionPayment(card);
                         }}
                       >
-                        헬퍼링크 추가
-                      </button>
-                    </div>
+                        {cm?.status === "draft"
+                          ? "요청서 작성하기"
+                          : cm && cm.status !== "canceled"
+                            ? cm.status === "recruiting"
+                              ? "지원자 확인하기"
+                              : cm.status === "active"
+                                ? "성과 보기"
+                                : cm.status === "completed"
+                                  ? "결과 보기"
+                                  : HELPER_LINK_PAYMENT_CTA
+                            : card.promotion_enabled && !cm
+                              ? "지원자 확인하기"
+                              : HELPER_LINK_PAYMENT_CTA}
+                      </button>                    </div>
                   {cardShareHintId === card.id ? (
                     <p className="mt-2 text-sm font-medium text-brand-800">
                       카카오톡 공유가 어려워 내 명함 링크를 복사했어요. 대화방에 붙여넣어 주세요.
@@ -1464,6 +1514,23 @@ export function DashboardPage() {
                       고객 유입 확장용입니다. 이 링크를 보내면 고객이 내 명함을 보고 연락합니다. 홍보 파트너와 함께 쓸 수
                       있는 주소예요.
                     </p>
+                    {cm ? (
+                      <p className="mt-2 rounded-lg bg-white/70 px-2 py-1.5 text-[11px] font-bold text-slate-800 ring-1 ring-brand-100 sm:text-xs">
+                        {cm.status === "draft"
+                          ? "헬퍼링크 결제 완료 · 홍보 요청서 작성 필요"
+                          : cm.status === "recruiting"
+                            ? "헬퍼링크 파트너 모집 중"
+                            : cm.status === "active"
+                              ? "헬퍼링크 홍보 진행 중"
+                              : cm.status === "completed"
+                                ? "홍보 종료"
+                                : null}
+                      </p>
+                    ) : card.promotion_enabled ? (
+                      <p className="mt-2 rounded-lg bg-white/70 px-2 py-1.5 text-[11px] font-bold text-slate-800 ring-1 ring-brand-100 sm:text-xs">
+                        헬퍼링크 파트너 모집 중
+                      </p>
+                    ) : null}
                     <div className="mt-3 space-y-3">
                       {promotionLinks.map((link) => {
                         const linkUrl = buildPromotionLink(card, shareOrigin, link.ref_code);
@@ -1507,11 +1574,36 @@ export function DashboardPage() {
                     <button
                       type="button"
                       className="mt-3 inline-flex min-h-10 items-center justify-center rounded-xl bg-cta-500 px-4 text-sm font-bold text-white shadow-sm shadow-cta-900/20 hover:bg-cta-600"
-                      onClick={() => openPromotionPayment(card)}
+                      onClick={() => {
+                        if (cm?.status === "draft") {
+                          navigate(`/helperlink/create?campaignId=${encodeURIComponent(cm.id)}`);
+                          return;
+                        }
+                        if (cm && cm.status !== "canceled") {
+                          navigate(helperPerfHashLink);
+                          return;
+                        }
+                        if (card.promotion_enabled && !cm) {
+                          navigate(helperPerfHashLink);
+                          return;
+                        }
+                        openPromotionPayment(card);
+                      }}
                     >
-                      {card.promotion_enabled ? "헬퍼링크 신청 받는 중" : "헬퍼링크 추가"}
-                    </button>
-                  </div>
+                      {cm?.status === "draft"
+                        ? "요청서 작성하기"
+                        : cm && cm.status !== "canceled"
+                          ? cm.status === "recruiting"
+                            ? "지원자 확인하기"
+                            : cm.status === "active"
+                              ? "성과 보기"
+                              : cm.status === "completed"
+                                ? "결과 보기"
+                                : HELPER_LINK_PAYMENT_CTA
+                            : card.promotion_enabled && !cm
+                              ? "지원자 확인하기"
+                              : HELPER_LINK_PAYMENT_CTA}
+                    </button>                  </div>
                   {showPromotionPerf ? (
                     <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-4">
                       <h3 className="text-sm font-bold text-slate-900">홍보 파트너별 성과</h3>
@@ -1718,12 +1810,11 @@ export function DashboardPage() {
             </p>
             <div className="mt-4 flex flex-wrap gap-3">
               <Link
-                to="/helper-link/campaign/start"
+                to="/helperlink/pay"
                 className="inline-flex min-h-[48px] items-center justify-center rounded-xl bg-brand-700 px-5 text-base font-bold text-white shadow hover:bg-brand-800"
               >
                 헬퍼링크 만들기
-              </Link>
-              <Link
+              </Link>              <Link
                 to="/helper-partner/register"
                 className="inline-flex min-h-[48px] items-center justify-center rounded-xl bg-white px-5 text-base font-semibold text-slate-900 ring-1 ring-slate-300 hover:bg-slate-50"
               >
@@ -1737,8 +1828,7 @@ export function DashboardPage() {
               </Link>
             </div>
             <p className="mt-3 text-xs leading-relaxed text-slate-500">
-              헬퍼링크는 유료 결제 후 생성되며, 파트너가 대신 홍보할 수 있는 전용 링크입니다.(결제 플로우는 데모로 안내됩니다:
-              현재 {HELPER_LINK_CAMPAIGN_PRICE_KRW.toLocaleString()}원 안내 금액)
+              결제 플로우는 데모입니다. <span className="font-semibold text-slate-700">{HELPER_LINK_PAYMENT_LEAD}</span>
             </p>
           </div>
 
@@ -1905,7 +1995,7 @@ export function DashboardPage() {
                 헬퍼링크 만들기부터 시작해 보거나, 헬퍼링크 파트너 신청 후 지원까지 이어 줄 수 있습니다.
               </p>
               <Link
-                to="/helper-link/campaign/start"
+                to="/helperlink/pay"
                 className="mt-4 inline-flex min-h-[48px] items-center justify-center rounded-xl bg-brand-700 px-6 text-base font-bold text-white shadow hover:bg-brand-800"
               >
                 헬퍼링크 만들기
@@ -2639,9 +2729,9 @@ export function DashboardPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 px-4" role="dialog" aria-modal="true">
           <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-xl">
             <p className="text-lg font-bold text-slate-900">헬퍼링크 추가 (유료)</p>
-            <p className="mt-2 text-sm leading-relaxed text-slate-600">
-              명함 오너가 헬퍼링크를 켜면 홍보 파트너가 신청·승인 후 전용 헬퍼링크를 받습니다. 헬퍼링크로 고객을 연결하고
-              수익에 참여하는 구조예요.
+            <p className="mt-2 text-sm leading-relaxed text-slate-600">{HELPER_LINK_PAYMENT_LEAD}</p>
+            <p className="mt-1 text-xs leading-relaxed text-slate-500">
+              결제 후 홍보 요청서를 작성하면 파트너 모집이 시작됩니다.
             </p>
             <div className="mt-4 rounded-2xl border border-cta-200 bg-cta-50 px-4 py-4">
               <p className="text-sm font-bold text-slate-900">결제 금액</p>
@@ -2653,9 +2743,8 @@ export function DashboardPage() {
                 className="inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-cta-500 px-4 text-sm font-bold text-white hover:bg-cta-600"
                 onClick={() => void confirmPromotionPayment()}
               >
-                {PROMOTION_LINK_PRICE.toLocaleString()}원 결제하고 헬퍼링크 받기
-              </button>
-              <button
+                {HELPER_LINK_PAYMENT_CTA}
+              </button>              <button
                 type="button"
                 className="inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-slate-300 bg-white px-4 text-sm font-bold text-slate-900 hover:bg-slate-50"
                 onClick={() => setPromotionPaymentCard(null)}
