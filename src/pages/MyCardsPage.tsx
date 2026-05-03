@@ -1,3 +1,4 @@
+import { CardPromotionChannelsPanel } from "@/components/card/CardPromotionChannelsPanel";
 import { linkButtonClassName } from "@/components/ui/buttonStyles";
 import { Card, CardContent } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -84,7 +85,7 @@ export function MyCardsPage() {
                       /c/{card.slug} · {card.is_public ? "공개" : "비공개"}
                     </p>
                   </div>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex w-full shrink-0 flex-wrap gap-2 sm:w-auto sm:justify-end">
                     <Link
                       to={`/c/${card.slug}`}
                       target="_blank"
@@ -103,6 +104,9 @@ export function MyCardsPage() {
                     </Link>
                   </div>
                 </CardContent>
+                <div className="border-t border-slate-100 px-5 pb-5 pt-4">
+                  <CardPromotionChannelsPanel card={card} />
+                </div>
               </Card>
             </li>
           ))}

@@ -1,10 +1,17 @@
 import { DigitalCardPublicView } from "@/components/digital-card/DigitalCardPublicView";
 import { DigitalCardSeo } from "@/components/digital-card/DigitalCardSeo";
 import { resolveBusinessCardPublicUrl } from "@/lib/cardShareUrl";
+import {
+  getOrCreatePromotionVisitorId,
+  mapCardLinkClickToPromo,
+  normalizePromotionContext,
+  parsePromotionQuery,
+} from "@/lib/cardPromoTracking";
 import { resolveCardPreviewVariant } from "@/lib/previewCardType";
 import { parsePartnerIdFromSearch, rememberPartnerForCard, getStoredPartnerForCard } from "@/lib/linkoPartnerAttribution";
 import { savePromotionReferralCode } from "@/lib/promotionReferralStorage";
 import { insertCardActionLogRemote, insertInquiryLogRemote } from "@/services/cardAnalyticsRemote";
+import { insertCardPromoEventRemote } from "@/services/cardPromoAnalyticsRemote";
 import { insertCardVisitLog } from "@/services/cardVisitLogsService";
 import { insertCardViewRemote } from "@/services/cardViewsRemote";
 import { fetchCardBySlug, updateCardNameRemote } from "@/services/cardsService";
@@ -27,6 +34,7 @@ export function PublicCardPage() {
   const addCardView = useAppDataStore((s) => s.addCardView);
   const addCardClick = useAppDataStore((s) => s.addCardClick);
   const addCardLinkVisit = useAppDataStore((s) => s.addCardLinkVisit);
+  const appendCardPromoEvent = useAppDataStore((s) => s.appendCardPromoEvent);
 
   const fetchGenRef = useRef(0);
 
@@ -87,6 +95,11 @@ export function PublicCardPage() {
     const s = new URLSearchParams(location.search).get("source")?.trim().toLowerCase() ?? "";
     return s === "nfc" ? "nfc" : null;
   }, [location.search]);
+
+  const promotionContext = useMemo(
+    () => normalizePromotionContext(parsePromotionQuery(location.search)),
+    [location.search],
+  );
   const [qr, setQr] = useState<string | null>(null);
 
   const canEditName = Boolean(card && cardBelongsToUser(card, user));
@@ -179,6 +192,36 @@ export function PublicCardPage() {
     location.search,
   ]);
 
+  useEffect(() => {
+    if (!card?.user_id || !card.slug?.trim()) return;
+    const promoCtx = promotionContext;
+    const slugKey = card.slug.trim();
+    try {
+      const promoKey = `promo_evt_view:${slugKey}:${promoCtx.channelId ?? "__base__"}:${promoCtx.shareType}:${promoCtx.helperId ?? ""}`;
+      if (sessionStorage.getItem(promoKey)) return;
+      sessionStorage.setItem(promoKey, "1");
+    } catch {
+      /* ignore */
+    }
+
+    const visitorId = getOrCreatePromotionVisitorId();
+    const shareIsHelper = promoCtx.shareType === "helper" && promoCtx.helperId;
+    const row = {
+      card_id: card.id,
+      user_id: card.user_id,
+      channel_id: promoCtx.channelId,
+      share_type: shareIsHelper ? ("helper" as const) : ("direct" as const),
+      helper_id: shareIsHelper ? promoCtx.helperId : null,
+      event_type: "view" as const,
+      button_type: null as string | null,
+      visitor_id: visitorId || null,
+    };
+
+    appendCardPromoEvent(row);
+
+    void insertCardPromoEventRemote(row);
+  }, [card, promotionContext, appendCardPromoEvent]);
+
   const handleLink = (link: CardLink) => {
     if (!card) return;
     addCardClick({
@@ -204,6 +247,24 @@ export function PublicCardPage() {
         inquiry_type: link.type,
       });
     }
+
+    const visitorIdClick = getOrCreatePromotionVisitorId();
+    const mappedPromo = mapCardLinkClickToPromo(link);
+    const promoShare =
+      promotionContext.shareType === "helper" && promotionContext.helperId ? ("helper" as const) : ("direct" as const);
+    const promoRow = {
+      card_id: card.id,
+      user_id: card.user_id,
+      channel_id: promotionContext.channelId,
+      share_type: promoShare,
+      helper_id: promoShare === "helper" ? promotionContext.helperId : null,
+      event_type: mappedPromo.event_type,
+      button_type: mappedPromo.button_type,
+      visitor_id: visitorIdClick || null,
+    };
+    appendCardPromoEvent(promoRow);
+    void insertCardPromoEventRemote(promoRow);
+
     let href = link.url;
     if (link.type === "email" && !href.startsWith("mailto:")) href = `mailto:${href}`;
     if (link.type === "phone" && !href.startsWith("tel:")) href = `tel:${href}`;

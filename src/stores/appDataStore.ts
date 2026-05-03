@@ -38,6 +38,7 @@ import type {
   TeacherApplication,
   TeacherProfile,
 } from "@/types/domain";
+import type { CardPromoAnalyticsEventRow, StoredCardPromotionChannel } from "@/types/cardPromo";
 import { INSTANT_GUEST_USER_ID } from "@/lib/instantCardCreate";
 import { migrateEducationApplicationRow, migrateTeacherApplicationRow } from "@/lib/migrateEducation";
 import { migrateCreatorProfileRow } from "@/lib/migrateCreatorProfile";
@@ -88,6 +89,9 @@ interface AppDataState {
 
   expertDirectRequests: ExpertDirectRequest[];
 
+  cardPromotionChannels: StoredCardPromotionChannel[];
+  cardPromoEvents: CardPromoAnalyticsEventRow[];
+
   setBusinessCards: (cards: BusinessCard[]) => void;
   appendExpertDirectRequest: (r: ExpertDirectRequest) => void;
   upsertBusinessCard: (card: BusinessCard) => void;
@@ -123,6 +127,11 @@ interface AppDataState {
   updatePromotionApplication: (id: string, patch: Partial<PromotionApplication>) => void;
   addToPromotionPool: (entry: Omit<PromotionPoolEntry, "id" | "registered_at" | "status">) => boolean;
   enrollPromoter: (p: Omit<PromoterParticipation, "id" | "enrolled_at">) => boolean;
+
+  appendCardPromoEvent: (evt: Omit<CardPromoAnalyticsEventRow, "id" | "created_at"> & { id?: string }) => void;
+  addPromotionChannel: (
+    channel: Omit<StoredCardPromotionChannel, "created_at"> & { created_at?: string },
+  ) => boolean;
 }
 
 export const useAppDataStore = create<AppDataState>()(
@@ -152,6 +161,8 @@ export const useAppDataStore = create<AppDataState>()(
       designRequests: [],
       promotionApplications: [],
       expertDirectRequests: [],
+      cardPromotionChannels: [],
+      cardPromoEvents: [],
 
       setBusinessCards: (businessCards) => set({ businessCards }),
       upsertBusinessCard: (card) =>
@@ -355,11 +366,47 @@ export const useAppDataStore = create<AppDataState>()(
         });
         return ok;
       },
+
+      appendCardPromoEvent: (evtIn) =>
+        set((s) => {
+          const evt: CardPromoAnalyticsEventRow = {
+            id: evtIn.id ?? crypto.randomUUID(),
+            created_at: new Date().toISOString(),
+            card_id: evtIn.card_id,
+            user_id: evtIn.user_id,
+            channel_id: evtIn.channel_id ?? null,
+            share_type: evtIn.share_type,
+            helper_id: evtIn.helper_id ?? null,
+            event_type: evtIn.event_type,
+            button_type: evtIn.button_type ?? null,
+            visitor_id: evtIn.visitor_id ?? null,
+          };
+          const next = [...s.cardPromoEvents, evt];
+          const cap = 2000;
+          return { cardPromoEvents: next.length > cap ? next.slice(-cap) : next };
+        }),
+
+      addPromotionChannel: (ch) => {
+        let ok = false;
+        set((s) => {
+          const row: StoredCardPromotionChannel = {
+            ...ch,
+            created_at: ch.created_at ?? new Date().toISOString(),
+          };
+          const existsSame = s.cardPromotionChannels.some(
+            (x) => x.card_id === row.card_id && x.user_id === row.user_id && x.name.trim() === row.name.trim(),
+          );
+          if (existsSame) return s;
+          ok = true;
+          return { cardPromotionChannels: [...s.cardPromotionChannels, row] };
+        });
+        return ok;
+      },
     }),
     {
       name: "linko-app-data",
       storage: createJSONStorage(() => localStorage),
-      version: 5,
+      version: 6,
       partialize: (state) => ({
         businessCards: state.businessCards,
         cardLinks: state.cardLinks,
@@ -370,6 +417,8 @@ export const useAppDataStore = create<AppDataState>()(
         cardClicks: state.cardClicks,
         cardLinkVisits: state.cardLinkVisits,
         cardPromotionLinks: state.cardPromotionLinks,
+        cardPromotionChannels: state.cardPromotionChannels,
+        cardPromoEvents: state.cardPromoEvents,
         subscriptions: state.subscriptions,
         payments: state.payments,
         banners: state.banners,
@@ -408,6 +457,8 @@ export const useAppDataStore = create<AppDataState>()(
           cardClicks: mergeById(current.cardClicks, p.cardClicks),
           cardLinkVisits: mergeById(current.cardLinkVisits ?? [], p.cardLinkVisits),
           cardPromotionLinks: mergeById(current.cardPromotionLinks ?? [], p.cardPromotionLinks),
+          cardPromotionChannels: mergeById(current.cardPromotionChannels ?? [], p.cardPromotionChannels),
+          cardPromoEvents: mergeById(current.cardPromoEvents ?? [], p.cardPromoEvents),
           subscriptions: mergeById(current.subscriptions, p.subscriptions),
           payments: mergeById(current.payments, p.payments),
           banners: mergeById(current.banners, p.banners),
