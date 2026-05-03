@@ -37,7 +37,14 @@ export type RevenueCardTemplateId =
   | "wedding"
   | "travel-tour"
   | "translation"
-  | "legal-tax";
+  | "legal-tax"
+  | "lm-card-design-expert"
+  | "lm-blog-expert"
+  | "lm-video-expert"
+  | "lm-program-expert"
+  | "lm-helper-partner"
+  | "lm-teacher"
+  | "lm-ai-training-teacher";
 
 export type RevenueTemplateMeta = {
   id: RevenueCardTemplateId;
@@ -87,6 +94,13 @@ export const REVENUE_CARD_TEMPLATE_IDS = [
   "travel-tour",
   "translation",
   "legal-tax",
+  "lm-card-design-expert",
+  "lm-blog-expert",
+  "lm-video-expert",
+  "lm-program-expert",
+  "lm-helper-partner",
+  "lm-teacher",
+  "lm-ai-training-teacher",
 ] as const satisfies readonly RevenueCardTemplateId[];
 
 export const REVENUE_TEMPLATE_LIST: RevenueTemplateMeta[] = [
@@ -370,6 +384,62 @@ export const REVENUE_TEMPLATE_LIST: RevenueTemplateMeta[] = [
     bullets: ["분야", "상담 버튼"],
     primaryCta: "상담 예약 →",
   },
+  {
+    id: "lm-card-design-expert",
+    label: "명함디자인 전문가",
+    emoji: "📇",
+    hook: "명함·상세 링크 설계",
+    bullets: ["이미지 명함", "링크 구조", "문의 버튼"],
+    primaryCta: "명함 제작 문의 →",
+  },
+  {
+    id: "lm-blog-expert",
+    label: "블로그 전문가",
+    emoji: "✍️",
+    hook: "검색·홍보 글 설계",
+    bullets: ["키워드", "글 구성", "채널 연계"],
+    primaryCta: "블로그 홍보 문의 →",
+  },
+  {
+    id: "lm-video-expert",
+    label: "영상제작 전문가",
+    emoji: "🎬",
+    hook: "숏폼·유튜브",
+    bullets: ["기획", "촬영·편집", "일정"],
+    primaryCta: "영상 제작 문의 →",
+  },
+  {
+    id: "lm-program-expert",
+    label: "프로그램 전문가",
+    emoji: "💻",
+    hook: "웹앱·자동화",
+    bullets: ["요구 분석", "구축", "운영"],
+    primaryCta: "프로그램 제작 문의 →",
+  },
+  {
+    id: "lm-helper-partner",
+    label: "헬퍼링크 파트너",
+    emoji: "🔗",
+    hook: "카톡·당근·SNS 확산",
+    bullets: ["채널 전략", "게시 가이드", "성과 점검"],
+    primaryCta: "홍보 의뢰 →",
+  },
+  {
+    id: "lm-teacher",
+    label: "교육 강사",
+    emoji: "📚",
+    hook: "실습 중심 강의",
+    bullets: ["커리큘럼", "온·오프라인", "상담"],
+    primaryCta: "교육 문의 →",
+  },
+  {
+    id: "lm-ai-training-teacher",
+    label: "AI 제작교육 강사",
+    emoji: "🤖",
+    hook: "글·영상·자동화 실습",
+    bullets: ["AI 워크플로", "도구 활용", "과정 안내"],
+    primaryCta: "AI 교육 문의 →",
+  },
 ];
 
 type LinkDef = { label: string; type: CardLinkType; url: string };
@@ -589,6 +659,48 @@ const REVENUE_LINKS: Record<RevenueCardTemplateId, LinkDef[]> = {
     { label: "전화 예약", type: "phone", url: "tel:010-1616-2727" },
     { label: "분야 안내", type: "website", url: "https://linko.app" },
     { label: "자료 제출 안내", type: "website", url: "https://linko.app" },
+  ],
+  "lm-card-design-expert": [
+    { label: "명함 제작 문의", type: "kakao", url: "https://open.kakao.com/o/linko-sample" },
+    { label: "포트폴리오", type: "website", url: "https://linko.app" },
+    { label: "이메일", type: "email", url: "mailto:hello@linko.app" },
+    { label: "전화", type: "phone", url: "tel:010-8888-9999" },
+  ],
+  "lm-blog-expert": [
+    { label: "블로그 홍보 문의", type: "kakao", url: "https://open.kakao.com/o/linko-sample" },
+    { label: "사례 보기", type: "website", url: "https://linko.app" },
+    { label: "이메일", type: "email", url: "mailto:hello@linko.app" },
+    { label: "전화", type: "phone", url: "tel:010-8888-9999" },
+  ],
+  "lm-video-expert": [
+    { label: "영상 제작 문의", type: "kakao", url: "https://open.kakao.com/o/linko-sample" },
+    { label: "샘플 영상", type: "website", url: "https://linko.app" },
+    { label: "이메일", type: "email", url: "mailto:hello@linko.app" },
+    { label: "전화", type: "phone", url: "tel:010-8888-9999" },
+  ],
+  "lm-program-expert": [
+    { label: "프로그램 제작 문의", type: "kakao", url: "https://open.kakao.com/o/linko-sample" },
+    { label: "서비스 안내", type: "website", url: "https://linko.app" },
+    { label: "이메일", type: "email", url: "mailto:hello@linko.app" },
+    { label: "전화", type: "phone", url: "tel:010-8888-9999" },
+  ],
+  "lm-helper-partner": [
+    { label: "홍보 의뢰", type: "kakao", url: "https://open.kakao.com/o/linko-sample" },
+    { label: "진행 안내", type: "website", url: "https://linko.app" },
+    { label: "이메일", type: "email", url: "mailto:hello@linko.app" },
+    { label: "전화", type: "phone", url: "tel:010-8888-9999" },
+  ],
+  "lm-teacher": [
+    { label: "교육 문의", type: "kakao", url: "https://open.kakao.com/o/linko-sample" },
+    { label: "커리큘럼 안내", type: "website", url: "https://linko.app" },
+    { label: "이메일", type: "email", url: "mailto:hello@linko.app" },
+    { label: "전화", type: "phone", url: "tel:010-8888-9999" },
+  ],
+  "lm-ai-training-teacher": [
+    { label: "AI 교육 문의", type: "kakao", url: "https://open.kakao.com/o/linko-sample" },
+    { label: "교육 과정", type: "website", url: "https://linko.app" },
+    { label: "이메일", type: "email", url: "mailto:hello@linko.app" },
+    { label: "전화", type: "phone", url: "tel:010-8888-9999" },
   ],
 };
 
@@ -1395,6 +1507,167 @@ export function buildRevenueCardDraft(templateId: RevenueCardTemplateId, ctx: Dr
       ],
       brand_image_url: IMG.legalTax1,
       imageUrl: IMG.legalTax1,
+    },
+    "lm-card-design-expert": {
+      slug: `lm-card-design-expert-${suf}`,
+      card_type: "person",
+      brand_name: "",
+      job_title: "",
+      tagline: "",
+      intro: "",
+      marketing_title: "",
+      trust_metric: "Linko 소속",
+      address: "활동 지역을 입력해 주세요.",
+      gallery_urls_raw: "",
+      trust_testimonials: [
+        { quote: "문의가 한곳으로 모이도록 안내해 드립니다.", person_name: "의뢰 고객", role: "후기" },
+        { quote: "", person_name: "", role: "" },
+      ],
+      services: [
+        { title: "이미지형 명함 디자인", body: "브랜드 톤에 맞는 시안과 내보내기." },
+        { title: "상세 페이지·링크 구조", body: "문의·포트폴리오·SNS를 한 흐름으로." },
+        { title: "납품·수정", body: "피드백을 빠르게 반영합니다." },
+      ],
+      brand_image_url: IMG.freelance,
+      imageUrl: IMG.freelance,
+    },
+    "lm-blog-expert": {
+      slug: `lm-blog-expert-${suf}`,
+      card_type: "person",
+      brand_name: "",
+      job_title: "",
+      tagline: "",
+      intro: "",
+      marketing_title: "",
+      trust_metric: "Linko 소속",
+      address: "활동 지역을 입력해 주세요.",
+      gallery_urls_raw: galleryLines(IMG.blogMkt1, IMG.blogMkt2),
+      trust_testimonials: [
+        { quote: "메시지 정리가 명확했어요.", person_name: "고객사", role: "후기" },
+        { quote: "", person_name: "", role: "" },
+      ],
+      services: [
+        { title: "키워드·주제 설계", body: "검색과 브랜드 메시지를 맞춥니다." },
+        { title: "글 구성·초안", body: "읽히는 구조와 CTA까지." },
+        { title: "채널 연계", body: "명함·링크와 홍보 채널을 연결합니다." },
+      ],
+      brand_image_url: IMG.blogMkt1,
+      imageUrl: IMG.blogMkt1,
+    },
+    "lm-video-expert": {
+      slug: `lm-video-expert-${suf}`,
+      card_type: "person",
+      brand_name: "",
+      job_title: "",
+      tagline: "",
+      intro: "",
+      marketing_title: "",
+      trust_metric: "Linko 소속",
+      address: "활동 지역을 입력해 주세요.",
+      gallery_urls_raw: galleryLines(IMG.videoProd1, IMG.videoProd2),
+      trust_testimonials: [
+        { quote: "숏폼 퀄리티가 좋았어요.", person_name: "고객", role: "후기" },
+        { quote: "", person_name: "", role: "" },
+      ],
+      services: [
+        { title: "숏폼·광고 영상", body: "기획·촬영·편집." },
+        { title: "유튜브·채널용", body: "인트로·본편 구성 지원." },
+        { title: "납품 일정", body: "일정에 맞춰 검수 후 전달." },
+      ],
+      brand_image_url: IMG.videoProd1,
+      imageUrl: IMG.videoProd1,
+    },
+    "lm-program-expert": {
+      slug: `lm-program-expert-${suf}`,
+      card_type: "person",
+      brand_name: "",
+      job_title: "",
+      tagline: "",
+      intro: "",
+      marketing_title: "",
+      trust_metric: "Linko 소속",
+      address: "활동 지역을 입력해 주세요.",
+      gallery_urls_raw: galleryLines(IMG.retouch2, IMG.freelance2),
+      trust_testimonials: [
+        { quote: "요구사항을 잘 구조화해 주셨습니다.", person_name: "기업 담당자", role: "후기" },
+        { quote: "", person_name: "", role: "" },
+      ],
+      services: [
+        { title: "웹앱·관리자 기능", body: "필요 기능에 맞춘 설계·구현." },
+        { title: "예약·문의·결제", body: "운영 자동화 흐름 구축." },
+        { title: "유지·확장", body: "이후 단계도 협의 가능." },
+      ],
+      brand_image_url: IMG.freelance2,
+      imageUrl: IMG.freelance2,
+    },
+    "lm-helper-partner": {
+      slug: `lm-helper-partner-${suf}`,
+      card_type: "person",
+      brand_name: "",
+      job_title: "",
+      tagline: "",
+      intro: "",
+      marketing_title: "",
+      trust_metric: "Linko 소속",
+      address: "활동 지역을 입력해 주세요.",
+      gallery_urls_raw: galleryLines(IMG.blogMkt2, IMG.eventPlan1),
+      trust_testimonials: [
+        { quote: "게시·공유 흐름이 정리됐어요.", person_name: "파트너", role: "후기" },
+        { quote: "", person_name: "", role: "" },
+      ],
+      services: [
+        { title: "채널별 홍보", body: "카톡·당근·블로그·유튜브 노출." },
+        { title: "게시·캠페인 가이드", body: "링크 확산을 구체적으로 안내." },
+        { title: "성과 점검", body: "문의·반응을 함께 봅니다." },
+      ],
+      brand_image_url: IMG.eventPlan1,
+      imageUrl: IMG.eventPlan1,
+    },
+    "lm-teacher": {
+      slug: `lm-teacher-${suf}`,
+      card_type: "person",
+      brand_name: "",
+      job_title: "",
+      tagline: "",
+      intro: "",
+      marketing_title: "",
+      trust_metric: "Linko 소속",
+      address: "활동 지역을 입력해 주세요.",
+      gallery_urls_raw: galleryLines(IMG.tutoring1, IMG.musicLesson1),
+      trust_testimonials: [
+        { quote: "실습이 많아 이해하기 쉬웠어요.", person_name: "수강생", role: "후기" },
+        { quote: "", person_name: "", role: "" },
+      ],
+      services: [
+        { title: "온라인·오프라인 강의", body: "일정·목표 맞춤 커리큘럼." },
+        { title: "실습 중심", body: "따라 하며 바로 적용합니다." },
+        { title: "교육 상담", body: "난이도·과정 협의." },
+      ],
+      brand_image_url: IMG.tutoring1,
+      imageUrl: IMG.tutoring1,
+    },
+    "lm-ai-training-teacher": {
+      slug: `lm-ai-training-teacher-${suf}`,
+      card_type: "person",
+      brand_name: "",
+      job_title: "",
+      tagline: "",
+      intro: "",
+      marketing_title: "",
+      trust_metric: "Linko 소속",
+      address: "활동 지역을 입력해 주세요.",
+      gallery_urls_raw: galleryLines(IMG.retouch1, IMG.videoProd2),
+      trust_testimonials: [
+        { quote: "AI 도구 활용법이 명확해졌습니다.", person_name: "수강생", role: "후기" },
+        { quote: "", person_name: "", role: "" },
+      ],
+      services: [
+        { title: "글·이미지·영상 실습", body: "AI 활용 워크플로." },
+        { title: "자동화 아이디어", body: "반복 업무 줄이기." },
+        { title: "과정 상담", body: "기업·개인 맞춤." },
+      ],
+      brand_image_url: IMG.videoProd2,
+      imageUrl: IMG.videoProd2,
     },
   };
 

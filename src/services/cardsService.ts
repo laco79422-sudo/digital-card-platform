@@ -67,6 +67,7 @@ const BUSINESS_CARD_REMOTE_KEYS = [
   "design_type",
   "og_image_url",
   "industry",
+  "card_industry",
   "auto_image_url",
 ] as const satisfies ReadonlyArray<keyof BusinessCard>;
 

@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import {
   applyCtaLabelToPrimaryLinkLabel,
+  cardIndustryPayloadFromTemplateId,
   getIndustryTemplate,
   mergeIndustryCopyIntoDraft,
   parseIndustryQuery,
@@ -429,15 +430,16 @@ export function CardEditorPage() {
     ) {
       const st = useCardEditorDraftStore.getState();
       if (st.hydratedKey === routeKey) return;
-      replaceDraft(
-        mergeIndustryCopyIntoDraft(
+      replaceDraft({
+        ...mergeIndustryCopyIntoDraft(
           buildRevenueCardDraft(revenueTemplateId, {
             person_name: user.name?.trim() || DEFAULT_CARD_PERSON_NAME,
             email: user.email ?? "",
           }),
           getIndustryTemplate(revenueTemplateId),
         ),
-      );
+        card_industry: cardIndustryPayloadFromTemplateId(revenueTemplateId),
+      });
       setLinkRows(buildRevenueTemplateLinkRows(revenueTemplateId));
       setHydratedKey(routeKey);
       return;
@@ -927,6 +929,7 @@ export function CardEditorPage() {
         email: user.email ?? "",
       });
       nextDraft = mergeIndustryCopyIntoDraft(nextDraft, tmpl);
+      nextDraft = { ...nextDraft, card_industry: cardIndustryPayloadFromTemplateId(tid) ?? null };
       const cardId = crypto.randomUUID();
       const card = draftToBusinessCard(nextDraft, {
         id: cardId,

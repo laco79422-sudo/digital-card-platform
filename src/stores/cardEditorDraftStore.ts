@@ -1,4 +1,6 @@
 import type { BusinessCard, CardDesignType, DigitalCardServiceLine, TrustTestimonial } from "@/types/domain";
+import type { CardIndustryPayload } from "@/types/cardIndustry";
+import { parseCardIndustryPayload } from "@/types/cardIndustry";
 import { normalizeCardDesignType } from "@/lib/cardDesignLabels";
 import { buildCardShareUrl } from "@/lib/cardShareUrl";
 import { clampZoom } from "@/lib/brandHeroLayout";
@@ -60,6 +62,8 @@ export type CardEditorDraft = {
   design_type: CardDesignType;
   /** 선택 업종 표시명 — OG·통계·템플릿 이미지 매칭 */
   industry: string | null;
+  /** 업종 선택 구조(린코 소속 등) */
+  card_industry: CardIndustryPayload | null;
   /** 업종 템플릿 기본 히어로 URL */
   auto_image_url: string | null;
   /** OG·카카오 공유 이미지 (합성 PNG 확장 예정) */
@@ -189,6 +193,7 @@ export function createEmptyDraft(overrides: Partial<CardEditorDraft> = {}): Card
     auto_image_url: null,
     og_image_url: null,
     marketing_title: "",
+    card_industry: null,
     ...overrides,
   };
 }
@@ -260,6 +265,7 @@ export function draftFromBusinessCard(card: BusinessCard): CardEditorDraft {
         : (card.brand_image_object_position?.trim() ?? null),
     design_type: normalizeCardDesignType(card.design_type),
     industry: card.industry?.trim() || null,
+    card_industry: parseCardIndustryPayload(card.card_industry ?? null),
     auto_image_url: card.auto_image_url?.trim() || null,
     og_image_url: card.og_image_url?.trim() || null,
     marketing_title: card.marketing_title?.trim() ?? "",
@@ -361,6 +367,7 @@ export function draftToBusinessCard(
       : draft.brand_image_legacy_object_position?.trim() || null,
     design_type: normalizeCardDesignType(draft.design_type),
     industry,
+    card_industry: draft.card_industry ?? null,
     auto_image_url: explicitAuto || null,
     og_image_url: resolvedOg || null,
     marketing_title: draft.marketing_title.trim() || null,

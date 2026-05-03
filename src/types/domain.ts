@@ -1,3 +1,5 @@
+import type { CardIndustryPayload } from "@/types/cardIndustry";
+
 export type UserRole = "client" | "creator" | "admin" | "company_admin" | "teacher";
 
 export interface User {
@@ -92,6 +94,8 @@ export interface BusinessCard {
   og_image_url?: string | null;
   /** 선택 업종 표시명 (예: 세차장) — OG 제목·업종별 이미지 매칭 */
   industry?: string | null;
+  /** 업종 선택 구조(일반·린코 소속 등) — Supabase `card_industry` JSON */
+  card_industry?: CardIndustryPayload | null;
   /** 업종 템플릿 기본 히어로 이미지 절대 URL */
   auto_image_url?: string | null;
   /** 목록·레거시 스키마용 썸네일 URL */

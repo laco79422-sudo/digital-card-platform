@@ -47,6 +47,8 @@ export const cardEditorSubmitSchema = z
   brand_image_legacy_object_position: z.string().max(48).nullable().optional(),
   design_type: z.enum(["simple", "business", "emotional"]).default("simple"),
   industry: z.string().nullable().optional(),
+  /** 업종 선택 JSON — 검증 완화(편집기가 구조 책임) */
+  card_industry: z.any().nullable().optional(),
   auto_image_url: z.string().nullable().optional(),
   og_image_url: z.string().nullable().optional(),
   })

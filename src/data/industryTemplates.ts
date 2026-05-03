@@ -2,6 +2,7 @@ import { buildIndustryPromoShareText } from "@/lib/cardPromoShareText";
 import { getIndustryOgFallback } from "@/lib/industryOg";
 import type { CardEditorDraft } from "@/stores/cardEditorDraftStore";
 import type { RevenueCardTemplateId } from "@/data/revenueCardTemplates";
+import type { CardIndustryPayload, LinkoMemberIndustryType } from "@/types/cardIndustry";
 
 /** 업종 선택 ↔ 매출 템플릿 ID (동일 키 사용) */
 export type IndustryTemplateId = RevenueCardTemplateId;
@@ -13,6 +14,10 @@ export type IndustryTemplateRecord = {
   templateId: IndustryTemplateId;
   name: string;
   title: string;
+  /** 히어로 상단 메인 문구 — 있으면 marketing_title 로 반영 */
+  marketingHeadline?: string;
+  /** true면 매출 패키 등에서 채운 히어로 URL을 업종 OG로 덮어쓰지 않음 */
+  preserveHeroImages?: boolean;
   headline: string;
   description: string;
   /** 첫 CTA 버튼 라벨 (→ 포함 가능) */
@@ -398,8 +403,163 @@ export const INDUSTRY_TEMPLATE_LIST: IndustryTemplateRecord[] = [
   },
 ];
 
+/** 추천 업종 탭 — 자주 선택되는 템플릿만 상단 노출 */
+export const RECOMMENDED_INDUSTRY_TEMPLATE_IDS = [
+  "restaurant",
+  "cafe",
+  "salon",
+  "freelancer",
+  "interior",
+  "real-estate",
+  "academy",
+  "car-wash",
+  "online-sales",
+  "cleaning",
+] as const satisfies readonly IndustryTemplateId[];
+
+/** 린코 소속 전문가·파트너·강사 명함 템플릿 — 히어로는 매출 패키 이미지를 유지 */
+export const LINKO_MEMBER_INDUSTRY_LIST: IndustryTemplateRecord[] = [
+  {
+    templateId: "lm-card-design-expert",
+    industry: "Linko 명함디자인 전문가",
+    name: "",
+    title: "명함디자인 전문가",
+    preserveHeroImages: true,
+    marketingHeadline: "고객에게 연락이 오는 명함을 만듭니다",
+    headline: "이미지형 명함과 상세 링크를 함께 설계합니다",
+    description:
+      "이미지형 명함과 상세 링크를 함께 설계합니다.\n\n주요 가능 작업과 문의 방법은 아래에서 수정·확인해 주세요.",
+    ctaText: "명함 제작 문의",
+    promoText:
+      "연락이 이어지는 명함 구조가 필요하신가요?\n링크 한 번으로 문의를 받아보세요.\n\n👉 명함 보기\n{link}",
+  },
+  {
+    templateId: "lm-blog-expert",
+    industry: "Linko 블로그 전문가",
+    name: "",
+    title: "블로그 전문가",
+    preserveHeroImages: true,
+    marketingHeadline: "검색되는 글로 브랜드를 알립니다",
+    headline: "블로그 글과 홍보 문구를 함께 설계합니다",
+    description:
+      "블로그 글과 홍보 문구를 함께 설계합니다.\n\n주요 가능 작업과 문의 방법은 아래에서 수정·확인해 주세요.",
+    ctaText: "블로그 홍보 문의",
+    promoText:
+      "검색·노출에 맞는 글이 필요하신가요?\n지금 명함으로 상담을 시작해 보세요.\n\n👉 명함 보기\n{link}",
+  },
+  {
+    templateId: "lm-video-expert",
+    industry: "Linko 영상제작 전문가",
+    name: "",
+    title: "영상제작 전문가",
+    preserveHeroImages: true,
+    marketingHeadline: "짧은 영상으로 기억되는 홍보를 만듭니다",
+    headline: "숏폼과 유튜브 영상으로 고객의 시선을 붙잡습니다",
+    description:
+      "숏폼과 유튜브 영상으로 고객의 시선을 붙잡습니다.\n\n주요 가능 작업과 문의 방법은 아래에서 수정·확인해 주세요.",
+    ctaText: "영상 제작 문의",
+    promoText:
+      "영상으로 홍보를 확장하고 싶으신가요?\n샘플·문의 링크로 바로 연결합니다.\n\n👉 명함 보기\n{link}",
+  },
+  {
+    templateId: "lm-program-expert",
+    industry: "Linko 프로그램 전문가",
+    name: "",
+    title: "프로그램 전문가",
+    preserveHeroImages: true,
+    marketingHeadline: "필요한 기능을 웹앱으로 만들어드립니다",
+    headline: "자동화, 관리자 페이지, 예약·문의 시스템을 구축합니다",
+    description:
+      "자동화, 관리자 페이지, 예약·문의 시스템을 구축합니다.\n\n주요 가능 작업과 문의 방법은 아래에서 수정·확인해 주세요.",
+    ctaText: "프로그램 제작 문의",
+    promoText:
+      "운영을 웹으로 정리하고 싶으신가요?\n필요한 기능을 명확히 담아드립니다.\n\n👉 명함 보기\n{link}",
+  },
+  {
+    templateId: "lm-helper-partner",
+    industry: "Linko 헬퍼링크 파트너",
+    name: "",
+    title: "헬퍼링크 파트너",
+    preserveHeroImages: true,
+    marketingHeadline: "좋은 명함이 더 멀리 퍼지도록 돕습니다",
+    headline: "카톡, 당근, 블로그, 유튜브로 홍보 확산을 돕습니다",
+    description:
+      "카톡, 당근, 블로그, 유튜브로 홍보 확산을 돕습니다.\n\n주요 가능 작업과 문의 방법은 아래에서 수정·확인해 주세요.",
+    ctaText: "홍보 의뢰",
+    promoText:
+      "명함 노출과 문의 확산이 필요하신가요?\n파트너와 함께 채널을 확장해 보세요.\n\n👉 명함 보기\n{link}",
+  },
+  {
+    templateId: "lm-teacher",
+    industry: "Linko 교육 강사",
+    name: "",
+    title: "교육 강사",
+    preserveHeroImages: true,
+    marketingHeadline: "필요한 기술을 쉽게 배울 수 있게 안내합니다",
+    headline: "온라인·오프라인 교육으로 실습 중심 강의를 진행합니다",
+    description:
+      "온라인·오프라인 교육으로 실습 중심 강의를 진행합니다.\n\n주요 가능 작업과 문의 방법은 아래에서 수정·확인해 주세요.",
+    ctaText: "교육 문의",
+    promoText:
+      "실습 중심으로 배우고 싶으신가요?\n커리큘럼·일정 문의부터 확인해 보세요.\n\n👉 명함 보기\n{link}",
+  },
+  {
+    templateId: "lm-ai-training-teacher",
+    industry: "Linko AI 제작교육 강사",
+    name: "",
+    title: "AI 제작교육 강사",
+    preserveHeroImages: true,
+    marketingHeadline: "AI로 만드는 방법을 쉽게 알려드립니다",
+    headline: "글, 이미지, 영상, 자동화 제작을 실습으로 배웁니다",
+    description:
+      "글, 이미지, 영상, 자동화 제작을 실습으로 배웁니다.\n\n주요 가능 작업과 문의 방법은 아래에서 수정·확인해 주세요.",
+    ctaText: "AI 교육 문의",
+    promoText:
+      "AI 활용 교육이 필요하신가요?\n실습 과정부터 문의까지 한곳에서 안내합니다.\n\n👉 명함 보기\n{link}",
+  },
+];
+
+/** URL `?industry=` 등에서 린코 템플릿 구분 */
+export const LINKO_MEMBER_REVENUE_TEMPLATE_IDS = [
+  "lm-card-design-expert",
+  "lm-blog-expert",
+  "lm-video-expert",
+  "lm-program-expert",
+  "lm-helper-partner",
+  "lm-teacher",
+  "lm-ai-training-teacher",
+] as const satisfies readonly IndustryTemplateId[];
+
+export const LINKO_MEMBER_TEMPLATE_TO_ROLE: Record<
+  (typeof LINKO_MEMBER_REVENUE_TEMPLATE_IDS)[number],
+  LinkoMemberIndustryType
+> = {
+  "lm-card-design-expert": "card_design_expert",
+  "lm-blog-expert": "blog_expert",
+  "lm-video-expert": "video_expert",
+  "lm-program-expert": "program_expert",
+  "lm-helper-partner": "helper_partner",
+  "lm-teacher": "teacher",
+  "lm-ai-training-teacher": "ai_training_teacher",
+};
+
+export function cardIndustryPayloadFromTemplateId(tid: IndustryTemplateId): CardIndustryPayload | null {
+  if ((LINKO_MEMBER_REVENUE_TEMPLATE_IDS as readonly string[]).includes(tid)) {
+    const row = LINKO_MEMBER_INDUSTRY_LIST.find((r) => r.templateId === tid);
+    const label = row?.title?.trim();
+    const roleType = LINKO_MEMBER_TEMPLATE_TO_ROLE[tid as keyof typeof LINKO_MEMBER_TEMPLATE_TO_ROLE];
+    if (!label || !roleType) return null;
+    return { group: "linko_member", type: roleType, label };
+  }
+  const gen = INDUSTRY_TEMPLATE_LIST.find((t) => t.templateId === tid);
+  if (!gen) return null;
+  return { group: "general", type: tid, label: gen.industry };
+}
+
+const ALL_INDUSTRY_TEMPLATE_LIST = [...INDUSTRY_TEMPLATE_LIST, ...LINKO_MEMBER_INDUSTRY_LIST];
+
 const byTemplateId = Object.fromEntries(
-  INDUSTRY_TEMPLATE_LIST.map((t) => [t.templateId, t]),
+  ALL_INDUSTRY_TEMPLATE_LIST.map((t) => [t.templateId, t]),
 ) as Record<IndustryTemplateId, IndustryTemplateRecord>;
 
 export function getIndustryTemplate(id: IndustryTemplateId): IndustryTemplateRecord {
@@ -411,6 +571,25 @@ export function mergeIndustryCopyIntoDraft(
   draft: CardEditorDraft,
   tmpl: IndustryTemplateRecord,
 ): CardEditorDraft {
+  const marketingTitle = tmpl.marketingHeadline?.trim() || draft.marketing_title;
+  if (tmpl.preserveHeroImages) {
+    const hero = (draft.brand_image_url ?? draft.imageUrl)?.trim() || "";
+    const og =
+      hero ||
+      getIndustryOgFallback(tmpl.industry);
+    return {
+      ...draft,
+      brand_name: tmpl.name,
+      job_title: tmpl.title,
+      tagline: tmpl.headline,
+      intro: tmpl.description,
+      industry: tmpl.industry,
+      marketing_title: marketingTitle,
+      og_image_url: og,
+      auto_image_url: draft.auto_image_url ?? hero ?? null,
+    };
+  }
+
   const imgUrl = getIndustryOgFallback(tmpl.industry);
   return {
     ...draft,
@@ -419,6 +598,7 @@ export function mergeIndustryCopyIntoDraft(
     tagline: tmpl.headline,
     intro: tmpl.description,
     industry: tmpl.industry,
+    marketing_title: marketingTitle,
     auto_image_url: imgUrl,
     og_image_url: imgUrl,
     brand_image_url: imgUrl,
@@ -436,7 +616,7 @@ export function resolvePromoShareTextWithIndustryTemplate(
   draft: Pick<CardEditorDraft, "slug" | "tagline" | "intro" | "brand_name" | "person_name">,
 ): string {
   const slug = draft.slug?.trim().toLowerCase() ?? "";
-  for (const t of INDUSTRY_TEMPLATE_LIST) {
+  for (const t of ALL_INDUSTRY_TEMPLATE_LIST) {
     const prefix = `${t.templateId}-`;
     if (slug.startsWith(prefix)) {
       return t.promoText.replace(/\{link\}/g, shareUrl);
@@ -448,5 +628,5 @@ export function resolvePromoShareTextWithIndustryTemplate(
 export function parseIndustryQuery(search: string): IndustryTemplateId | null {
   const raw = new URLSearchParams(search).get("industry")?.trim().toLowerCase();
   if (!raw) return null;
-  return INDUSTRY_TEMPLATE_LIST.some((t) => t.templateId === raw) ? (raw as IndustryTemplateId) : null;
+  return ALL_INDUSTRY_TEMPLATE_LIST.some((t) => t.templateId === raw) ? (raw as IndustryTemplateId) : null;
 }

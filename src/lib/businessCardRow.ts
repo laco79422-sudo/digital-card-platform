@@ -1,5 +1,6 @@
 import type { BusinessCard } from "@/types/domain";
 import { normalizePreviewCardType } from "@/lib/previewCardType";
+import { parseCardIndustryPayload } from "@/types/cardIndustry";
 
 function optStr(v: unknown): string | null {
   if (v == null) return null;
@@ -53,6 +54,7 @@ export function normalizeBusinessCardRow(raw: Record<string, unknown>): Business
     profile_image_url: profile_image_url ?? undefined,
     og_image_url: og_image_url ?? undefined,
     industry: industry ?? undefined,
+    card_industry: parseCardIndustryPayload(raw.card_industry ?? null) ?? undefined,
     auto_image_url: auto_image_url ?? undefined,
     thumbnail_url: thumbnail_url ?? undefined,
     imageUrl: mergedHero ?? base.imageUrl ?? null,
