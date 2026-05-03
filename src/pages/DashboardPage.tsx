@@ -67,6 +67,18 @@ import {
   startPromotionLinkPayment,
   updatePromotionApplicationRemote,
 } from "@/services/promotionService";
+import {
+  fetchApplicationsForCampaign,
+  fetchHelperCampaignsForOwner,
+  fetchHelperPartnersByIds,
+  HELPER_LINK_CAMPAIGN_PRICE_KRW,
+  selectPartnerApplicationAndActivate,
+} from "@/services/helperCampaignPartnerService";
+import type {
+  HelperCampaignRow,
+  HelperPartnerApplicationRow,
+  HelperPartnerRow,
+} from "@/types/helperCampaignPartner";
 import { useAuthStore } from "@/stores/authStore";
 import { useAppDataStore } from "@/stores/appDataStore";
 import type { BusinessCard, CardVisitLog, PromotionApplication, User } from "@/types/domain";
@@ -316,6 +328,11 @@ export function DashboardPage() {
   const [remoteActionSum, setRemoteActionSum] = useState<number | null>(null);
   const [remoteInquirySum, setRemoteInquirySum] = useState<number | null>(null);
 
+  const [helperCampaignRows, setHelperCampaignRows] = useState<HelperCampaignRow[]>([]);
+  const [helperCampaignApps, setHelperCampaignApps] = useState<Record<string, HelperPartnerApplicationRow[]>>({});
+  const [helperPartnerProfileMap, setHelperPartnerProfileMap] = useState<Record<string, HelperPartnerRow>>({});
+  const [helperCampaignPerfBusy, setHelperCampaignPerfBusy] = useState(false);
+
   const uid = user?.id ?? "";
   useEffect(() => {
     const st = location.state as { openExtraCardModal?: boolean } | null | undefined;
@@ -371,9 +388,36 @@ export function DashboardPage() {
     setReferralClickCountDb(clicks);
   }, [uid]);
 
+  const reloadHelperCampaignBoard = useCallback(async () => {
+    if (!uid || !isSupabaseConfigured) {
+      setHelperCampaignRows([]);
+      setHelperCampaignApps({});
+      setHelperPartnerProfileMap({});
+      return;
+    }
+    setHelperCampaignPerfBusy(true);
+    const rows = await fetchHelperCampaignsForOwner(uid);
+    setHelperCampaignRows(rows);
+    const appMap: Record<string, HelperPartnerApplicationRow[]> = {};
+    const partnerIds = new Set<string>();
+    for (const row of rows) {
+      const apps = await fetchApplicationsForCampaign(row.id);
+      appMap[row.id] = apps;
+      for (const app of apps) partnerIds.add(app.partner_id);
+    }
+    setHelperCampaignApps(appMap);
+    const partners = await fetchHelperPartnersByIds([...partnerIds]);
+    setHelperPartnerProfileMap(Object.fromEntries(partners.map((p) => [p.id, p])));
+    setHelperCampaignPerfBusy(false);
+  }, [uid]);
+
   useEffect(() => {
     void reloadReferralRewards();
   }, [reloadReferralRewards]);
+
+  useEffect(() => {
+    void reloadHelperCampaignBoard();
+  }, [reloadHelperCampaignBoard]);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -1637,79 +1681,212 @@ export function DashboardPage() {
       {uid ? (
         <section className="mt-10 rounded-2xl border border-brand-200/80 bg-gradient-to-br from-brand-50 via-white to-sky-50 p-4 shadow-sm sm:p-6">
           <div>
-            <h2 className="text-lg font-semibold text-slate-900 sm:text-xl">내 헬퍼링크 성과</h2>
+            <h2 id="dashboard-section-helper-partner-performance" className="text-lg font-semibold text-slate-900 sm:text-xl">
+              내 헬퍼링크 파트너 성과
+            </h2>
             <p className="mt-2 text-sm leading-relaxed text-slate-600 sm:text-base">
-              승인된 헬퍼링크로 유입된 방문과 활동을 확인합니다. 헬퍼링크로 고객을 연결하고 수익에 참여합니다.
+              유료 헬퍼링크 파트너 캠페인을 만들고 지원 파트너를 선택하면 전용 링크가 발급됩니다. 파트너와 함께 조회·문의 성과가
+              캠페인·채널·파트너 기준으로 기록됩니다.
+            </p>
+            <div className="mt-4 flex flex-wrap gap-3">
+              <Link
+                to="/helper-link/campaign/start"
+                className="inline-flex min-h-[48px] items-center justify-center rounded-xl bg-brand-700 px-5 text-base font-bold text-white shadow hover:bg-brand-800"
+              >
+                헬퍼링크 만들기
+              </Link>
+              <Link
+                to="/helper-partner/register"
+                className="inline-flex min-h-[48px] items-center justify-center rounded-xl bg-white px-5 text-base font-semibold text-slate-900 ring-1 ring-slate-300 hover:bg-slate-50"
+              >
+                헬퍼링크 파트너 신청
+              </Link>
+              <Link
+                to="/helper-partner/campaigns"
+                className="inline-flex min-h-[48px] items-center justify-center rounded-xl bg-white px-5 text-base font-semibold text-slate-900 ring-1 ring-slate-300 hover:bg-slate-50"
+              >
+                진행 중 캠페인 보기(파트너)
+              </Link>
+            </div>
+            <p className="mt-3 text-xs leading-relaxed text-slate-500">
+              헬퍼링크는 유료 결제 후 생성되며, 파트너가 대신 홍보할 수 있는 전용 링크입니다.(결제 플로우는 데모로 안내됩니다:
+              현재 {HELPER_LINK_CAMPAIGN_PRICE_KRW.toLocaleString()}원 안내 금액)
             </p>
           </div>
+
+          {helperCampaignPerfBusy ? (
+            <p className="mt-4 text-sm text-slate-600">헬퍼링크 파트너 캠페인 목록을 불러오는 중입니다…</p>
+          ) : null}
+
+          {helperCampaignRows.length > 0 ? (
+            <div className="mt-6 rounded-2xl border border-brand-100 bg-white/90 p-4">
+              <h3 className="text-base font-bold text-slate-900">내가 연 헬퍼링크 파트너 캠페인</h3>
+              <ul className="mt-4 grid gap-4 md:grid-cols-2">
+                {helperCampaignRows.map((c) => {
+                  const apps = helperCampaignApps[c.id] ?? [];
+                  const card = businessCards.find((bc) => bc.id === c.card_id);
+                  return (
+                    <li key={c.id} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                      <p className="text-xs font-semibold uppercase text-slate-500">캠페인</p>
+                      <p className="mt-1 text-sm font-bold text-slate-900">{c.title || "제목 없음"}</p>
+                      <p className="mt-2 text-xs text-slate-600">
+                        상태: <span className="font-semibold">{c.status}</span> · 명함:{" "}
+                        {card ? cardDisplayName(card) : c.card_id}
+                      </p>
+                      <p className="mt-1 text-xs text-slate-500">
+                        기간 {(c.start_date ?? "—") + " ~ " + (c.end_date ?? "—")}
+                      </p>
+                      <p className="mt-2 text-xs leading-relaxed text-slate-600">
+                        채널 {JSON.stringify(c.target_channels)} · 지역 {c.region || "—"} · 목적 {c.goal || "—"}
+                      </p>
+                      <p className="mt-2 text-xs leading-relaxed text-slate-500">
+                        성과 카드_EVENTS에 campaign · channel · helper_partner 기준으로 집계됩니다. 상세 집계 UI는 순차 적용 예정입니다.
+                      </p>
+                      {apps.length ? (
+                        <div className="mt-4 space-y-2 border-t border-slate-100 pt-3">
+                          <p className="text-xs font-bold text-brand-900">파트너 선택 안내 · 지원한 파트너의 채널과 전략을 확인한 뒤 선택해 주세요.</p>
+                          {apps.map((app) => {
+                            const hp = helperPartnerProfileMap[app.partner_id];
+                            const canSelect =
+                              (c.status === "recruiting" || c.status === "active") &&
+                              app.status === "applied" &&
+                              hp;
+                            return (
+                              <div key={app.id} className="rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-800">
+                                <p className="font-semibold">
+                                  {(hp?.display_name ?? hp?.bio?.slice(0, 40) ?? "파트너") + ` · 상태 ${app.status}`}
+                                </p>
+                                {hp?.region ? <p className="mt-1 text-slate-600">활동 지역 {hp.region}</p> : null}
+                                <p className="mt-1 text-slate-600 line-clamp-3">{app.proposal_message || "전략 제안 미입력"}</p>
+                                {canSelect ? (
+                                  <button
+                                    type="button"
+                                    className="mt-2 inline-flex rounded-lg bg-brand-700 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-brand-800"
+                                    onClick={() =>
+                                      void (async () => {
+                                        if (!card?.slug?.trim()) {
+                                          window.alert("명함 슬러그를 찾을 수 없습니다.");
+                                          return;
+                                        }
+                                        const link = await selectPartnerApplicationAndActivate({
+                                          campaignId: c.id,
+                                          applicationId: app.id,
+                                          card,
+                                          partnerProfileId: app.partner_id,
+                                        });
+                                        if (!link?.share_url) {
+                                          window.alert("전용 링크 생성에 실패했습니다. Supabase 설정·테이블을 확인해 주세요.");
+                                          return;
+                                        }
+                                        await reloadHelperCampaignBoard();
+                                        window.alert(
+                                          `선택이 완료되었습니다.\n파트너 전용 링크:\n${link.share_url}`,
+                                        );
+                                      })()
+                                    }
+                                  >
+                                    선택하기
+                                  </button>
+                                ) : null}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <p className="mt-3 text-xs text-slate-500">아직 파트너 지원 제안이 없습니다.</p>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ) : null}
+
           {approvedPromotions.length > 0 ? (
-            <ul className="mt-5 grid gap-4 lg:grid-cols-2">
-              {approvedPromotions.map((application) => {
-                const card = businessCards.find((c) => c.id === application.card_id);
-                const slug = card?.slug?.trim() ?? application.card_slug ?? "";
-                const code = application.promoter_code ?? "";
-                const promotionUrl =
-                  slug && code ? buildPromotionUrl(promoteOrigin, slug, code) : application.promotion_url ?? "";
-                const logsForPromo = promoterVisitLogs.filter(
-                  (l) => l.card_id === application.card_id && l.promoter_code === application.promoter_code,
-                );
-                const visitCount = logsForPromo.length;
-                const lastVisited =
-                  logsForPromo.length === 0
-                    ? null
-                    : [...logsForPromo].sort(
-                        (a, b) => new Date(b.visited_at).getTime() - new Date(a.visited_at).getTime(),
-                      )[0]?.visited_at ?? null;
-                return (
-                  <li key={application.id} className="rounded-2xl border border-brand-100 bg-white px-4 py-4">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">내가 홍보 중인 명함</p>
-                    <p className="mt-1 text-sm font-bold text-slate-900">
-                      {card ? cardDisplayName(card) : application.card_name ?? "홍보 중인 명함"}
-                    </p>
-                    <div className="mt-3 flex flex-wrap gap-3 text-sm font-semibold text-slate-700">
-                      <span>방문 {visitCount}회</span>
-                      <span className="text-slate-500">최근 방문 {formatPromotionVisitDate(lastVisited)}</span>
-                    </div>
-                    <p className="mt-3 text-xs font-bold text-slate-600">내 헬퍼링크</p>
-                    <p className="mt-1 break-all rounded-xl bg-brand-50 px-3 py-3 text-xs font-semibold text-brand-900">
-                      {promotionUrl}
-                    </p>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        className="inline-flex min-h-10 flex-1 items-center justify-center rounded-xl bg-slate-50 px-3 text-sm font-bold text-slate-900 ring-1 ring-slate-200 hover:bg-slate-100 sm:min-w-[120px] sm:flex-none"
-                        onClick={() => void copyPromotionLink(promotionUrl, application.id)}
-                      >
-                        {promoCopyId === application.id ? "복사됨" : "링크 복사"}
-                      </button>
-                      {card ? (
+            <>
+              <h3 className="mt-8 text-base font-bold text-slate-800">내가 받은 홍보 파트너 헬퍼링크 (기존)</h3>
+              <ul className="mt-4 grid gap-4 lg:grid-cols-2">
+                {approvedPromotions.map((application) => {
+                  const card = businessCards.find((bc) => bc.id === application.card_id);
+                  const slug = card?.slug?.trim() ?? application.card_slug ?? "";
+                  const code = application.promoter_code ?? "";
+                  const promotionUrl =
+                    slug && code ? buildPromotionUrl(promoteOrigin, slug, code) : application.promotion_url ?? "";
+                  const logsForPromo = promoterVisitLogs.filter(
+                    (l) => l.card_id === application.card_id && l.promoter_code === application.promoter_code,
+                  );
+                  const visitCount = logsForPromo.length;
+                  const lastVisited =
+                    logsForPromo.length === 0
+                      ? null
+                      : [...logsForPromo].sort(
+                          (a, b) => new Date(b.visited_at).getTime() - new Date(a.visited_at).getTime(),
+                        )[0]?.visited_at ?? null;
+                  return (
+                    <li key={application.id} className="rounded-2xl border border-brand-100 bg-white px-4 py-4">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">내가 홍보 중인 명함</p>
+                      <p className="mt-1 text-sm font-bold text-slate-900">
+                        {card ? cardDisplayName(card) : application.card_name ?? "홍보 중인 명함"}
+                      </p>
+                      <div className="mt-3 flex flex-wrap gap-3 text-sm font-semibold text-slate-700">
+                        <span>방문 {visitCount}회</span>
+                        <span className="text-slate-500">최근 방문 {formatPromotionVisitDate(lastVisited)}</span>
+                      </div>
+                      <p className="mt-3 text-xs font-bold text-slate-600">내 헬퍼링크</p>
+                      <p className="mt-1 break-all rounded-xl bg-brand-50 px-3 py-3 text-xs font-semibold text-brand-900">
+                        {promotionUrl}
+                      </p>
+                      <div className="mt-3 flex flex-wrap gap-2">
                         <button
                           type="button"
                           className="inline-flex min-h-10 flex-1 items-center justify-center rounded-xl bg-slate-50 px-3 text-sm font-bold text-slate-900 ring-1 ring-slate-200 hover:bg-slate-100 sm:min-w-[120px] sm:flex-none"
-                          onClick={() => void sharePromotionLink(card, promotionUrl)}
+                          onClick={() => void copyPromotionLink(promotionUrl, application.id)}
                         >
-                          카카오톡 공유
+                          {promoCopyId === application.id ? "복사됨" : "링크 복사"}
                         </button>
-                      ) : null}
-                      {card ? (
-                        <button
-                          type="button"
-                          className="inline-flex min-h-10 flex-1 items-center justify-center rounded-xl bg-slate-50 px-3 text-sm font-bold text-slate-900 ring-1 ring-slate-200 hover:bg-slate-100 sm:min-w-[120px] sm:flex-none"
-                          onClick={() => void openQr(card, promotionUrl)}
-                        >
-                          QR 보기
-                        </button>
-                      ) : null}
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          ) : (
-            <p className="mt-5 rounded-2xl border border-dashed border-brand-200 bg-white/70 px-4 py-6 text-center text-sm text-slate-500">
-              승인된 헬퍼링크가 아직 없습니다. 헬퍼링크 기능을 연 명함에서 먼저 헬퍼링크 신청을 받아 주세요.
-            </p>
-          )}
+                        {card ? (
+                          <button
+                            type="button"
+                            className="inline-flex min-h-10 flex-1 items-center justify-center rounded-xl bg-slate-50 px-3 text-sm font-bold text-slate-900 ring-1 ring-slate-200 hover:bg-slate-100 sm:min-w-[120px] sm:flex-none"
+                            onClick={() => void sharePromotionLink(card, promotionUrl)}
+                          >
+                            카카오톡 공유
+                          </button>
+                        ) : null}
+                        {card ? (
+                          <button
+                            type="button"
+                            className="inline-flex min-h-10 flex-1 items-center justify-center rounded-xl bg-slate-50 px-3 text-sm font-bold text-slate-900 ring-1 ring-slate-200 hover:bg-slate-100 sm:min-w-[120px] sm:flex-none"
+                            onClick={() => void openQr(card, promotionUrl)}
+                          >
+                            QR 보기
+                          </button>
+                        ) : null}
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            </>
+          ) : null}
+
+          {helperCampaignRows.length === 0 && approvedPromotions.length === 0 ? (
+            <div className="mt-5 rounded-2xl border border-dashed border-brand-200 bg-white/70 px-4 py-6 text-center">
+              <p className="text-sm font-semibold text-slate-900">아직 진행 중인 헬퍼링크 파트너 홍보가 없습니다.</p>
+              <p className="mt-2 text-sm leading-relaxed text-slate-500">
+                헬퍼링크 만들기부터 시작해 보거나, 헬퍼링크 파트너 신청 후 지원까지 이어 줄 수 있습니다.
+              </p>
+              <Link
+                to="/helper-link/campaign/start"
+                className="mt-4 inline-flex min-h-[48px] items-center justify-center rounded-xl bg-brand-700 px-6 text-base font-bold text-white shadow hover:bg-brand-800"
+              >
+                헬퍼링크 만들기
+              </Link>
+              <p className="mx-auto mt-3 max-w-md text-xs leading-relaxed text-slate-500">
+                혼자 홍보가 어렵다면 헬퍼링크 파트너와 함께 홍보를 시작해 보세요. 헬퍼링크는 유료 결제 후 생성되며, 파트너가 대신 홍보할 수 있는 전용 링크입니다.
+              </p>
+            </div>
+          ) : null}
         </section>
       ) : null}
 

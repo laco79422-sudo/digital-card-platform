@@ -197,7 +197,7 @@ export function PublicCardPage() {
     const promoCtx = promotionContext;
     const slugKey = card.slug.trim();
     try {
-      const promoKey = `promo_evt_view:${slugKey}:${promoCtx.channelId ?? "__base__"}:${promoCtx.shareType}:${promoCtx.helperId ?? ""}`;
+      const promoKey = `promo_evt_view:${slugKey}:${promoCtx.campaignId ?? "_"}:${promoCtx.channelId ?? "__base__"}:${promoCtx.shareType}:${promoCtx.helperId ?? "_"}:${promoCtx.helperPartnerProfileId ?? "_"}`;
       if (sessionStorage.getItem(promoKey)) return;
       sessionStorage.setItem(promoKey, "1");
     } catch {
@@ -205,13 +205,15 @@ export function PublicCardPage() {
     }
 
     const visitorId = getOrCreatePromotionVisitorId();
-    const shareIsHelper = promoCtx.shareType === "helper" && promoCtx.helperId;
+    const shareIsHelper = promoCtx.shareType === "helper";
     const row = {
       card_id: card.id,
       user_id: card.user_id,
+      campaign_id: promoCtx.campaignId ?? null,
       channel_id: promoCtx.channelId,
       share_type: shareIsHelper ? ("helper" as const) : ("direct" as const),
-      helper_id: shareIsHelper ? promoCtx.helperId : null,
+      helper_id: promoCtx.helperPartnerProfileId ? null : shareIsHelper ? promoCtx.helperId : null,
+      helper_partner_id: promoCtx.helperPartnerProfileId ?? null,
       event_type: "view" as const,
       button_type: null as string | null,
       visitor_id: visitorId || null,
@@ -250,14 +252,15 @@ export function PublicCardPage() {
 
     const visitorIdClick = getOrCreatePromotionVisitorId();
     const mappedPromo = mapCardLinkClickToPromo(link);
-    const promoShare =
-      promotionContext.shareType === "helper" && promotionContext.helperId ? ("helper" as const) : ("direct" as const);
+    const promoShare = promotionContext.shareType === "helper" ? ("helper" as const) : ("direct" as const);
     const promoRow = {
       card_id: card.id,
       user_id: card.user_id,
+      campaign_id: promotionContext.campaignId ?? null,
       channel_id: promotionContext.channelId,
       share_type: promoShare,
-      helper_id: promoShare === "helper" ? promotionContext.helperId : null,
+      helper_id: promotionContext.helperPartnerProfileId ? null : promoShare === "helper" ? promotionContext.helperId : null,
+      helper_partner_id: promotionContext.helperPartnerProfileId ?? null,
       event_type: mappedPromo.event_type,
       button_type: mappedPromo.button_type,
       visitor_id: visitorIdClick || null,

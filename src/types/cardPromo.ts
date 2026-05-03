@@ -62,9 +62,11 @@ export interface CardPromoAnalyticsEventRow {
   id: string;
   card_id: string;
   user_id: string;
+  campaign_id?: string | null;
   channel_id: string | null;
   share_type: PromoShareType;
   helper_id: string | null;
+  helper_partner_id?: string | null;
   event_type: CardPromoEventType;
   button_type: string | null;
   visitor_id: string | null;

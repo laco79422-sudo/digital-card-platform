@@ -19,6 +19,9 @@ import { DesignerRequestsPage } from "@/pages/DesignerRequestsPage";
 import { DesignRequestPage } from "@/pages/DesignRequestPage";
 import { EducationDetailPage } from "@/pages/EducationDetailPage";
 import { EducationPage } from "@/pages/EducationPage";
+import { HelperLinkCampaignStartPage } from "@/pages/HelperLinkCampaignStartPage";
+import { HelperPartnerCampaignsBrowsePage } from "@/pages/HelperPartnerCampaignsBrowsePage";
+import { HelperPartnerRegisterPage } from "@/pages/HelperPartnerRegisterPage";
 import { LandingPage } from "@/pages/LandingPage";
 import { LoginPage } from "@/pages/LoginPage";
 import { MyCardsPage } from "@/pages/MyCardsPage";
@@ -126,6 +129,30 @@ function AppRoutes() {
           element={
             <ProtectedRoute>
               <DashboardPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="helper-link/campaign/start"
+          element={
+            <ProtectedRoute roles={["client", "company_admin", "admin"]}>
+              <HelperLinkCampaignStartPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="helper-partner/register"
+          element={
+            <ProtectedRoute roles={["client", "company_admin", "admin"]}>
+              <HelperPartnerRegisterPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="helper-partner/campaigns"
+          element={
+            <ProtectedRoute roles={["client", "company_admin", "admin"]}>
+              <HelperPartnerCampaignsBrowsePage />
             </ProtectedRoute>
           }
         />

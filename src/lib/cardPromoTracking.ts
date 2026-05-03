@@ -16,39 +16,67 @@ export function buildPromotionCardUrl(opts: {
   channelId?: string | null;
   shareType?: PromoShareType;
   helperId?: string | null;
+  campaignId?: string | null;
+  helperPartnerProfileId?: string | null;
   origin?: string;
 }): string {
   const origin = (opts.origin ?? canonicalSiteOrigin()).replace(/\/$/, "");
   const u = new URL(`${origin}/c/${encodeURIComponent(opts.slug.trim())}`);
+  if (opts.campaignId?.trim()) u.searchParams.set("campaign", opts.campaignId.trim());
   if (opts.channelId?.trim()) u.searchParams.set("channel", opts.channelId.trim());
   if (opts.shareType === "direct" || opts.shareType === "helper") u.searchParams.set("type", opts.shareType);
-  if (opts.helperId?.trim()) u.searchParams.set("helper", opts.helperId.trim());
+  if (opts.helperPartnerProfileId?.trim()) u.searchParams.set("helper", opts.helperPartnerProfileId.trim());
+  else if (opts.helperId?.trim()) u.searchParams.set("helper", opts.helperId.trim());
   return u.toString();
 }
 
 export type ParsedPromotionUrl = {
+  campaignId: string | null;
   channelId: string | null;
   shareType: PromoShareType;
+  /** 레거시 public.helpers 행 참조 (?helper= 에 캠페인 미지정 시) */
   helperId: string | null;
+  /** 캠페인 헬퍼 (?campaign= 과 함께 public.helper_partners 참조) */
+  helperPartnerProfileId: string | null;
 };
 
 export function parsePromotionQuery(searchOrParams: string | URLSearchParams): ParsedPromotionUrl {
-  const p = typeof searchOrParams === "string" ? new URLSearchParams(searchOrParams.replace(/^\?/, "")) : searchOrParams;
+  const p =
+    typeof searchOrParams === "string" ? new URLSearchParams(searchOrParams.replace(/^\?/, "")) : searchOrParams;
+
+  const campaignRaw = p.get("campaign")?.trim() ?? "";
+  const campaignId = isPromotionUuid(campaignRaw) ? campaignRaw : null;
 
   const ch = p.get("channel")?.trim() ?? "";
   const channelId = isPromotionUuid(ch) ? ch : null;
 
   const typeRaw = p.get("type")?.trim().toLowerCase() ?? "";
-  const shareType: PromoShareType =
-    typeRaw === "helper" ? "helper" : "direct";
+  const wantsHelperType = typeRaw === "helper";
 
   const hh = p.get("helper")?.trim() ?? "";
-  const helperId = shareType === "helper" && isPromotionUuid(hh) ? hh : null;
+  const helperUuid = isPromotionUuid(hh) ? hh : null;
+
+  if (campaignId) {
+    const shareType: PromoShareType = helperUuid ? "helper" : "direct";
+    return {
+      campaignId,
+      channelId,
+      shareType,
+      helperId: null,
+      helperPartnerProfileId: helperUuid,
+    };
+  }
+
+  const shareType: PromoShareType = wantsHelperType ? "helper" : "direct";
+
+  const helperId = shareType === "helper" && helperUuid ? helperUuid : null;
 
   return {
+    campaignId: null,
     channelId,
     shareType,
     helperId,
+    helperPartnerProfileId: null,
   };
 }
 
@@ -70,6 +98,12 @@ export function getOrCreatePromotionVisitorId(): string {
 }
 
 export function normalizePromotionContext(raw: ParsedPromotionUrl): ParsedPromotionUrl {
+  if (raw.campaignId) {
+    if (raw.shareType === "helper" && !raw.helperPartnerProfileId) {
+      return { ...raw, shareType: "direct" };
+    }
+    return raw;
+  }
   if (raw.shareType === "helper" && !raw.helperId) {
     return { ...raw, shareType: "direct", helperId: null };
   }
