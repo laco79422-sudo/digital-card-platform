@@ -184,7 +184,7 @@ export function HelperLinkCampaignCreatePage() {
         promotion_price: HELPER_LINK_PRICE_KRW,
       });
 
-      window.alert("헬퍼링크 파트너 모집이 시작되었습니다. 파트너 메뉴에 요청이 노출됩니다.");
+      window.alert("홍보 파트너 모집이 시작되었습니다. 파트너 메뉴에 요청이 노출됩니다.");
       navigate("/dashboard#dashboard-section-helper-mgmt", { replace: true });
     } finally {
       setBusy(false);
@@ -207,7 +207,7 @@ export function HelperLinkCampaignCreatePage() {
       <div className={cn(layout.page, "mx-auto max-w-lg py-10")}>
         <p className="text-red-700">{bootError}</p>
         <Link to="/helperlink/pay" className={cn("mt-4 inline-flex", linkButtonClassName({ size: "lg" }))}>
-          헬퍼링크 결제 화면으로
+          고객 유입 링크 결제 화면으로
         </Link>
       </div>
     );
@@ -221,7 +221,7 @@ export function HelperLinkCampaignCreatePage() {
       >
         <ArrowLeft className="h-4 w-4" aria-hidden /> 내 공간
       </Link>
-      <h1 className="mt-6 text-2xl font-bold text-slate-900">헬퍼링크 홍보 요청서</h1>
+      <h1 className="mt-6 text-2xl font-bold text-slate-900">고객 유입 링크 홍보 요청서</h1>
       <p className="mt-2 text-sm leading-relaxed text-slate-600">
         결제가 완료되었습니다. 아래 정보를 채운 뒤 저장하면 「파트너 모집 중」 상태로 공개됩니다 (저장 전까지는 노출되지 않습니다).
       </p>
@@ -229,7 +229,7 @@ export function HelperLinkCampaignCreatePage() {
       <fieldset disabled={busy} className="mt-8 space-y-6">
         {!cards.length ? (
           <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-3 text-sm text-amber-950">
-            헬퍼링크를 만들려면 먼저 명함이 필요합니다.
+            고객 유입 링크를 만들려면 먼저 명함이 필요합니다.
             <Link to="/cards/new" className="mt-2 block font-bold underline">
               내 명함 만들기
             </Link>
@@ -390,7 +390,7 @@ export function HelperLinkCampaignCreatePage() {
         )}
         onClick={() => void submit()}
       >
-        {busy ? "저장 중…" : "헬퍼링크 파트너 모집 시작하기"}
+        {busy ? "저장 중…" : "홍보 파트너 모집 시작하기"}
       </button>
     </div>
   );

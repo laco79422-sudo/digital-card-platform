@@ -477,9 +477,9 @@ export const LINKO_MEMBER_INDUSTRY_LIST: IndustryTemplateRecord[] = [
   },
   {
     templateId: "lm-helper-partner",
-    industry: "Linko 헬퍼링크 파트너",
+    industry: "Linko 홍보 파트너",
     name: "",
-    title: "헬퍼링크 파트너",
+    title: "홍보 파트너",
     preserveHeroImages: true,
     marketingHeadline: "좋은 명함이 더 멀리 퍼지도록 돕습니다",
     headline: "카톡, 당근, 블로그, 유튜브로 홍보 확산을 돕습니다",

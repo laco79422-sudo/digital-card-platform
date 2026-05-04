@@ -67,7 +67,7 @@ export function HelperPartnerRegisterPage() {
         window.alert("신청 저장에 실패했습니다.");
         return;
       }
-      window.alert("헬퍼링크 파트너 신청이 접수되었습니다. 추천 가입 성과 검증값이 참고됩니다.");
+      window.alert("홍보 파트너 신청이 접수되었습니다. 추천 가입 성과 검증값이 참고됩니다.");
       navigate("/helper-partner/campaigns", { replace: true });
     } finally {
       setBusy(false);
@@ -89,9 +89,9 @@ export function HelperPartnerRegisterPage() {
         <ArrowLeft className="h-4 w-4" aria-hidden /> 내 공간
       </Link>
 
-      <h1 className="mt-6 text-2xl font-bold text-slate-900">헬퍼링크 파트너 신청</h1>
+      <h1 className="mt-6 text-2xl font-bold text-slate-900">홍보 파트너 신청</h1>
       <p className="mt-2 text-sm leading-relaxed text-slate-600">
-        추천 가입 5명 이상이면 헬퍼링크 파트너로 활동할 수 있습니다. 결제자가 요청한 홍보 목적과 내용을 숙지하고 활동해야 합니다.
+        추천 가입 5명 이상이면 홍보 파트너로 활동할 수 있습니다. 결제자가 요청한 홍보 목적과 내용을 숙지하고 활동해야 합니다.
       </p>
 
       <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-800">
@@ -107,7 +107,7 @@ export function HelperPartnerRegisterPage() {
 
       {!eligible && referralCount !== null ? (
         <div className="mt-6 rounded-xl border border-rose-200 bg-rose-50 px-4 py-4 text-sm text-rose-900">
-          헬퍼링크 파트너는 추천 가입 5명 이상부터 신청할 수 있습니다.
+          홍보 파트너는 추천 가입 5명 이상부터 신청할 수 있습니다.
         </div>
       ) : null}
 
@@ -176,7 +176,7 @@ export function HelperPartnerRegisterPage() {
             )}
             onClick={() => void submit()}
           >
-            헬퍼링크 파트너 신청하기
+            홍보 파트너 신청하기
           </button>
         </fieldset>
       ) : (

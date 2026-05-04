@@ -418,7 +418,7 @@ export const REVENUE_TEMPLATE_LIST: RevenueTemplateMeta[] = [
   },
   {
     id: "lm-helper-partner",
-    label: "헬퍼링크 파트너",
+    label: "홍보 파트너",
     emoji: "🔗",
     hook: "카톡·당근·SNS 확산",
     bullets: ["채널 전략", "게시 가이드", "성과 점검"],

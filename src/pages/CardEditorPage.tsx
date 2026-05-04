@@ -1133,7 +1133,12 @@ export function CardEditorPage() {
       }));
       setCardLinks(cardId, links);
       clearPendingCardDraft();
-      navigate("/dashboard", { replace: true, state: { [SHOW_PENDING_CARD_SAVED_STATE]: true } });
+      const slugQuick = nextDraft.slug.trim();
+      if (nextDraft.is_public && slugQuick) {
+        navigate(`/cards/${cardId}/edit?saved=1&welcome=1`, { replace: true });
+      } else {
+        navigate("/dashboard", { replace: true, state: { [SHOW_PENDING_CARD_SAVED_STATE]: true } });
+      }
     } finally {
       setSubmitting(false);
     }
@@ -1246,7 +1251,16 @@ export function CardEditorPage() {
       if (isNew) {
         clearPendingCardDraft();
       }
-      navigate("/dashboard", { replace: true, state: { [SHOW_PENDING_CARD_SAVED_STATE]: true } });
+      const firstCreationPath =
+        user &&
+        isNew &&
+        (location.pathname === "/cards/new" || location.pathname === "/create-card");
+      const canShareCompletion = Boolean(draft.is_public && slugTrim && firstCreationPath);
+      if (canShareCompletion) {
+        navigate(`/cards/${cardId}/edit?saved=1&welcome=1`, { replace: true });
+      } else {
+        navigate("/dashboard", { replace: true, state: { [SHOW_PENDING_CARD_SAVED_STATE]: true } });
+      }
     } finally {
       setSubmitting(false);
     }

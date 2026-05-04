@@ -1,5 +1,5 @@
 /**
- * 헬퍼링크 파트너 캠페인 — Supabase 연동
+ * 고객 유입 링크(파트너) 캠페인 — Supabase 연동
  */
 import { buildCampaignPartnerShareUrl, HELPER_PROMO_CHANNELS } from "@/lib/helperCampaignPartnerUrls";
 import { HELPER_LINK_PRICE_KRW } from "@/lib/helperLinkPricing";
@@ -134,7 +134,7 @@ export async function publishHelperCampaignAsRecruiting(input: {
 
   const patch = {
     card_id: input.cardId.trim(),
-    title: input.title.trim() || "헬퍼링크 캠페인",
+    title: input.title.trim() || "고객 유입 캠페인",
     target_channels: input.targetChannels,
     custom_channel_text: input.customChannelText.trim(),
     target_customer: input.targetCustomer.trim(),

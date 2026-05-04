@@ -43,7 +43,7 @@ export function HelperCampaignStatsPage() {
         setCampaignStatus("");
         return;
       }
-      setCampaignTitle(cm.title?.trim() || "헬퍼링크 캠페인");
+      setCampaignTitle(cm.title?.trim() || "고객 유입 캠페인");
       setCampaignStatus(cm.status);
 
       const [events, links, consult, apps] = await Promise.all([
@@ -88,7 +88,7 @@ export function HelperCampaignStatsPage() {
       <Link to="/dashboard#dashboard-section-helper-mgmt" className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-brand-900">
         <ArrowLeft className="h-4 w-4" aria-hidden /> 내 공간
       </Link>
-      <h1 className="mt-6 text-2xl font-bold text-slate-900">헬퍼링크 성과 보기</h1>
+      <h1 className="mt-6 text-2xl font-bold text-slate-900">고객 유입 성과 보기</h1>
       <p className="mt-2 text-sm text-slate-600">{campaignTitle}</p>
       <p className="mt-1 text-xs font-semibold text-slate-500">진행 상태: {campaignStatus || "—"}</p>
 

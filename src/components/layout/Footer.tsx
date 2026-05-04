@@ -16,26 +16,40 @@ export function Footer() {
               <span className="font-semibold text-slate-900">{BRAND_DISPLAY_NAME}</span>
             </div>
             <p className="mt-3 text-[15px] leading-relaxed text-slate-600 sm:text-base">
-              Link는 만나고, Go는 나아갑니다. 당신의 이름으로 시작되는 연결—소개와 만남, 협업까지 한곳에서
-              이어 드립니다.
+              명함 하나로 고객이 들어오고, 문의부터 상담까지 이어지는 흐름을 만듭니다.
             </p>
           </div>
           <div>
             <h4 className="text-sm font-semibold text-slate-900">제품</h4>
             <ul className="mt-3 space-y-2 text-sm text-slate-600">
               <li>
+                <Link to="/create-card" className="hover:text-brand-800">
+                  명함 만들기
+                </Link>
+              </li>
+              <li>
+                <Link to="/promotion/guide" className="hover:text-brand-800">
+                  고객 유입
+                </Link>
+              </li>
+              <li>
                 <Link to="/pricing" className="hover:text-brand-800">
-                  이용 안내
+                  요금 안내
+                </Link>
+              </li>
+              <li>
+                <Link to="/structure" className="hover:text-brand-800">
+                  명함 샘플 보기
+                </Link>
+              </li>
+              <li>
+                <Link to="/creators" className="hover:text-brand-800">
+                  전문가 도움
                 </Link>
               </li>
               <li>
                 <Link to="/education" className="hover:text-brand-800">
                   교육·강사
-                </Link>
-              </li>
-              <li>
-                <Link to="/creators" className="hover:text-brand-800">
-                  제작 전문가 둘러보기
                 </Link>
               </li>
               <li>

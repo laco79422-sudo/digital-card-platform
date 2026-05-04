@@ -10,6 +10,12 @@ import { useAuthStore } from "@/stores/authStore";
 import { useAppDataStore } from "@/stores/appDataStore";
 import { LogOut, Menu, X } from "lucide-react";
 import { useMemo, useState } from "react";
+import {
+  NAV_CARD_CREATE,
+  NAV_CUSTOMER_INBOUND,
+  NAV_EXPERT_HELP,
+  NAV_MY_RESULTS,
+} from "@/lib/linkoFlowCopy";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
@@ -19,12 +25,10 @@ const navLinkClass = ({ isActive }: { isActive: boolean }) =>
   );
 
 const links = [
-  { to: "/pricing", label: "요금 안내" },
-  { to: "/structure", label: "명함 샘플 보기" },
-  { to: "/promotion/guide", label: "헬퍼링크·파트너" },
-  { to: "/creators", label: "제작 전문가" },
-  { to: "/education", label: "교육·강사" },
-  { to: "/requests", label: "의뢰하기" },
+  { to: "/create-card", label: NAV_CARD_CREATE },
+  { to: "/promotion/guide", label: NAV_CUSTOMER_INBOUND },
+  { to: "/creators", label: NAV_EXPERT_HELP },
+  { to: "/dashboard", label: NAV_MY_RESULTS },
 ];
 
 export function Navbar() {

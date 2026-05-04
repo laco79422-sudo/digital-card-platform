@@ -94,7 +94,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 const CARD_MONTHLY_PRICE = 14900;
 const MIN_WITHDRAWAL_KRW = 10000;
 
-/** 카드별 우선 표시할 헬퍼링크 캠페인 (draft 최우선 → recruiting → active → completed) */
+/** 카드별 우선 표시할 고객 유입 링크 캠페인 (draft 최우선 → recruiting → active → completed) */
 function pickPrimaryHelperCampaignForCard(rows: HelperCampaignRow[], cardId: string): HelperCampaignRow | null {
   const list = rows.filter((c) => c.card_id === cardId && c.status !== "canceled");
   if (!list.length) return null;
@@ -961,7 +961,7 @@ export function DashboardPage() {
       navigate(`/helperlink/create?campaignId=${encodeURIComponent(draft.id)}`);
     } else {
       window.alert(
-        "결제는 기록했지만 헬퍼링크 초안 생성에 실패했습니다. Supabase helper_campaigns 마이그레이션을 확인해 주세요.",
+        "결제는 기록했지만 고객 유입 링크 초안 생성에 실패했습니다. Supabase helper_campaigns 마이그레이션을 확인해 주세요.",
       );
     }
   };
@@ -1013,7 +1013,7 @@ export function DashboardPage() {
   const applicantLabel = (application: PromotionApplication): { name: string; email: string } => {
     const platformUser = platformUsers.find((u) => u.id === application.applicant_user_id);
     return {
-      name: application.applicant_name ?? platformUser?.name ?? "헬퍼링크 신청자",
+      name: application.applicant_name ?? platformUser?.name ?? "지원자",
       email: application.applicant_email ?? platformUser?.email ?? application.applicant_user_id,
     };
   };
@@ -1046,7 +1046,7 @@ export function DashboardPage() {
     const app = ownerPromotionApplications.find((a) => a.promoter_code === code);
     if (!app) return `${code} (${visitOwnerStats.topCount}회)`;
     const platformUser = platformUsers.find((u) => u.id === app.applicant_user_id);
-    const name = app.applicant_name ?? platformUser?.name ?? "헬퍼링크 신청자";
+    const name = app.applicant_name ?? platformUser?.name ?? "지원자";
     return `${name} (${visitOwnerStats.topCount}회)`;
   }, [visitOwnerStats, ownerPromotionApplications, platformUsers]);
 
@@ -1073,7 +1073,7 @@ export function DashboardPage() {
     try {
       await navigator.clipboard.writeText(promoUrl);
     } catch {
-      window.prompt("헬퍼링크를 복사해 주세요", promoUrl);
+      window.prompt("고객 유입 링크를 복사해 주세요", promoUrl);
     }
     setPromoCopyId(key);
     window.setTimeout(() => setPromoCopyId(null), 2200);
@@ -1317,13 +1317,13 @@ export function DashboardPage() {
               const canEditCard = cardBelongsToUser(card, user);
               const access = cardAccessInfo(card);
               const promotionLinks = [
-                { id: `base-${card.id}`, ref_code: refCode, label: "기본 헬퍼링크" },
+                { id: `base-${card.id}`, ref_code: refCode, label: "기본 고객 유입 링크" },
                 ...cardPromotionLinks
                   .filter((link) => link.card_id === card.id)
                   .map((link, index) => ({
                     id: link.id,
                     ref_code: link.ref_code,
-                    label: `추가 헬퍼링크 ${index + 1}`,
+                    label: `추가 고객 유입 링크 ${index + 1}`,
                   })),
               ].filter((link) => link.ref_code);
 
@@ -1534,7 +1534,7 @@ export function DashboardPage() {
                                   ? "결과 보기"
                                   : HELPER_LINK_PAYMENT_CTA
                             : card.promotion_enabled && !cm
-                              ? "헬퍼링크 관리"
+                              ? "고객 유입 링크 관리"
                               : HELPER_LINK_PAYMENT_CTA}
                       </button>                    </div>
                   {cardShareHintId === card.id ? (
@@ -1543,7 +1543,7 @@ export function DashboardPage() {
                     </p>
                   ) : null}
                   <div className="mt-4 rounded-2xl border border-brand-100 bg-brand-50/50 px-4 py-4">
-                    <p className="text-sm font-bold text-slate-900">내 헬퍼링크</p>
+                    <p className="text-sm font-bold text-slate-900">내 고객 유입 링크</p>
                     <p className="mt-1 text-xs font-medium text-slate-600">
                       고객 유입 확장용입니다. 이 링크를 보내면 고객이 내 명함을 보고 연락합니다. 홍보 파트너와 함께 쓸 수
                       있는 주소예요.
@@ -1551,18 +1551,18 @@ export function DashboardPage() {
                     {cm ? (
                       <p className="mt-2 rounded-lg bg-white/70 px-2 py-1.5 text-[11px] font-bold text-slate-800 ring-1 ring-brand-100 sm:text-xs">
                         {cm.status === "draft"
-                          ? "헬퍼링크 결제 완료 · 홍보 요청서 작성이 필요합니다."
+                          ? "고객 유입 링크 결제 완료 · 홍보 요청서 작성이 필요합니다."
                           : cm.status === "recruiting"
-                            ? "헬퍼링크 파트너 모집 중입니다."
+                            ? "홍보 파트너 모집 중입니다."
                             : cm.status === "active"
-                              ? "헬퍼링크 홍보가 진행 중입니다."
+                              ? "고객 유입 링크 홍보가 진행 중입니다."
                               : cm.status === "completed"
-                                ? "헬퍼링크 홍보가 종료되었습니다."
+                                ? "고객 유입 링크 홍보가 종료되었습니다."
                                 : null}
                       </p>
                     ) : card.promotion_enabled ? (
                       <p className="mt-2 rounded-lg bg-white/70 px-2 py-1.5 text-[11px] font-bold text-slate-800 ring-1 ring-brand-100 sm:text-xs">
-                        헬퍼링크 파트너 모집 중
+                        홍보 파트너 모집 중
                       </p>
                     ) : null}
                     {cm && hm ? (
@@ -1642,7 +1642,7 @@ export function DashboardPage() {
                                 className="inline-flex min-h-10 items-center justify-center rounded-xl bg-slate-50 px-3 text-sm font-bold text-slate-900 ring-1 ring-slate-200 hover:bg-slate-100"
                                 onClick={() => void copyPromotionLink(linkUrl, link.id)}
                               >
-                                {promoCopyId === link.id ? "복사됨" : "헬퍼링크 복사"}
+                                {promoCopyId === link.id ? "복사됨" : "고객 유입 링크 복사"}
                               </button>
                               <button
                                 type="button"
@@ -1679,7 +1679,7 @@ export function DashboardPage() {
                                 ? "결과 보기"
                                 : HELPER_LINK_PAYMENT_CTA
                             : card.promotion_enabled && !cm
-                              ? "헬퍼링크 관리"
+                              ? "고객 유입 링크 관리"
                               : HELPER_LINK_PAYMENT_CTA}
                     </button>                  </div>
                   {showPromotionPerf ? (
@@ -1687,7 +1687,7 @@ export function DashboardPage() {
                       <h3 className="text-sm font-bold text-slate-900">홍보 파트너별 성과</h3>
                       {promotionPerfRows.length === 0 ? (
                         <p className="mt-3 text-sm leading-relaxed text-slate-500">
-                          아직 헬퍼링크 홍보가 시작되지 않았습니다. 파트너를 선택하면 전용 링크가 생성되고, 방문·문의·상담
+                          아직 고객 유입 링크 홍보가 시작되지 않았습니다. 파트너를 선택하면 전용 링크가 생성되고, 방문·문의·상담
                           데이터가 이곳에 쌓입니다.
                         </p>
                       ) : (
@@ -1699,7 +1699,7 @@ export function DashboardPage() {
                                 <th className="py-2 pr-2">홍보 파트너</th>
                                 <th className="py-2 pr-2">방문 수</th>
                                 <th className="py-2 pr-2">최근 방문일</th>
-                                <th className="py-2">헬퍼링크</th>
+                                <th className="py-2">고객 유입 링크</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -1745,14 +1745,14 @@ export function DashboardPage() {
             </p>
           ) : (
             <p className="mt-3 max-w-2xl rounded-xl border border-amber-200 bg-amber-50/90 px-4 py-3 text-sm font-medium text-amber-950">
-              아직 고객 반응이 없어요. 헬퍼링크 안내 문구를 복사해 카카오톡, 당근, 문자에 공유해 보세요.
+              아직 고객 반응이 없어요. 고객 유입 링크 안내 문구를 복사해 카카오톡, 당근, 문자에 공유해 보세요.
             </p>
           )}
           <div className="mt-6 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
             <PerformanceStatCard label="조회수" hint="공개 명함 열람·조회 기록" value={viewsDisplay} />
             <PerformanceStatCard label="클릭수" hint="명함 속 버튼·링크 클릭" value={clicksDisplay} />
             <PerformanceStatCard label="문의 수" hint="문의·상담 성격 연결" value={inquiriesDisplay} />
-            <PerformanceStatCard label="헬퍼링크 유입 수" hint="헬퍼링크로 명함 페이지에 들어온 횟수" value={promoLinkInboundCount} />
+            <PerformanceStatCard label="유입 수" hint="고객 유입 링크로 명함 페이지에 들어온 횟수" value={promoLinkInboundCount} />
           </div>
           <div className="mt-4 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
             <PerformanceStatCard label="추천 링크 가입자 수" hint="내 추천 링크 경로로 가입한 사용자" value={referredCount} />
@@ -1854,13 +1854,13 @@ export function DashboardPage() {
 
       {uid && myCards.length > 0 ? (
         <section className="mt-8 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
-          <h2 className="text-lg font-semibold text-slate-900 sm:text-xl">헬퍼링크·파트너 현황</h2>
+          <h2 className="text-lg font-semibold text-slate-900 sm:text-xl">고객 유입·홍보 파트너 현황</h2>
           <p className="mt-2 text-sm leading-relaxed text-slate-600 sm:text-base">
-            홍보 파트너가 헬퍼링크로 연결한 방문이 집계됩니다. 누가 더 많은 고객을 연결하는지 한눈에 확인할 수 있어요.
+            홍보 파트너가 고객 유입 링크로 연결한 방문이 집계됩니다. 누가 더 많은 고객을 연결하는지 한눈에 확인할 수 있어요.
           </p>
           {visitOwnerStats.totalVisits === 0 ? (
             <div className="mt-5 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center">
-              <p className="text-base font-medium text-slate-700">아직 헬퍼링크 홍보가 시작되지 않았습니다.</p>
+              <p className="text-base font-medium text-slate-700">아직 고객 유입 링크 홍보가 시작되지 않았습니다.</p>
               <p className="mt-2 text-sm text-slate-500">
                 파트너를 선택하면 전용 링크가 생성되고, 방문·문의·상담 데이터가 이곳에 쌓입니다.
               </p>
@@ -1868,7 +1868,7 @@ export function DashboardPage() {
           ) : (
             <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
               <StatBlock label="총 방문 수" value={String(visitOwnerStats.totalVisits)} />
-              <StatBlock label="헬퍼링크 방문" value={String(visitOwnerStats.promotionVisits)} />
+              <StatBlock label="고객 유입 링크 방문" value={String(visitOwnerStats.promotionVisits)} />
               <StatBlock label="직접 방문" value={String(visitOwnerStats.directVisits)} />
               <StatBlock label="참여 홍보 파트너 수" value={String(visitOwnerStats.promoterCount)} />
               <StatBlock label="최고 성과 홍보 파트너" value={topPromoterDisplay} />
@@ -1885,22 +1885,22 @@ export function DashboardPage() {
         >
           <div>
             <h2 id="dashboard-section-helper-mgmt-heading" className="text-lg font-semibold text-slate-900 sm:text-xl">
-              내 헬퍼링크 파트너 관리
+              내 홍보 파트너 관리
             </h2>
             <p className="mt-2 text-sm leading-relaxed text-slate-600 sm:text-base">
-              헬퍼링크 파트너 모집, 지원자 확인, 홍보 성과를 한곳에서 관리합니다.
+              홍보 파트너 모집, 지원자 확인, 홍보 성과를 한곳에서 관리합니다.
             </p>
             <div className="mt-4 flex flex-wrap gap-3">
               <Link
                 to="/helperlink/pay"
                 className="inline-flex min-h-[48px] items-center justify-center rounded-xl bg-brand-700 px-5 text-base font-bold text-white shadow hover:bg-brand-800"
               >
-                헬퍼링크 만들기
+                고객 유입 링크 만들기
               </Link>              <Link
                 to="/helper-partner/register"
                 className="inline-flex min-h-[48px] items-center justify-center rounded-xl bg-white px-5 text-base font-semibold text-slate-900 ring-1 ring-slate-300 hover:bg-slate-50"
               >
-                헬퍼링크 파트너 신청
+                홍보 파트너 신청
               </Link>
               <Link
                 to="/helper-partner/campaigns"
@@ -1915,12 +1915,12 @@ export function DashboardPage() {
           </div>
 
           {helperCampaignPerfBusy ? (
-            <p className="mt-4 text-sm text-slate-600">헬퍼링크 파트너 캠페인 목록을 불러오는 중입니다…</p>
+            <p className="mt-4 text-sm text-slate-600">홍보 파트너 캠페인 목록을 불러오는 중입니다…</p>
           ) : null}
 
           {helperCampaignRows.length > 0 ? (
             <div className="mt-6 rounded-2xl border border-brand-100 bg-white/90 p-4">
-              <h3 className="text-base font-bold text-slate-900">내가 연 헬퍼링크 파트너 캠페인</h3>
+              <h3 className="text-base font-bold text-slate-900">내가 연 홍보 파트너 캠페인</h3>
               <ul className="mt-4 grid gap-4 md:grid-cols-2">
                 {helperCampaignRows.map((c) => {
                   const apps = helperCampaignApps[c.id] ?? [];
@@ -2004,7 +2004,7 @@ export function DashboardPage() {
 
           {approvedPromotions.length > 0 ? (
             <>
-              <h3 className="mt-8 text-base font-bold text-slate-800">내가 받은 홍보 파트너 헬퍼링크 (기존)</h3>
+              <h3 className="mt-8 text-base font-bold text-slate-800">내가 받은 홍보 파트너 고객 유입 링크 (기존)</h3>
               <ul className="mt-4 grid gap-4 lg:grid-cols-2">
                 {approvedPromotions.map((application) => {
                   const card = businessCards.find((bc) => bc.id === application.card_id);
@@ -2032,7 +2032,7 @@ export function DashboardPage() {
                         <span>방문 {visitCount}회</span>
                         <span className="text-slate-500">최근 방문 {formatPromotionVisitDate(lastVisited)}</span>
                       </div>
-                      <p className="mt-3 text-xs font-bold text-slate-600">내 헬퍼링크</p>
+                      <p className="mt-3 text-xs font-bold text-slate-600">내 고객 유입 링크</p>
                       <p className="mt-1 break-all rounded-xl bg-brand-50 px-3 py-3 text-xs font-semibold text-brand-900">
                         {promotionUrl}
                       </p>
@@ -2072,18 +2072,18 @@ export function DashboardPage() {
 
           {helperCampaignRows.length === 0 && approvedPromotions.length === 0 ? (
             <div className="mt-5 rounded-2xl border border-dashed border-brand-200 bg-white/70 px-4 py-6 text-center">
-              <p className="text-sm font-semibold text-slate-900">아직 진행 중인 헬퍼링크 파트너 홍보가 없습니다.</p>
+              <p className="text-sm font-semibold text-slate-900">아직 진행 중인 홍보 파트너 홍보가 없습니다.</p>
               <p className="mt-2 text-sm leading-relaxed text-slate-500">
-                헬퍼링크 만들기부터 시작해 보거나, 헬퍼링크 파트너 신청 후 지원까지 이어 줄 수 있습니다.
+                고객 유입 링크 만들기부터 시작해 보거나, 홍보 파트너 신청 후 지원까지 이어 줄 수 있습니다.
               </p>
               <Link
                 to="/helperlink/pay"
                 className="mt-4 inline-flex min-h-[48px] items-center justify-center rounded-xl bg-brand-700 px-6 text-base font-bold text-white shadow hover:bg-brand-800"
               >
-                헬퍼링크 만들기
+                고객 유입 링크 만들기
               </Link>
               <p className="mx-auto mt-3 max-w-md text-xs leading-relaxed text-slate-500">
-                혼자 홍보가 어렵다면 헬퍼링크 파트너와 함께 홍보를 시작해 보세요. 헬퍼링크는 유료 결제 후 생성되며, 파트너가 대신 홍보할 수 있는 전용 링크입니다.
+                혼자 홍보가 어렵다면 홍보 파트너와 함께 홍보를 시작해 보세요. 고객 유입 링크는 유료 결제 후 생성되며, 파트너가 대신 홍보할 수 있는 전용 링크입니다.
               </p>
             </div>
           ) : null}
@@ -2590,9 +2590,9 @@ export function DashboardPage() {
       {!isCreator ? (
         <section className="mt-8 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
           <div>
-            <h2 className="text-lg font-semibold text-slate-900 sm:text-xl">헬퍼링크·홍보 파트너 신청 관리</h2>
+            <h2 className="text-lg font-semibold text-slate-900 sm:text-xl">고객 유입 링크·홍보 파트너 신청 관리</h2>
             <p className="mt-2 text-sm leading-relaxed text-slate-600 sm:text-base">
-              내 명함에 헬퍼링크로 참여하려는 홍보 파트너 신청을 확인하고 승인 또는 거절할 수 있습니다.
+              내 명함에 고객 유입 링크로 참여하려는 홍보 파트너 신청을 확인하고 승인 또는 거절할 수 있습니다.
             </p>
           </div>
           {ownerPromotionApplications.length > 0 ? (
@@ -2645,7 +2645,7 @@ export function DashboardPage() {
             </ul>
           ) : (
             <p className="mt-5 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center text-sm text-slate-500">
-              아직 헬퍼링크 신청이 없습니다.
+              아직 고객 유입 링크 신청이 없습니다.
             </p>
           )}
         </section>
@@ -2810,7 +2810,7 @@ export function DashboardPage() {
       {promotionPaymentCard ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 px-4" role="dialog" aria-modal="true">
           <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-xl">
-            <p className="text-lg font-bold text-slate-900">헬퍼링크 추가 (유료)</p>
+            <p className="text-lg font-bold text-slate-900">고객 유입 링크 추가 (유료)</p>
             <p className="mt-2 text-sm leading-relaxed text-slate-600">{HELPER_LINK_PAYMENT_LEAD}</p>
             <p className="mt-1 text-xs leading-relaxed text-slate-500">
               결제 후 홍보 요청서를 작성하면 파트너 모집이 시작됩니다.
@@ -2826,7 +2826,8 @@ export function DashboardPage() {
                 onClick={() => void confirmPromotionPayment()}
               >
                 {HELPER_LINK_PAYMENT_CTA}
-              </button>              <button
+              </button>
+              <button
                 type="button"
                 className="inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-slate-300 bg-white px-4 text-sm font-bold text-slate-900 hover:bg-slate-50"
                 onClick={() => setPromotionPaymentCard(null)}

@@ -78,7 +78,9 @@ export function CardPromotionChannelsPanel({ card }: { card: BusinessCard }) {
       return;
     }
     if (Number.isFinite(cap) && channels.length >= cap) {
-      window.alert("이 플랜에서 허용한 채널 개수에 도달했습니다. 프로에서는 무제한·헬퍼 기능을 제공합니다.");
+      window.alert(
+        `이 플랜에서 허용한 채널 개수에 도달했습니다. 상위 플랜에서는 더 많은 채널·고객 유입 분석을 제공합니다.`,
+      );
       return;
     }
 
@@ -113,7 +115,7 @@ ${shareUrl}
         홍보할 곳마다 채널을 추가하면 어디에서 고객이 들어왔는지 확인할 수 있습니다.
       </p>
       <p className="mt-1 text-xs leading-relaxed text-brand-900/85">
-        혼자 홍보가 어렵다면 헬퍼를 통해 확산할 수 있습니다. (헬퍼 기능은 프로)
+        혼자 홍보가 어렵다면 홍보 파트너·고객 유입 링크로 확산할 수 있습니다. (상위 플랜부터)
       </p>
 
       <div className="mt-4 rounded-xl border border-stone-200 bg-stone-50 px-3 py-2">
@@ -173,7 +175,7 @@ ${shareUrl}
             </button>
           </div>
           <p className="mt-2 text-[11px] text-slate-500">
-            스타터 최대 채널 {effectiveChannelCap("starter")}개 · 프로는 무제한 + 헬퍼.
+            스타터 최대 채널 {effectiveChannelCap("starter")}개 · 상위 플랜은 더 많은 채널 + 유입 분리 제공.
           </p>
         </>
       )}
@@ -257,12 +259,12 @@ ${shareUrl}
               </div>
 
               <div className="mt-2 rounded-lg border border-slate-200 bg-slate-100/70 p-2">
-                <p className="text-[11px] font-semibold text-slate-800">헬퍼 홍보</p>
+                <p className="text-[11px] font-semibold text-slate-800">고객 유입(파트너) 링크</p>
                 {helpersOk ? (
                   <>
                     <p className="mt-1 text-[11px] leading-relaxed text-slate-600">
-                      헬퍼에게 배정되면 헬퍼마다 주소에 type=helper&amp;helper=UUID 가 붙는 링크가 발급됩니다.
-                      헬퍼 배정 UI는 준비 중입니다. 아래 숫자는 헬퍼 링크로 유입된 이벤트만 분리해 보여 줍니다.
+                      파트너에게 배정되면 채널마다 주소에 type=helper&amp;helper=UUID 가 붙는 링크가 발급됩니다.
+                      배정 UI는 준비 중입니다. 아래 숫자는 해당 링크로 유입된 이벤트만 분리해 보여 줍니다.
                     </p>
                     <p className="mt-2 text-[11px] text-slate-700">
                       조회 {hStat.views} · 문의/클릭 {hStat.contacts}
@@ -270,7 +272,7 @@ ${shareUrl}
                   </>
                 ) : (
                   <p className="mt-1 text-[11px] text-slate-600">
-                    스타터는 직접 링크만 사용 가능합니다. 프로에서 헬퍼 트래킹과 확산 기능을 제공합니다.
+                    스타터는 직접 링크만 사용 가능합니다. 상위 플랜에서 유입 분리 트래킹을 제공합니다.
                   </p>
                 )}
               </div>

@@ -5,7 +5,13 @@ import { SiteLinkPreviewSeo } from "@/components/seo/SiteLinkPreviewSeo";
 import { CreatorCard } from "@/components/ui/CreatorCard";
 import { PricingCard } from "@/components/ui/PricingCard";
 import { useDevMountLog } from "@/dev/renderDiagnostics";
-import { PRO_PLAN, STARTER_PLAN } from "@/data/businessCardPlans";
+import { LANDING_PRICING_PLANS } from "@/data/businessCardPlans";
+import {
+  LINKO_HERO_HEADLINE,
+  LINKO_HERO_SUPPORTING,
+  LINKO_MAIN_CTA_LABEL,
+  LINKO_POSITION_LINE,
+} from "@/lib/linkoFlowCopy";
 import { LANDING_FAQ, LANDING_TESTIMONIALS } from "@/data/sampleData";
 import { layout, section, type } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
@@ -26,7 +32,6 @@ import { Link, useLocation } from "react-router-dom";
 
 const CREATE_CARD_HREF = "/create-card";
 const LOGIN_SUCCESS_NOTICE = "로그인되었습니다. 이제 메인화면에서 명함 만들기와 내 공간을 이용할 수 있어요.";
-const FREE_SIGNUP_CTA_LABEL = "무료로 회원가입";
 
 const LANDING_SAMPLE_TYPES: Array<{ id: LandingSampleType; label: string }> = [
   { id: "personal", label: "개인형" },
@@ -34,30 +39,21 @@ const LANDING_SAMPLE_TYPES: Array<{ id: LandingSampleType; label: string }> = [
   { id: "store", label: "매장형" },
 ];
 
-function FlowCtaLink({
+function SecondaryInlineLink({
   to,
   children,
   className,
-  variant = "gradient",
 }: {
   to: string;
   children: ReactNode;
   className?: string;
-  variant?: "gradient" | "outline";
 }) {
   return (
     <Link
       to={to}
-      className={cn(
-        "inline-flex min-h-[52px] w-full max-w-md items-center justify-center gap-2 rounded-xl px-6 text-base font-bold shadow-lg focus:outline-none focus:ring-2 focus:ring-cta-400 focus:ring-offset-2",
-        variant === "gradient"
-          ? "bg-gradient-to-r from-cta-500 to-cta-600 text-white ring-2 ring-cta-300/45 hover:from-cta-400 hover:to-cta-500 hover:ring-cta-200/70"
-          : "border-2 border-brand-600 bg-white text-brand-950 shadow-md hover:bg-brand-50",
-        className,
-      )}
+      className={cn("text-sm font-semibold text-slate-600 underline-offset-4 hover:text-brand-800 hover:underline", className)}
     >
       {children}
-      <ArrowRight className="h-5 w-5 shrink-0" aria-hidden />
     </Link>
   );
 }
@@ -166,15 +162,11 @@ export function LandingPage() {
       <section className="hero-section">
         <div className={cn("relative z-10", layout.page, section.yHero)}>
           <div className="mx-auto flex max-w-3xl flex-col items-center text-center">
-            <h1 className="text-balance text-center text-4xl font-bold leading-snug tracking-tight text-slate-950 sm:text-4xl md:text-[2.65rem]">
-              만들고 보내기만 하면
-              <br className="sm:hidden" />{" "}
-              <span className="sm:whitespace-nowrap">고객의 문의가 시작됩니다</span>
+            <p className="text-pretty text-sm font-semibold text-brand-800 sm:text-base">{LINKO_POSITION_LINE}</p>
+            <h1 className="mt-4 text-balance text-center text-4xl font-bold leading-snug tracking-tight text-slate-950 sm:text-4xl md:text-[2.65rem]">
+              {LINKO_HERO_HEADLINE}
             </h1>
-            <p className="mt-5 text-center text-lg font-medium leading-relaxed text-slate-800">
-              명함을 보내면 고객이 보고,
-              <br className="sm:hidden" /> 먼저 연락이 옵니다.
-            </p>
+            <p className="mt-5 text-center text-lg font-medium leading-relaxed text-slate-800">{LINKO_HERO_SUPPORTING}</p>
 
             <div className="mt-8 flex w-full justify-center px-4">
               <Link
@@ -184,18 +176,16 @@ export function LandingPage() {
                   "focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-offset-2",
                 )}
               >
-                3초 만에 내 명함 만들기
+                {LINKO_MAIN_CTA_LABEL}
                 <ArrowRight className="h-5 w-5 shrink-0" aria-hidden />
               </Link>
             </div>
 
-            <p className="mt-6 text-center text-sm text-slate-600 sm:text-base">
-              <Link
-                to="/request"
-                className="font-semibold text-blue-600 underline-offset-4 hover:text-blue-700 hover:underline"
-              >
-                혼자 만들기 어렵다면 전문가가 도와드려요
-              </Link>
+            <p className="mt-6 text-center text-sm text-slate-500">
+              만들기 어렵다면&nbsp;
+              <SecondaryInlineLink to="/request">전문가에게 맡기기</SecondaryInlineLink>
+              {" · "}
+              <SecondaryInlineLink to="/promotion/guide">고객 유입 늘리기</SecondaryInlineLink>
             </p>
           </div>
         </div>
@@ -239,9 +229,7 @@ export function LandingPage() {
               </div>
             </div>
             <div className="mt-8 flex justify-center">
-              <FlowCtaLink to={CREATE_CARD_HREF} className="max-w-md">
-                내 명함 만들어보기
-              </FlowCtaLink>
+              <SecondaryInlineLink to={CREATE_CARD_HREF}>{LINKO_MAIN_CTA_LABEL}</SecondaryInlineLink>
             </div>
           </div>
         </div>
@@ -277,9 +265,9 @@ export function LandingPage() {
             })}
           </div>
           <div className="mt-10 flex justify-center lg:mt-12">
-            <FlowCtaLink to={CREATE_CARD_HREF} className="max-w-md">
-              나도 시작해보기
-            </FlowCtaLink>
+            <SecondaryInlineLink to={CREATE_CARD_HREF} className="text-base font-bold text-brand-800">
+              {LINKO_MAIN_CTA_LABEL}
+            </SecondaryInlineLink>
           </div>
         </div>
       </section>
@@ -350,45 +338,27 @@ export function LandingPage() {
       <section id="pricing" className={cn("border-b border-slate-200 bg-white", section.y)}>
           <div className={layout.page}>
             <div className="mx-auto max-w-3xl text-center">
-              <h2 className={type.sectionTitleCenter}>명함 만들기는 무료, 확산만 유료 선택</h2>
+              <h2 className={type.sectionTitleCenter}>먼저 체험하고, 규모에 맞춰 올립니다</h2>
               <p className={cn("mt-3 text-pretty sm:mt-4", type.sectionLead)}>
-                명함 생성·직접 전달은 무료 플랜으로 시작합니다.
-                <br />
-                더 넓게 퍼트리려면 홍보·확산 같은 유료 옵션을 골라 쓰면 됩니다.
+                무료로 흐름을 잡아 보고·확실해지면 기본부터 풀패키지까지 단계별로 선택하세요.
               </p>
             </div>
 
-            <div className="mx-auto mt-10 grid max-w-6xl gap-8 sm:mt-12 lg:grid-cols-3 lg:gap-10">
-              <PricingCard
-                name="무료"
-                priceLabel="₩0"
-                tagline="가볍게 시작"
-                features={["명함 1개 생성 가능", "방문·클릭 기본 기록", "간단한 문의 받기"]}
-                recommendFor="디지털 명함을 처음 만들어 보고 싶은 분"
-                href="/signup"
-                cta={FREE_SIGNUP_CTA_LABEL}
-              />
-              <PricingCard
-                name={STARTER_PLAN.name}
-                priceLabel={STARTER_PLAN.priceLabel}
-                description={STARTER_PLAN.priceSuffix}
-                tagline={STARTER_PLAN.tagline}
-                features={[...STARTER_PLAN.features]}
-                recommendFor={STARTER_PLAN.recommendFor}
-                href={STARTER_PLAN.href}
-                cta={STARTER_PLAN.cta}
-              />
-              <PricingCard
-                name={PRO_PLAN.name}
-                priceLabel={PRO_PLAN.priceLabel}
-                description={PRO_PLAN.priceSuffix}
-                tagline={PRO_PLAN.tagline}
-                features={[...PRO_PLAN.features]}
-                recommendFor={PRO_PLAN.recommendFor}
-                highlighted
-                href={PRO_PLAN.href}
-                cta={PRO_PLAN.cta}
-              />
+            <div className="mx-auto mt-10 grid max-w-6xl gap-6 sm:mt-12 sm:grid-cols-2 xl:grid-cols-5 xl:gap-4">
+              {LANDING_PRICING_PLANS.map((plan) => (
+                <PricingCard
+                  key={plan.name}
+                  name={plan.name}
+                  priceLabel={plan.priceLabel}
+                  description={plan.priceSuffix}
+                  tagline={plan.tagline}
+                  features={[...plan.features]}
+                  recommendFor={plan.recommendFor}
+                  highlighted={plan.name === "성장"}
+                  href={plan.href}
+                  cta={plan.cta}
+                />
+              ))}
             </div>
 
             <div className="mx-auto mt-12 max-w-lg rounded-2xl border border-slate-200 bg-slate-50/90 px-6 py-8 text-center sm:mt-14">
@@ -427,13 +397,13 @@ export function LandingPage() {
                 제작 전문가는 명함·구조를 함께 잡아 주는 분이고, 블로그·숏츠 패키지는 위 섹션의 유료 홍보 서비스와
                 조합할 수 있어요.
               </p>
-              <div className="mt-8 flex flex-wrap justify-center gap-3">
-                <FlowCtaLink to="/request" className="max-w-xs sm:max-w-sm">
-                  전문가에게 맡기기
-                </FlowCtaLink>
-                <FlowCtaLink to="/creators" variant="outline" className="max-w-xs sm:max-w-sm">
-                  제작 전문가와 상담하기
-                </FlowCtaLink>
+              <div className="mt-8 flex flex-wrap justify-center gap-4">
+                <SecondaryInlineLink to="/request" className="text-base">
+                  전문가에게 의뢰하기
+                </SecondaryInlineLink>
+                <SecondaryInlineLink to="/creators" className="text-base">
+                  전문가 목록 보기
+                </SecondaryInlineLink>
               </div>
             </div>
 
@@ -493,9 +463,9 @@ export function LandingPage() {
               ))}
             </dl>
             <div className="mt-10 flex justify-center">
-              <FlowCtaLink to="/signup" className="max-w-md">
-                {FREE_SIGNUP_CTA_LABEL}
-              </FlowCtaLink>
+              <SecondaryInlineLink to={CREATE_CARD_HREF} className="text-base font-bold">
+                {LINKO_MAIN_CTA_LABEL}
+              </SecondaryInlineLink>
             </div>
           </div>
         </section>
@@ -511,9 +481,16 @@ export function LandingPage() {
                 링크 한 줄이면 카톡·당근·블로그 어디에서도 같은 방식으로 이어집니다.
               </p>
               <div className="mt-8 flex w-full justify-center">
-                <FlowCtaLink to="/signup" className="max-w-md">
-                  {FREE_SIGNUP_CTA_LABEL}
-                </FlowCtaLink>
+                <Link
+                  to={CREATE_CARD_HREF}
+                  className={cn(
+                    "inline-flex min-h-[52px] w-full max-w-md items-center justify-center gap-2 rounded-xl bg-orange-500 px-10 py-4 text-lg font-bold text-white shadow-md transition-colors hover:bg-orange-600",
+                    "focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-offset-2",
+                  )}
+                >
+                  {LINKO_MAIN_CTA_LABEL}
+                  <ArrowRight className="h-5 w-5 shrink-0" aria-hidden />
+                </Link>
               </div>
             </div>
           </div>

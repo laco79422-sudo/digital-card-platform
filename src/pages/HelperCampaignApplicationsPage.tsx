@@ -79,7 +79,7 @@ export function HelperCampaignApplicationsPage() {
 
   const recruitLabel = useMemo(() => {
     const s = campaign?.status ?? "";
-    if (s === "recruiting") return "헬퍼링크 파트너 모집 중";
+    if (s === "recruiting") return "홍보 파트너 모집 중";
     if (s === "draft") return "요청서 작성 전(draft)";
     if (s === "active") return "파트너 선택 완료 · 홍보 진행 중";
     if (s === "completed") return "홍보 종료";
@@ -165,13 +165,13 @@ export function HelperCampaignApplicationsPage() {
   return (
     <div className={cn(layout.page, "mx-auto max-w-3xl pb-16 pt-8")}>
       <Link to="/dashboard#dashboard-section-helper-mgmt" className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-brand-900">
-        <ArrowLeft className="h-4 w-4" aria-hidden /> 내 공간 — 헬퍼링크 관리
+        <ArrowLeft className="h-4 w-4" aria-hidden /> 내 공간 — 고객 유입 링크 관리
       </Link>
-      <h1 className="mt-6 text-2xl font-bold text-slate-900">헬퍼링크 지원자 확인</h1>
+      <h1 className="mt-6 text-2xl font-bold text-slate-900">유입 파트너 지원자 확인</h1>
 
       <div className="mt-6 space-y-2 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <p className="text-xs font-semibold uppercase text-slate-500">캠페인 제목</p>
-        <p className="text-lg font-bold text-slate-900">{campaign?.title || "헬퍼링크 캠페인"}</p>
+        <p className="text-lg font-bold text-slate-900">{campaign?.title || "고객 유입 캠페인"}</p>
         <p className="text-xs font-semibold text-slate-500">홍보할 명함</p>
         <p className="text-sm font-medium text-slate-800">{cardLabel}</p>
         <p className="text-xs font-semibold text-slate-500">원하는 채널</p>

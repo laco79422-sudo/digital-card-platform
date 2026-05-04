@@ -1,4 +1,5 @@
 import { linkButtonClassName } from "@/components/ui/buttonStyles";
+import { LINKO_MAIN_CTA_LABEL } from "@/lib/linkoFlowCopy";
 import { layout } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
 import type { ReactNode } from "react";
@@ -32,17 +33,17 @@ export function PromotionGuidePage() {
           <br className="hidden sm:inline" /> 혼자 홍보하거나, 파트너와 함께 확산할 수 있습니다.
         </p>
 
-        {/* [2] 최상단 CTA — 버튼 2개만 */}
+        {/* [2] 최상단 CTA — 메인 명함 + 유입 링크 */}
         <div className="mt-10 flex flex-col gap-3 sm:flex-row">
           <Link
-            to="/cards/new"
+            to="/create-card"
             className={linkButtonClassName({
               variant: "primary",
               size: "lg",
               className: "order-2 w-full min-h-[54px] text-base font-bold sm:order-1 sm:flex-1",
             })}
           >
-            내 명함 만들기
+            {LINKO_MAIN_CTA_LABEL}
           </Link>
           <Link
             to="/helperlink/pay"
@@ -53,7 +54,7 @@ export function PromotionGuidePage() {
                 "order-1 w-full min-h-[54px] border-2 border-brand-600 bg-white text-base font-bold text-brand-900 shadow-sm hover:bg-brand-50 sm:order-2 sm:flex-1",
             })}
           >
-            헬퍼링크로 홍보 맡기기
+            고객 유입 링크로 홍보 맡기기
           </Link>
         </div>
 
@@ -115,7 +116,7 @@ export function PromotionGuidePage() {
             <p className="mt-4 text-sm leading-relaxed text-slate-600">내 채널로 직접 고객을 모읍니다.</p>
           </div>
           <div className="rounded-2xl border-2 border-brand-200 bg-gradient-to-b from-brand-50/70 to-white p-6 shadow-sm">
-            <h3 className="text-lg font-extrabold text-brand-950">헬퍼링크 파트너 홍보</h3>
+            <h3 className="text-lg font-extrabold text-brand-950">홍보 파트너 확산</h3>
             <ul className="mt-4 space-y-2 text-sm font-medium text-slate-800">
               <li>· 검증된 파트너가 대신 홍보</li>
               <li>· 채널별 확산</li>
@@ -200,7 +201,7 @@ ${DEMO_LINK_PLACEHOLDER}`}
               <span className="text-slate-700"> · 명함 만들고 고객 연결</span>
             </li>
             <li className="border-b border-slate-100 pb-4">
-              <span className="font-bold text-brand-900">헬퍼링크 파트너</span>
+              <span className="font-bold text-brand-900">홍보 파트너</span>
               <span className="text-slate-700"> · 대신 홍보하고 성과 발생</span>
             </li>
             <li>
@@ -215,7 +216,7 @@ ${DEMO_LINK_PLACEHOLDER}`}
           <p className="text-lg font-bold leading-snug sm:text-xl">지금 시작하면 바로 고객 유입이 시작됩니다</p>
           <div className="mx-auto mt-8 flex max-w-xl flex-col gap-3 sm:flex-row sm:justify-center">
             <Link
-              to="/cards/new"
+              to="/create-card"
               className={linkButtonClassName({
                 size: "lg",
                 variant: "primary",
@@ -223,7 +224,7 @@ ${DEMO_LINK_PLACEHOLDER}`}
                   "w-full bg-white font-extrabold text-brand-900 shadow hover:bg-brand-50 sm:w-auto sm:min-w-[200px]",
               })}
             >
-              3초 명함 만들기
+              {LINKO_MAIN_CTA_LABEL}
             </Link>
             <Link
               to="/helperlink/pay"
@@ -234,7 +235,7 @@ ${DEMO_LINK_PLACEHOLDER}`}
                   "w-full border-2 border-white/90 bg-transparent font-extrabold text-white hover:bg-white/10 sm:w-auto sm:min-w-[200px]",
               })}
             >
-              헬퍼링크 시작하기
+              고객 유입 링크 시작하기
             </Link>
           </div>
         </section>

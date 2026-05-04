@@ -111,18 +111,18 @@ export function HelperPartnerCampaignsBrowsePage() {
       <Link to="/dashboard" className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-brand-900">
         <ArrowLeft className="h-4 w-4" aria-hidden /> 내 공간
       </Link>
-      <h1 className="mt-6 text-2xl font-bold text-slate-900">헬퍼링크 파트너 — 모집 중 캠페인</h1>
+      <h1 className="mt-6 text-2xl font-bold text-slate-900">유입 파트너 · 모집 중 캠페인</h1>
       <p className="mt-2 text-sm font-medium leading-relaxed text-slate-700">{HELPER_LINK_PAYMENT_LEAD}</p>
       <p className="mt-2 text-sm leading-relaxed text-slate-600">
-        결제자가 요청서를 제출해 모집 중(recruiting)인 캠페인만 목록에 나타납니다. 지원 후 결제자가 선택하면 전용 헬퍼링크가
-        발급됩니다.
+        결제자가 요청서를 제출해 모집 중(recruiting)인 캠페인만 목록에 나타납니다. 지원 후 결제자가 선택하면 전용 고객 유입
+        링크가 발급됩니다.
       </p>
 
       {!partnerId ? (
         <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          먼저 헬퍼링크 파트너 신청을 완료하고(승인 대기 포함) 활동 가능 프로필이 있어야 지원 저장이 됩니다.
+          먼저 홍보 파트너 신청을 완료하고(승인 대기 포함) 활동 가능 프로필이 있어야 지원 저장이 됩니다.
           <Link to="/helper-partner/register" className="mt-3 block font-bold underline">
-            헬퍼링크 파트너 신청으로 이동
+            홍보 파트너 신청으로 이동
           </Link>
         </div>
       ) : null}
@@ -131,7 +131,7 @@ export function HelperPartnerCampaignsBrowsePage() {
         {rows.map((c) => (
           <li key={c.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
             <p className="text-xs font-semibold uppercase text-slate-500">캠페인</p>
-            <p className="mt-1 text-lg font-bold text-slate-900">{c.title || "헬퍼링크 캠페인"}</p>
+            <p className="mt-1 text-lg font-bold text-slate-900">{c.title || "고객 유입 캠페인"}</p>
             <p className="mt-2 text-xs font-semibold text-slate-500">홍보할 명함</p>
             <p className="mt-1 text-sm text-slate-800">
               {!cardSummariesReady

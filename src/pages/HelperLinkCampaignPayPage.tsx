@@ -36,7 +36,7 @@ export function HelperLinkCampaignPayPage() {
   const runDemoPayment = async () => {
     if (!user?.id) return;
     if (!cards.length) {
-      window.alert("헬퍼링크를 만들려면 먼저 명함이 필요합니다.");
+      window.alert("고객 유입 링크를 만들려면 먼저 명함이 필요합니다.");
       return;
     }
     if (!cardId.trim()) {
@@ -69,7 +69,7 @@ export function HelperLinkCampaignPayPage() {
   if (!user?.id) {
     return (
       <div className={cn(layout.page, "py-12")}>
-        <p className="text-slate-700">로그인 후 헬퍼링크 만들기를 진행할 수 있습니다.</p>
+        <p className="text-slate-700">로그인 후 고객 유입 링크 만들기를 진행할 수 있습니다.</p>
         <Link to="/login" className={cn("mt-4 inline-flex", linkButtonClassName({ size: "lg" }))}>
           로그인
         </Link>
@@ -85,7 +85,7 @@ export function HelperLinkCampaignPayPage() {
       >
         <ArrowLeft className="h-4 w-4" aria-hidden /> 내 공간
       </Link>
-      <h1 className="mt-6 text-2xl font-bold text-slate-900">헬퍼링크 만들기</h1>
+      <h1 className="mt-6 text-2xl font-bold text-slate-900">고객 유입 링크 만들기</h1>
       <p className="mt-3 text-sm font-medium leading-relaxed text-slate-800">{HELPER_LINK_PAYMENT_LEAD}</p>
       <p className="mt-2 text-sm leading-relaxed text-slate-600">
         결제 완료 후 홍보 요청서를 작성하면 파트너 모집이 시작됩니다. 요청서를 저장하기 전까지는 「모집 중」으로 노출되지 않습니다.
@@ -93,7 +93,7 @@ export function HelperLinkCampaignPayPage() {
 
       {cards.length === 0 ? (
         <div className="mt-8 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-950">
-          <p className="font-semibold">헬퍼링크를 만들려면 먼저 명함이 필요합니다.</p>
+          <p className="font-semibold">고객 유입 링크를 만들려면 먼저 명함이 필요합니다.</p>
           <Link
             to="/cards/new"
             className={cn("mt-4 inline-flex", linkButtonClassName({ variant: "primary", size: "lg" }))}
@@ -147,7 +147,7 @@ export function HelperLinkCampaignPayPage() {
         to="/helper-partner/campaigns"
         className="mt-8 block text-center text-sm font-semibold text-brand-800 underline underline-offset-2"
       >
-        헬퍼링크 파트너 모집 목록 보기
+        홍보 파트너 모집 목록 보기
       </Link>
     </div>
   );

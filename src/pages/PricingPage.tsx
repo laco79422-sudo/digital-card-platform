@@ -15,14 +15,14 @@ export function PricingPage() {
           요금·마케팅 패키지 안내
         </h1>
         <p className={cn("mt-3 sm:mt-4", type.sectionLead)}>
-          명함으로 고객이 들어오는 구조와 요금은 메인 페이지에서 먼저 안내됩니다. 무료·스타터·프로 비교는 한곳만
-          유지합니다.
+          Linko는 명함이 아니라 고객 유입에서 상담·매출까지 잇는 구조입니다. 명함 구독 단계 비교는 메인의{" "}
+          <span className="font-semibold text-slate-900">#pricing</span> 한곳과 맞춰 두었습니다.
         </p>
         <Link
           to="/#pricing"
           className="mt-8 inline-flex min-h-[52px] w-full max-w-sm items-center justify-center rounded-xl bg-brand-800 px-6 text-base font-bold text-white shadow-md hover:bg-brand-900 sm:w-auto"
         >
-          메인에서 플랜 비교하기
+          명함 플랜 전체 비교
         </Link>
       </div>
 
