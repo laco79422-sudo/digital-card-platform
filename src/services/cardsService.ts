@@ -5,6 +5,7 @@
 import { normalizeBusinessCardRow } from "@/lib/businessCardRow";
 import { normalizeSlugLookup } from "@/lib/publicCardSlug";
 import { isSupabaseConfigured, supabase, supabaseProjectUrl } from "@/lib/supabase/client";
+import { logSupabaseError } from "@/lib/supabase/supabaseErrorLog";
 import type { BusinessCard, CardLink } from "@/types/domain";
 
 const TABLE_CARDS = "business_cards";
@@ -73,6 +74,7 @@ const BUSINESS_CARD_REMOTE_KEYS = [
   "brand_image_pending_path",
   "brand_image_reject_reason",
   "brand_image_pending_uploaded_at",
+  "image_status",
 ] as const satisfies ReadonlyArray<keyof BusinessCard>;
 
 export function pickBusinessCardForRemote(card: BusinessCard): BusinessCard {
@@ -99,6 +101,7 @@ export function businessCardToRemoteRow(card: BusinessCard): Record<string, unkn
     profile_image_url: card.profile_image_url ?? null,
     imageUrl: hero ?? picked.imageUrl ?? null,
     brand_image_url: picked.brand_image_url ?? hero ?? null,
+    image_status: card.brand_image_status ?? card.image_status ?? null,
     name: picked.person_name ?? null,
     title: picked.job_title ?? null,
     company: picked.brand_name ?? null,
@@ -138,6 +141,7 @@ async function queryCardsByColumn(
     column === "email" || column === "owner_email" ? query.ilike(column, value) : query.eq(column, value);
   const { data, error } = await filtered;
   if (error) {
+    logSupabaseError(`queryCardsByColumn ${table}.${column}`, error, { value });
     return {
       cards: null,
       error: error.message,
@@ -166,10 +170,7 @@ async function attachLegacyCardsToUser(
     const next = { ...card, user_id: userId, owner_id: card.owner_id ?? userId };
     const { error } = await supabase.from(table).update({ user_id: userId }).eq("id", card.id);
     if (error) {
-      console.warn("[cardsService] attachLegacyCardsToUser", {
-        cardId: card.id,
-        error: error.message,
-      });
+      logSupabaseError("attachLegacyCardsToUser", error, { cardId: card.id });
       claimed.push(next);
     } else {
       claimed.push(next);
@@ -204,15 +205,16 @@ export async function fetchMyCardsForUser(user: { id: string; email?: string | n
   for (const attempt of attempts) {
     const result = await queryCardsByColumn(table, attempt.column, attempt.value);
     if (result.missingTable) {
-      console.error("[cardsService] fetchMyCardsForUser missing relation", table, result.error);
+      logSupabaseError("fetchMyCardsForUser missing relation (empty result — apply supabase migrations)", result.error, {
+        table,
+      });
       return { status: "ok", cards: [], source: "none", table };
     }
     if (result.error && !result.missingColumn) {
       firstError ||= result.error;
-      console.error("[cardsService] fetchMyCardsForUser query failed", {
+      logSupabaseError("fetchMyCardsForUser query failed", new Error(result.error), {
         table,
         column: attempt.column,
-        error: result.error,
       });
       continue;
     }
@@ -244,7 +246,10 @@ export async function fetchMyCardsForUser(user: { id: string; email?: string | n
     }
   }
 
-  if (firstError) return { status: "error", cards: [], error: firstError, source: "none" };
+  if (firstError) {
+    logSupabaseError("fetchMyCardsForUser exhausted attempts", new Error(firstError), {});
+    return { status: "error", cards: [], error: firstError, source: "none" };
+  }
   return { status: "ok", cards: [], source: "none" };
 }
 
@@ -261,7 +266,7 @@ export type FetchCardBySlugResult = {
   sourceTable: "business_cards" | "cards";
 };
 
-/** 공개 명함 slug 조회 — `business_cards` 우선, 레거시 `cards` 테이블은 선택적 폴백 */
+/** 공개 명함 slug 조회 — `business_cards` 우선, `public.cards` 뷰(= business_cards) 폴백 */
 export async function fetchCardBySlug(slug: string): Promise<FetchCardBySlugResult> {
   if (!isSupabaseConfigured || !supabase) {
     return { card: null, errorMessage: "Supabase 미설정", sourceTable: "business_cards" };
@@ -289,7 +294,7 @@ export async function fetchCardBySlug(slug: string): Promise<FetchCardBySlugResu
       if (error) {
         if (!isMissingTableError(error.message, TABLE_CARDS)) {
           lastError = error.message;
-          console.error("[cardsService] fetchCardBySlug business_cards", v, error.message, error);
+          logSupabaseError(`fetchCardBySlug ${TABLE_CARDS}`, error, { slug: v });
         }
         continue;
       }
@@ -315,10 +320,13 @@ export async function fetchCardBySlug(slug: string): Promise<FetchCardBySlugResu
           msg.includes("cards") &&
           (msg.includes("does not exist") || msg.includes("schema cache") || msg.includes("Could not find"))
         ) {
+          logSupabaseError("fetchCardBySlug cards view/table missing — run migrations (bootstrap creates view)", error, {
+            slug: v,
+          });
           break;
         }
         lastError = msg;
-        console.warn("[cardsService] fetchCardBySlug cards fallback", v, msg);
+        logSupabaseError("fetchCardBySlug cards fallback", error, { slug: v });
         continue;
       }
       if (data) {
@@ -337,7 +345,7 @@ export async function fetchCardBySlug(slug: string): Promise<FetchCardBySlugResu
     };
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
-    console.error("[cardsService] fetchCardBySlug unexpected", e);
+    logSupabaseError("fetchCardBySlug unexpected", e, { slug: trimmed });
     return { card: null, errorMessage: msg, sourceTable: "business_cards" };
   }
 }
@@ -361,7 +369,7 @@ export async function fetchBusinessCardByIdForOwner(
   if (!trimmed) return { card: null, error: "invalid_id" };
   const { data, error } = await supabase.from(TABLE_CARDS).select("*").eq("id", trimmed).maybeSingle();
   if (error) {
-    console.error("[cardsService] fetchBusinessCardByIdForOwner", error.message);
+    logSupabaseError("fetchBusinessCardByIdForOwner", error, { cardId: trimmed });
     return { card: null, error: error.message };
   }
   if (!data) return { card: null, error: "not_found" };
@@ -385,10 +393,10 @@ export async function updateCardNameRemote(cardId: string, name: string): Promis
     if (!retry.error) {
       updated = true;
     } else {
-      console.warn("[cardsService] updateCardNameRemote retry", retry.error.message);
+      logSupabaseError("updateCardNameRemote retry", retry.error, { cardId });
     }
   } else {
-    console.warn("[cardsService] updateCardNameRemote", error.message);
+    logSupabaseError("updateCardNameRemote", error, { cardId });
   }
 
   return updated;
@@ -402,7 +410,7 @@ export async function fetchCardLinks(cardId: string): Promise<CardLink[] | null>
     .eq("card_id", cardId)
     .order("sort_order", { ascending: true });
   if (error) {
-    console.warn("[cardsService] fetchCardLinks", error.message);
+    logSupabaseError("fetchCardLinks", error, { cardId });
     return null;
   }
   return data as CardLink[];
@@ -461,7 +469,7 @@ export async function patchCardBrandHeroRemote(
   if (Object.keys(row).length === 0) return true;
   const { error } = await supabase.from(TABLE_CARDS).update(row).eq("id", cardId);
   if (error) {
-    console.error("[cardsService] patchCardBrandHeroRemote", error.message, error);
+    logSupabaseError("patchCardBrandHeroRemote", error, { cardId });
     return false;
   }
   return true;
@@ -471,7 +479,7 @@ export async function upsertCardRemote(card: BusinessCard): Promise<boolean> {
   if (!isSupabaseConfigured || !supabase) return false;
   const { error } = await supabase.from(TABLE_CARDS).upsert(businessCardToRemoteRow(card));
   if (error) {
-    console.error("[cardsService] upsertCardRemote", error.message, error);
+    logSupabaseError("upsertCardRemote", error, { cardId: card.id });
     return false;
   }
   return true;
@@ -495,7 +503,7 @@ export async function isSlugTakenOnRemoteByAnotherCard(
     const { data, error } = await supabase.from(TABLE_CARDS).select("id").eq("slug", v).maybeSingle();
     if (error) {
       if (isMissingTableError(error.message, TABLE_CARDS)) return null;
-      console.warn("[cardsService] isSlugTakenOnRemoteByAnotherCard", error.message);
+      logSupabaseError("isSlugTakenOnRemoteByAnotherCard", error, { slug: v });
       return null;
     }
     if (data && typeof data === "object" && "id" in data) {

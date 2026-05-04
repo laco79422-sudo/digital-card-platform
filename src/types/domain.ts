@@ -108,6 +108,8 @@ export interface BusinessCard {
   brand_image_pending_path?: string | null;
   brand_image_reject_reason?: string | null;
   brand_image_pending_uploaded_at?: string | null;
+  /** DB 컬럼 `image_status` 레거시 별칭 — `brand_image_status`와 동기화 */
+  image_status?: string | null;
   /** 히어로 프레임 비율 라벨 (저장·재현용, 예: 16:9) */
   brand_image_frame_ratio?: string | null;
   /** 업로드·최적화 후 이미지의 CSS 배치 기준 픽셀 크기 */

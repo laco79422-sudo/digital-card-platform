@@ -31,7 +31,8 @@ export function normalizeBusinessCardRow(raw: Record<string, unknown>): Business
   const industry = optStr(raw.industry);
   const auto_image_url = optStr(raw.auto_image_url);
   const thumbnail_url = optStr(raw.thumbnail_url);
-  const brand_image_status = optStr(raw.brand_image_status) as BusinessCard["brand_image_status"];
+  const brand_image_status_raw = optStr(raw.brand_image_status) ?? optStr(raw.image_status);
+  const brand_image_status = brand_image_status_raw as BusinessCard["brand_image_status"];
   const brand_image_pending_path = optStr(raw.brand_image_pending_path);
   const brand_image_reject_reason = optStr(raw.brand_image_reject_reason);
   const brand_image_pending_uploaded_at = optStr(raw.brand_image_pending_uploaded_at);
