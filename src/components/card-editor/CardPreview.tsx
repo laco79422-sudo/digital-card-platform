@@ -1,5 +1,4 @@
 import { DigitalCardPublicView } from "@/components/digital-card/DigitalCardPublicView";
-import { Button } from "@/components/ui/Button";
 import type { BrandImagePersistPayload } from "@/components/card-editor/ImageUploader";
 import {
   BRAND_IMAGE_ACCEPT,
@@ -7,7 +6,6 @@ import {
 } from "@/lib/brandImageConstraints";
 import { optimizeImageFileToDataUrl } from "@/lib/brandImageProcess";
 import { uploadBrandImageDataUrl } from "@/lib/brandImageUpload";
-import { cn } from "@/lib/utils";
 import { DEFAULT_CARD_PERSON_NAME, draftToPreviewBusinessCard } from "@/stores/cardEditorDraftStore";
 import { useCardEditorDraftStore } from "@/stores/cardEditorDraftStore";
 import { useAuthStore } from "@/stores/authStore";
@@ -43,8 +41,6 @@ type Props = {
   persistClearHero?: () => Promise<void>;
   /** card_events 등 기록용 실제 카드 id */
   analyticsCardId?: string | null;
-  showQuickSample?: boolean;
-  onQuickSample?: () => void;
   isGuestPreview?: boolean;
   /** 비회원 미리보기: 빈 영역 탭 시 이미지 대신 회원 안내로 연결 */
   onGuestHeroImageBlocked?: () => void;
@@ -58,8 +54,6 @@ export function CardPreview({
   persistUploadedHero,
   persistClearHero,
   analyticsCardId,
-  showQuickSample = false,
-  onQuickSample,
   isGuestPreview = false,
   onGuestHeroImageBlocked,
 }: Props) {
@@ -172,21 +166,6 @@ export function CardPreview({
 
   return (
     <>
-      <div className={cn("px-2 pt-2", showQuickSample && onQuickSample ? "pb-2" : "pb-0")}>
-        {showQuickSample && onQuickSample ? (
-          <div className="flex justify-center">
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              className="min-h-10 w-full font-bold sm:w-auto sm:min-w-[10rem]"
-              onClick={() => onQuickSample()}
-            >
-              샘플로 채우기
-            </Button>
-          </div>
-        ) : null}
-      </div>
       {guestTempHint ? (
         <div className="mb-2 rounded-xl border border-amber-200/90 bg-amber-50 px-3 py-2 text-center text-[11px] font-medium leading-snug text-amber-950 sm:text-xs">
           이 화면은 실제 명함과 같이 보입니다. 아래에서 임시 링크로 열어 확인·공유할 수 있어요.

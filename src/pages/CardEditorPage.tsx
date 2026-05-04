@@ -53,7 +53,6 @@ import {
 import { getLinksForCard, useAppDataStore } from "@/stores/appDataStore";
 import type { BusinessCard, CardLink, CardLinkType, User } from "@/types/domain";
 import { parseWantsSample } from "@/lib/cardEditorSampleData";
-import { partialDraftQuickSample, SAMPLE_HERO_EDITOR_URL } from "@/lib/cardEditorQuickSample";
 import {
   applyCardSamplePhrase,
   SAMPLE_TEMPLATE_PHONE,
@@ -89,7 +88,7 @@ import {
 } from "@/services/cardsService";
 import { syncQrImageAfterSave } from "@/services/cardQrSync";
 import { SHOW_PENDING_CARD_SAVED_STATE } from "@/services/pendingCardDraftFlush";
-import { ArrowRight, Check, Copy, Loader2, Share2, Sparkles } from "lucide-react";
+import { ArrowRight, Check, Copy, Loader2, Share2 } from "lucide-react";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   Link,
@@ -113,15 +112,7 @@ function cardBelongsToUser(card: BusinessCard, user: User): boolean {
   );
 }
 
-function EditorFlowHint({
-  phase,
-  onTrySample,
-  showTrySample,
-}: {
-  phase: "hero" | "mid" | "bottom";
-  onTrySample: () => void;
-  showTrySample: boolean;
-}) {
+function EditorFlowHint({ phase }: { phase: "hero" | "mid" | "bottom" }) {
   const goStudio = () => scrollToId("studio-fields");
 
   const softBtn =
@@ -129,25 +120,11 @@ function EditorFlowHint({
 
   if (phase === "hero") {
     return (
-      <div className="mt-8 flex w-full max-w-lg flex-col gap-3 sm:mx-auto sm:max-w-xl sm:flex-row sm:justify-center">
+      <div className="mt-8 flex w-full max-w-lg justify-center sm:mx-auto sm:max-w-xl">
         <button type="button" className={softBtn} onClick={goStudio}>
           입력란으로 이동
           <ArrowRight className="h-4 w-4 shrink-0" aria-hidden />
         </button>
-        {showTrySample ? (
-          <Button
-            type="button"
-            variant="secondary"
-            className="min-h-11 w-full gap-2 sm:w-auto sm:min-w-[10rem]"
-            onClick={() => {
-              onTrySample();
-              scrollToId("card-preview-hero");
-            }}
-          >
-            <Sparkles className="h-4 w-4 shrink-0" aria-hidden />
-            샘플로 채우기
-          </Button>
-        ) : null}
       </div>
     );
   }
@@ -165,6 +142,8 @@ function EditorFlowHint({
 }
 
 type LinkRow = { id: string; label: string; type: CardLinkType; url: string };
+
+const DEFAULT_EDITOR_SAMPLE_REVENUE_ID: RevenueCardTemplateId = "interior";
 
 function mapLinksToRows(links: CardLink[]): LinkRow[] {
   if (!links.length) {
@@ -219,14 +198,17 @@ export function CardEditorPage() {
   const wantsSample = useMemo(() => parseWantsSample(location.search), [location.search]);
 
   const revenueTemplateId = useMemo((): RevenueCardTemplateId | null => {
-    if (isGuestRoute || !isNew) return null;
+    if (!isNew) return null;
     const fromIndustry = parseIndustryQuery(location.search);
     if (fromIndustry) return fromIndustry;
     return parseRevenueTemplateSearch(location.search);
-  }, [isGuestRoute, isNew, location.search]);
+  }, [isNew, location.search]);
 
   const routeKey = useMemo(() => {
-    if (isGuestRoute) return wantsSample ? "create-card-sample" : "create-card";
+    if (isGuestRoute) {
+      if (wantsSample) return "create-card-sample";
+      return revenueTemplateId ? `create-card-${revenueTemplateId}` : "create-card";
+    }
     if (!isNew && id) return id;
     if (revenueTemplateId) return `new-revenue-${revenueTemplateId}`;
     return wantsSample ? "new-sample" : "new";
@@ -440,6 +422,30 @@ export function CardEditorPage() {
           } else {
             setGuestTempId(getOrCreateGuestTempId());
           }
+        } else if (revenueTemplateId) {
+          const emailHintFallback = emailHint ?? "";
+          replaceDraft({
+            ...mergeIndustryCopyIntoDraft(
+              buildRevenueCardDraft(revenueTemplateId, {
+                person_name: DEFAULT_CARD_PERSON_NAME,
+                email: emailHintFallback,
+              }),
+              getIndustryTemplate(revenueTemplateId),
+            ),
+            card_industry: cardIndustryPayloadFromTemplateId(revenueTemplateId),
+          });
+          const tmpl = getIndustryTemplate(revenueTemplateId);
+          const primaryLabel = applyCtaLabelToPrimaryLinkLabel(tmpl.ctaText);
+          const rawLinks = buildRevenueTemplateLinkRows(revenueTemplateId);
+          setLinkRows(
+            rawLinks.map((r, i) => ({
+              id: r.id,
+              label: i === 0 ? primaryLabel : r.label,
+              type: r.type as CardLinkType,
+              url: r.url,
+            })),
+          );
+          setGuestTempId(getOrCreateGuestTempId());
         } else {
           replaceDraft(createEmptyDraft({ email: emailHint ?? "" }));
           setLinkRows(mapLinksToRows([]));
@@ -492,7 +498,17 @@ export function CardEditorPage() {
         ),
         card_industry: cardIndustryPayloadFromTemplateId(revenueTemplateId),
       });
-      setLinkRows(buildRevenueTemplateLinkRows(revenueTemplateId));
+      const tmplMem = getIndustryTemplate(revenueTemplateId);
+      const primaryLabelMem = applyCtaLabelToPrimaryLinkLabel(tmplMem.ctaText);
+      const rawLinksMem = buildRevenueTemplateLinkRows(revenueTemplateId);
+      setLinkRows(
+        rawLinksMem.map((r, i) => ({
+          id: r.id,
+          label: i === 0 ? primaryLabelMem : r.label,
+          type: r.type as CardLinkType,
+          url: r.url,
+        })),
+      );
       setHydratedKey(routeKey);
       return;
     }
@@ -807,45 +823,76 @@ export function CardEditorPage() {
     setSampleLadderActive(false);
   }, [replaceDraft, user?.email, user?.name, isGuestRoute, user]);
 
-  const handleTrySample = useCallback(() => {
-    setSampleWizardOpen(true);
-    scrollToId("card-preview-hero");
-  }, []);
+  const applyInstantIndustrySample = useCallback(() => {
+    if (!isNew) return;
 
-  const applyQuickEditorSample = useCallback(() => {
-    const snap = useCardEditorDraftStore.getState().draft;
-    const part = partialDraftQuickSample(snap.card_type);
-    const imageExtras =
-      snap.card_type !== "person"
-        ? {
-            imageUrl: SAMPLE_HERO_EDITOR_URL,
-            brand_image_url: SAMPLE_HERO_EDITOR_URL,
-            brand_image_natural_width: null as number | null,
-            brand_image_natural_height: null as number | null,
-            brand_image_zoom: 1,
-            brand_image_pan_x: 0,
-            brand_image_pan_y: 0,
-            brand_image_legacy_object_position: null as string | null,
-          }
-        : {
-            imageUrl: null as string | null,
-            brand_image_url: null as string | null,
-            brand_image_natural_width: null as number | null,
-            brand_image_natural_height: null as number | null,
-            brand_image_zoom: 1,
-            brand_image_pan_x: 0,
-            brand_image_pan_y: 0,
-            brand_image_legacy_object_position: null as string | null,
-          };
-    replaceDraft(
-      mergeDraftDefaults({
-        ...snap,
-        ...part,
-        ...imageExtras,
-      }),
+    const tid = revenueTemplateId ?? DEFAULT_EDITOR_SAMPLE_REVENUE_ID;
+    const persona = user?.name?.trim() || DEFAULT_CARD_PERSON_NAME;
+    const emailFallback = user?.email?.trim() || getLandingEmail()?.trim() || "";
+
+    replaceDraft({
+      ...mergeIndustryCopyIntoDraft(
+        buildRevenueCardDraft(tid, {
+          person_name: persona,
+          email: emailFallback,
+        }),
+        getIndustryTemplate(tid),
+      ),
+      card_industry: cardIndustryPayloadFromTemplateId(tid),
+    });
+
+    const tmpl = getIndustryTemplate(tid);
+    const primaryLabel = applyCtaLabelToPrimaryLinkLabel(tmpl.ctaText);
+    const rawLinks = buildRevenueTemplateLinkRows(tid);
+    setLinkRows(
+      rawLinks.map((r, i) => ({
+        id: r.id,
+        label: i === 0 ? primaryLabel : r.label,
+        type: r.type as CardLinkType,
+        url: r.url,
+      })),
     );
+
     setFieldErrors({});
-  }, [replaceDraft]);
+    clearInstantCardId();
+    newCardIdRef.current = null;
+    setStagingEditorCardId(null);
+    setSampleLadderActive(true);
+    setSampleWizardOpen(false);
+
+    if (!isGuestRoute && user && location.pathname === "/cards/new") {
+      navigate(`/cards/new?industry=${encodeURIComponent(tid)}`, { replace: true });
+    } else if (isGuestRoute && !user) {
+      const sp = new URLSearchParams(location.search);
+      sp.set("industry", tid);
+      const qs = sp.toString();
+      navigate(`/create-card${qs ? `?${qs}` : ""}`, { replace: true });
+    }
+
+    const nextHydrationKey = isGuestRoute
+      ? wantsSample
+        ? "create-card-sample"
+        : `create-card-${tid}`
+      : wantsSample
+        ? "new-sample"
+        : `new-revenue-${tid}`;
+
+    setHydratedKey(nextHydrationKey);
+    requestAnimationFrame(() => scrollToId("card-preview-hero"));
+  }, [
+    isNew,
+    revenueTemplateId,
+    user?.name,
+    user?.email,
+    user,
+    isGuestRoute,
+    wantsSample,
+    replaceDraft,
+    setHydratedKey,
+    navigate,
+    location.pathname,
+    location.search,
+  ]);
 
   const persistUploadedHero = useCallback(
     async (payload: BrandImagePersistPayload) => {
@@ -1373,6 +1420,27 @@ export function CardEditorPage() {
         </Link>
       </div>
 
+      {isGuestRoute && !user && isNew ? (
+        <div className="mb-6 rounded-2xl border border-emerald-200/90 bg-gradient-to-br from-emerald-50/95 to-white px-4 py-4 shadow-sm sm:flex sm:flex-wrap sm:items-center sm:justify-between sm:gap-4 sm:px-5">
+          <div className="min-w-0">
+            <p className="text-sm font-bold text-emerald-950">예시 명함으로 바로 체험해 보세요</p>
+            <p className="mt-1 text-xs font-medium text-emerald-900/85 sm:text-[13px]">
+              업종·문구가 한 번에 들어오고 오른쪽에서 바로 수정만 하면 됩니다.
+            </p>
+          </div>
+          <Button
+            type="button"
+            className={cn(
+              "mt-3 w-full min-h-11 shrink-0 font-extrabold shadow-md sm:mt-0 sm:w-auto sm:min-w-[10.5rem]",
+              "border-0 bg-emerald-600 text-white hover:bg-emerald-500",
+            )}
+            onClick={() => applyInstantIndustrySample()}
+          >
+            샘플로 채우기
+          </Button>
+        </div>
+      ) : null}
+
       {user && !isGuestRoute && isNew && location.pathname === "/cards/new" && !wantsSample ? (
         <div className="mb-8 space-y-4">
           <IndustryPickSection
@@ -1383,6 +1451,7 @@ export function CardEditorPage() {
               navigate(`/cards/new?industry=${encodeURIComponent(templateId)}`, { replace: true })
             }
             onQuickCreate={() => void handleQuickThreeSecondCard()}
+            onInstantSample={applyInstantIndustrySample}
           />
         </div>
       ) : null}
@@ -1427,42 +1496,17 @@ export function CardEditorPage() {
         <RewardAdsSection placement="card_complete" className="mb-8" />
       ) : null}
 
-      <section
-        id="card-preview-hero"
-        className="mx-auto w-full max-w-[min(100%,28rem)] scroll-mt-6 sm:max-w-[32rem]"
-      >
-        <div className="overflow-hidden rounded-[1.65rem] border border-slate-200/90 bg-slate-100 shadow-[0_28px_64px_-14px_rgba(15,23,42,0.38)] ring-1 ring-slate-900/[0.06]">
-          <p className="border-b border-slate-200/90 bg-white px-3 py-2.5 text-center text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500 sm:text-xs">
-            {isGuestRoute && !user ? "실시간 미리보기 · 임시 링크로 확인" : "실시간 명함 · 자동 저장 · 바로 공유"}
-          </p>
-          <div className="max-h-[min(76vh,720px)] overflow-y-auto overscroll-contain bg-slate-100">
-            <CardPreview
-              linkRows={linkRows}
-              existingCardId={existing?.id}
-              createdAt={existing?.created_at}
-              guestTempHint={Boolean(isGuestRoute && !user)}
-              isGuestPreview={!(user && !isGuestRoute)}
-              onGuestHeroImageBlocked={
-                isGuestRoute && !user ? () => setGuestHeroAuthOpen(true) : undefined
-              }
-              persistUploadedHero={user && !isGuestRoute ? persistUploadedHero : undefined}
-              persistClearHero={user && !isGuestRoute ? persistClearHero : undefined}
-              analyticsCardId={existing?.id ?? stagingEditorCardId}
-              showQuickSample
-              onQuickSample={applyQuickEditorSample}
-            />
-          </div>
-        </div>
-
-        <h1 className="mt-8 max-w-xl text-balance text-center text-2xl font-extrabold leading-snug tracking-tight text-slate-900 sm:mx-auto sm:mt-10 sm:text-3xl md:text-[1.75rem]">
+      <div className="studio-editor-studio mx-auto w-full max-w-6xl grid-cols-1 gap-8 lg:grid lg:grid-cols-[minmax(0,1fr)_min(18rem,28rem)] lg:items-start xl:gap-10">
+        <div className="order-2 min-w-0 space-y-6 sm:space-y-8 lg:order-1">
+        <h1 className="mt-2 max-w-xl text-balance text-left text-2xl font-extrabold leading-snug tracking-tight text-slate-900 sm:mt-0 sm:text-3xl md:text-[1.75rem] lg:max-w-2xl">
           {isLiveGenerator ? "명함 하나로 고객이 먼저 찾아옵니다" : "지금 보이는 대로 저장됩니다"}
         </h1>
-        <p className="mx-auto mt-3 max-w-md text-pretty text-center text-base leading-relaxed text-slate-600 sm:text-lg">
+        <p className="mt-3 max-w-2xl text-pretty text-left text-base leading-relaxed text-slate-600 sm:text-lg">
           {isLiveGenerator
             ? sampleLadderActive
               ? "입력할 때마다 자동 저장되고, 같은 링크로 고객에게 바로 보낼 수 있어요. 아래에서 실사용·홍보 풀·교육까지 명함 중심으로 이어집니다."
               : "입력할 때마다 자동 저장되고, 같은 링크로 고객에게 바로 보낼 수 있어요. 공유로 이어지는 구조예요. 샘플 체험 후 단계별로 확장해 보세요."
-            : "아래에서 내용을 바꾸면 이 미리보기에 바로 반영돼요."}
+            : "폼에서 내용을 고치면 오른쪽 명함 미리보기에 바로 반영돼요."}
         </p>
 
         {heroShareUrl ? (
@@ -1691,9 +1735,7 @@ export function CardEditorPage() {
           </div>
         ) : null}
 
-        {isLiveGenerator ? (
-          <EditorFlowHint phase="hero" onTrySample={handleTrySample} showTrySample />
-        ) : null}
+        {isLiveGenerator ? <EditorFlowHint phase="hero" /> : null}
 
         {isLiveGenerator && sampleLadderActive && !(isGuestRoute && !user) ? (
           <CardEditorGrowthLadder
@@ -1704,9 +1746,8 @@ export function CardEditorPage() {
             onPromotionRequest={runPromotionRequest}
           />
         ) : null}
-      </section>
 
-      <form id="editor-main-form" onSubmit={onSave} className="mt-12 space-y-8 sm:mt-16">
+        <form id="editor-main-form" onSubmit={onSave} className="mt-0 space-y-6 sm:space-y-8 lg:space-y-8">
         <div id="studio-fields" className="scroll-mt-24 space-y-8">
           <CardForm
             errors={fieldErrors}
@@ -1726,7 +1767,7 @@ export function CardEditorPage() {
             onDismissPostAuthHeroReminder={() => setPostAuthHeroReminderOpen(false)}
             midSlot={
               isLiveGenerator ? (
-                <EditorFlowHint phase="mid" onTrySample={handleTrySample} showTrySample />
+                <EditorFlowHint phase="mid" />
               ) : null
             }
           />
@@ -1820,13 +1861,10 @@ export function CardEditorPage() {
 
         {isLiveGenerator ? (
           <>
-            <EditorFlowHint phase="bottom" onTrySample={handleTrySample} showTrySample />
+            <EditorFlowHint phase="bottom" />
             <div className="rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-5 sm:px-6 sm:py-6">
               <p className="text-center text-sm font-semibold text-slate-900">새로 시작하고 싶다면</p>
               <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
-                <Button type="button" variant="secondary" size="sm" onClick={() => setSampleWizardOpen(true)}>
-                  샘플 다시 불러오기
-                </Button>
                 <Button type="button" variant="outline" size="sm" onClick={applyEmptyDraft}>
                   빈 상태로 시작하기
                 </Button>
@@ -1834,7 +1872,7 @@ export function CardEditorPage() {
               <p className="mx-auto mt-4 max-w-lg text-center text-sm leading-relaxed text-slate-600">
                 {wantsSample
                   ? "유형과 문구를 고르면 예시가 채워집니다. 톤만 바꿔도 바로 활용할 수 있어요. 저장 시 그대로 반영됩니다."
-                  : "필드를 채우면 위 미리보기에 실시간으로 반영됩니다. 완성 예시가 필요하면 샘플로 채우기에서 유형·문구를 고를 수 있어요."}
+                  : "폼으로 바로 고치면 오른쪽에 즉시 반영됩니다. 체험이 필요하면 샘플로 채운 뒤 톤만 바꿔도 됩니다."}
               </p>
               <p className="mt-3 text-center text-sm font-medium leading-relaxed text-slate-700">
                 나를 소개하는 가장 쉬운 방법, 린코 디지털 명함 — 링크 하나로 고객과 이어지는 첫인상을 만드세요.
@@ -1881,6 +1919,32 @@ export function CardEditorPage() {
           </Button>
         </div>
       </form>
+        </div>
+        <aside className="order-1 mb-10 w-full lg:order-2 lg:sticky lg:top-[5.75rem] lg:z-30 lg:mb-0 lg:max-h-[min(calc(100vh-6rem),54rem)] lg:self-start lg:overflow-y-auto lg:overscroll-contain lg:pb-8">
+          <section id="card-preview-hero" className="scroll-mt-28">
+            <div className="mx-auto w-full max-w-[min(100%,26rem)] overflow-hidden rounded-[1.65rem] border border-slate-200/90 bg-slate-100 shadow-[0_28px_64px_-14px_rgba(15,23,42,0.38)] ring-1 ring-slate-900/[0.06] lg:mx-0">
+              <p className="border-b border-slate-200/90 bg-white px-3 py-2.5 text-center text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500 sm:text-xs">
+                {isGuestRoute && !user ? "실시간 미리보기 · 임시 링크로 확인" : "실시간 명함 · 자동 저장 · 바로 공유"}
+              </p>
+              <div className="max-h-[min(72vh,640px)] overflow-y-auto overscroll-contain bg-slate-100">
+                <CardPreview
+                  linkRows={linkRows}
+                  existingCardId={existing?.id}
+                  createdAt={existing?.created_at}
+                  guestTempHint={Boolean(isGuestRoute && !user)}
+                  isGuestPreview={!(user && !isGuestRoute)}
+                  onGuestHeroImageBlocked={
+                    isGuestRoute && !user ? () => setGuestHeroAuthOpen(true) : undefined
+                  }
+                  persistUploadedHero={user && !isGuestRoute ? persistUploadedHero : undefined}
+                  persistClearHero={user && !isGuestRoute ? persistClearHero : undefined}
+                  analyticsCardId={existing?.id ?? stagingEditorCardId}
+                />
+              </div>
+            </div>
+          </section>
+        </aside>
+      </div>
 
       <GuestHeroImageAuthModal
         open={guestHeroAuthOpen}

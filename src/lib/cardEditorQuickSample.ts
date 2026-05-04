@@ -5,7 +5,7 @@ import type { DigitalCardServiceLine } from "@/types/domain";
 export const SAMPLE_HERO_EDITOR_URL =
   "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=1200&q=80";
 
-export const SAMPLE_FALLBACK_PHONE = "010-0000-0000";
+export const SAMPLE_FALLBACK_PHONE = "010-1234-5678";
 
 function serviceFromTags(tags: string[]): DigitalCardServiceLine[] {
   return tags.map((t) => ({

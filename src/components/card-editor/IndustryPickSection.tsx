@@ -41,12 +41,17 @@ export function IndustryPickSection({
   onSelectIndustry,
   onQuickCreate,
   submitting,
+  onInstantSample,
+  instantSampleBusy,
 }: {
   disabled?: boolean;
   selectedId: IndustryTemplateId | null;
   onSelectIndustry: (id: IndustryTemplateId) => void;
   onQuickCreate: () => void | Promise<void>;
   submitting?: boolean;
+  /** 한 번 탭하면 업종·문구·버튼까지 즉시 채움 (미선택 시 기본 업종 예시) */
+  onInstantSample?: () => void | Promise<void>;
+  instantSampleBusy?: boolean;
 }) {
   const [tab, setTab] = useState<IndustryTabId>("recommended");
 
@@ -85,6 +90,28 @@ export function IndustryPickSection({
           </p>
         </div>
       </div>
+
+      {onInstantSample ? (
+        <div className="mt-6 rounded-2xl border border-emerald-200/80 bg-gradient-to-r from-emerald-50/90 to-white px-4 py-4 sm:flex sm:flex-wrap sm:items-center sm:justify-between sm:gap-4 sm:px-5">
+          <div className="min-w-0">
+            <p className="text-sm font-bold text-emerald-950">먼저 완성된 예시를 보고 수정만 하세요</p>
+            <p className="mt-1 text-xs font-medium leading-relaxed text-emerald-900/90 sm:text-[13px]">
+              업종을 고른 뒤 눌러 주면 그 업종 기준 전체 명함이 한 번에 들어옵니다. 미선택이면 인테리어 예시로 채워집니다.
+            </p>
+          </div>
+          <button
+            type="button"
+            disabled={disabled || submitting || Boolean(instantSampleBusy)}
+            onClick={() => void onInstantSample()}
+            className={cn(
+              "mt-4 inline-flex min-h-[48px] w-full shrink-0 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 text-sm font-extrabold text-white shadow-md shadow-emerald-900/25 transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-55 sm:mt-0 sm:w-auto sm:min-w-[11rem]",
+            )}
+          >
+            <Sparkles className="h-4 w-4 shrink-0" aria-hidden />
+            {instantSampleBusy ? "채우는 중…" : "샘플로 채우기"}
+          </button>
+        </div>
+      ) : null}
 
       <div
         role="tablist"
