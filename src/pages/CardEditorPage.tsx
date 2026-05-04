@@ -1955,7 +1955,7 @@ export function CardEditorPage() {
             className="w-full min-h-[52px] sm:w-auto sm:min-h-11"
             size="lg"
             loading={submitting}
-            disabled={heroImageFlowBlocksSubmit}
+            disabled={submitting || heroImageFlowBlocksSubmit}
           >
             {isGuestRoute ? "이 명함 저장하기" : "명함 저장하기"}
           </Button>
@@ -2004,7 +2004,8 @@ export function CardEditorPage() {
           form="editor-main-form"
           size="sm"
           className="min-h-11 flex-[1.2] shrink-0 font-semibold"
-          disabled={heroImageFlowBlocksSubmit}
+          loading={submitting}
+          disabled={submitting || heroImageFlowBlocksSubmit}
         >
           저장
         </Button>
