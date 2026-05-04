@@ -15,7 +15,6 @@ import { DelegateExpertChoiceModal } from "@/components/card-editor/ExpertAssist
 import { IndustryPickSection } from "@/components/card-editor/IndustryPickSection";
 import { Button } from "@/components/ui/Button";
 import { linkButtonClassName } from "@/components/ui/buttonStyles";
-import { Card, CardContent, CardHeader } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import {
@@ -38,8 +37,6 @@ import { buildCardShareUrl, buildTempPreviewUrl, editorOriginFallback } from "@/
 import { canonicalSiteOrigin } from "@/lib/siteOrigin";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase/client";
 import { parseCardEditorDraft, zodIssuesToFieldErrors } from "@/lib/cardEditorSchema";
-import { shareCardLinkNativeOrder } from "@/lib/kakaoWebShare";
-import { previewKakaoFeedFromDraft } from "@/lib/previewShareMeta";
 import { syncTempPreviewRemote } from "@/lib/syncTempPreviewRemote";
 import { layout } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
@@ -87,7 +84,6 @@ import {
   setPendingHeroResumeAfterAuth,
 } from "@/lib/pendingCardStorage";
 import { removeTempCard, saveTempCard } from "@/lib/tempCardStorage";
-import { buildViralShareText } from "@/lib/viralShareText";
 import {
   fetchBusinessCardByIdForOwner,
   fetchCardLinks,
@@ -99,7 +95,7 @@ import {
 import { syncQrImageAfterSave } from "@/services/cardQrSync";
 import { SHOW_PENDING_CARD_SAVED_STATE } from "@/services/pendingCardDraftFlush";
 import { useAuthReady } from "@/hooks/useAuthReady";
-import { ArrowRight, Check, Copy, Loader2, Share2 } from "lucide-react";
+import { ArrowRight, Check, Loader2 } from "lucide-react";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   Link,
@@ -148,7 +144,7 @@ function EditorFlowHint({ phase }: { phase: "hero" | "mid" | "bottom" }) {
     );
   }
 
-    return (
+  return (
     <div className="rounded-2xl border border-slate-200 bg-slate-50/90 px-4 py-5 sm:px-6 sm:py-6">
       <p className="text-center text-sm font-semibold text-slate-800">
         {phase === "mid" ? "아래만 채우면 공유할 준비가 됩니다" : "맨 아래에서 저장하면 공유·복사 화면으로 바로 이어져요"}
@@ -285,12 +281,10 @@ export function CardEditorPage() {
   const [linkRows, setLinkRows] = useState<LinkRow[]>(() => mapLinksToRows(existingLinks));
   const [submitting, setSubmitting] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<string, string>>>({});
-  const [autosaveStatus, setAutosaveStatus] = useState<"idle" | "saving" | "saved">("idle");
+  const [autosaveStatus, setAutosaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [autosaveBump, setAutosaveBump] = useState(0);
+  const [shareExpandCue, setShareExpandCue] = useState(0);
   const [shareOrigin, setShareOrigin] = useState("");
-  const [heroCopyDone, setHeroCopyDone] = useState(false);
-  const [heroKakaoHint, setHeroKakaoHint] = useState(false);
-  const [heroKakaoPreparing, setHeroKakaoPreparing] = useState(false);
-  const [heroKakaoError, setHeroKakaoError] = useState<string | null>(null);
   const [journeyStep, setJourneyStep] = useState<"start" | "promotion" | "education" | "instructor">("start");
   const [expansionTrack, setExpansionTrack] = useState<"blog" | "video" | "automation" | null>(null);
   const [userSkillLevel, setUserSkillLevel] = useState<"low" | "high">("low");
@@ -648,7 +642,14 @@ export function CardEditorPage() {
             linkRows: rowPayload,
             shareUrl: buildTempPreviewUrl(window.location.origin, tid, dly.card_type) ?? undefined,
             state: "guest",
-          });
+          }).then((ok) => {
+            if (ok === false) setAutosaveStatus("error");
+            else {
+              setAutosaveStatus("saved");
+              if (autosaveStatusTimerRef.current) clearTimeout(autosaveStatusTimerRef.current);
+              autosaveStatusTimerRef.current = setTimeout(() => setAutosaveStatus("idle"), 2200);
+            }
+          }).catch(() => setAutosaveStatus("error"));
         }
         savePendingCardDraft({
           draft: dly,
@@ -656,9 +657,11 @@ export function CardEditorPage() {
           tempId: tid ?? undefined,
           deferAutoFlush: true,
         });
-        if (autosaveStatusTimerRef.current) clearTimeout(autosaveStatusTimerRef.current);
-        setAutosaveStatus("saved");
-        autosaveStatusTimerRef.current = setTimeout(() => setAutosaveStatus("idle"), 2200);
+        if (!tid || !parsed.success) {
+          if (autosaveStatusTimerRef.current) clearTimeout(autosaveStatusTimerRef.current);
+          setAutosaveStatus("saved");
+          autosaveStatusTimerRef.current = setTimeout(() => setAutosaveStatus("idle"), 2200);
+        }
         return;
       }
 
@@ -698,6 +701,7 @@ export function CardEditorPage() {
     draft,
     linkRows,
     routeKey,
+    autosaveBump,
     existing?.id,
     existing?.created_at,
     user,
@@ -723,22 +727,6 @@ export function CardEditorPage() {
     return buildCardShareUrl(origin, draft.slug.trim()) ?? "";
   }, [heroShareEligible, shareOrigin, draft.slug, isGuestRoute, user, guestTempId]);
 
-  const heroShareText = useMemo(
-    () => (heroShareUrl ? buildViralShareText(heroShareUrl) : ""),
-    [heroShareUrl],
-  );
-
-  const copyHeroShare = useCallback(async () => {
-    if (!heroShareUrl) return;
-    try {
-      await navigator.clipboard.writeText(heroShareUrl);
-      setHeroCopyDone(true);
-      window.setTimeout(() => setHeroCopyDone(false), 2200);
-    } catch {
-      window.prompt("링크를 복사해 주세요", heroShareUrl);
-    }
-  }, [heroShareUrl]);
-
   const prepareGuestPreviewForKakao = useCallback(async (): Promise<boolean> => {
     if (!(isGuestRoute && !user && guestTempId)) return true;
     const rowPayload = linkRows.map((r) => ({
@@ -762,63 +750,6 @@ export function CardEditorPage() {
       state: "guest",
     });
   }, [draft, guestTempId, isGuestRoute, linkRows, user]);
-
-  const kakaoHeroShare = useCallback(async () => {
-    if (!heroShareUrl) return;
-    if (heroKakaoPreparing) return;
-    setHeroKakaoPreparing(true);
-    setHeroKakaoError(null);
-    const origin = editorOriginFallback(shareOrigin);
-    const state: "guest" | "member" = isGuestRoute && !user ? "guest" : "member";
-    const shareUrl =
-      state === "guest" && guestTempId
-        ? buildTempPreviewUrl(origin, guestTempId, draft.card_type) ?? heroShareUrl
-        : heroShareUrl;
-    console.log("공유 링크:", shareUrl);
-    console.log("state:", state);
-    console.log("tempId:", guestTempId ?? "");
-    try {
-      if (isGuestRoute && !user && guestTempId) {
-        const ok = await prepareGuestPreviewForKakao();
-        if (!ok) {
-          setHeroKakaoError(
-            "공유 링크 준비에 실패했습니다. 다시 시도해 주세요. 인터넷 연결을 확인한 뒤 다시 시도해 주세요.",
-          );
-          return;
-        }
-      }
-      const tempFeed =
-        isGuestRoute && !user && guestTempId
-          ? previewKakaoFeedFromDraft(draft, { tempId: guestTempId, origin })
-          : null;
-      const title =
-        tempFeed?.title ?? `${draft.person_name || draft.brand_name || "내"} 디지털 명함`;
-      const r = await shareCardLinkNativeOrder({
-        shareUrl,
-        title,
-        shortMessage: tempFeed?.description ?? "내 디지털 명함 페이지 링크예요.",
-        kakaoDescription: tempFeed?.description,
-        kakaoImageUrl: tempFeed?.imageUrl,
-      });
-      if (r === "clipboard") {
-        setHeroKakaoHint(true);
-        window.setTimeout(() => setHeroKakaoHint(false), 2800);
-      }
-    } finally {
-      setHeroKakaoPreparing(false);
-    }
-  }, [
-    draft,
-    draft.brand_name,
-    draft.person_name,
-    guestTempId,
-    heroKakaoPreparing,
-    heroShareUrl,
-    isGuestRoute,
-    prepareGuestPreviewForKakao,
-    shareOrigin,
-    user,
-  ]);
 
   const applyPhraseFromWizard = useCallback(
     (r: FillSampleWizardResult) => {
@@ -1524,57 +1455,91 @@ export function CardEditorPage() {
   }
 
   return (
-    <div className={cn(layout.pageEditor, "py-8 sm:py-12")}>
+    <div className={cn(layout.pageEditor, "pb-28 pt-4 sm:pb-10 sm:pt-8")}>
+      {/* 상단 고정 바 */}
+      <header className="sticky top-0 z-50 border-b border-slate-200/90 bg-white/90 shadow-sm backdrop-blur-md supports-[backdrop-filter]:bg-white/80">
+        <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-5">
+          <div className="flex min-w-0 flex-col gap-1 sm:flex-row sm:items-baseline sm:gap-4">
+            <span className="text-sm font-bold text-slate-900 sm:text-base">
+              {isGuestRoute ? "명함 만들기" : isNew ? "명함 만들기" : "명함 수정"}
+            </span>
+            <span className="flex flex-wrap items-center gap-2 text-[11px] text-slate-600 sm:text-xs" aria-live="polite">
+              {autosaveStatus === "saving" ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin text-brand-700" aria-hidden />
+                  저장 중...
+                </>
+              ) : null}
+              {autosaveStatus === "saved" ? (
+                <>
+                  <Check className="h-3.5 w-3.5 text-emerald-600" aria-hidden />
+                  자동 저장됨
+                </>
+              ) : null}
+              {autosaveStatus === "error" ? (
+                <>
+                  <span className="font-medium text-amber-800">저장 실패 · 다시 시도</span>
+                  <button
+                    type="button"
+                    className="font-semibold text-brand-800 underline underline-offset-2 hover:text-brand-950"
+                    onClick={() => setAutosaveBump((b) => b + 1)}
+                  >
+                    다시 시도
+                  </button>
+                </>
+              ) : null}
+              {autosaveStatus === "idle" ? (
+                <>
+                  <span className="text-slate-500">변경하면 자동으로 저장합니다</span>
+                </>
+              ) : null}
+            </span>
+          </div>
+          <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="min-h-9"
+              onClick={() => scrollToId("card-preview-hero")}
+            >
+              미리보기
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="min-h-9"
+              onClick={() => setShareExpandCue((c) => c + 1)}
+            >
+              공유하기
+            </Button>
+            <Link
+              to={isGuestRoute ? "/" : "/cards"}
+              className="inline-flex min-h-9 items-center rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-800 hover:bg-slate-50 sm:text-sm"
+            >
+              목록으로
+            </Link>
+          </div>
+        </div>
+      </header>
+
       {!isGuestRoute && !isNew && existingCardBannerFromRouter ? (
         <div className="mb-6 rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 text-sm font-semibold text-brand-950">
           {existingCardBannerFromRouter}
         </div>
       ) : null}
-      <div className="mb-6 flex flex-wrap items-start justify-between gap-4 sm:mb-8">
-        <div className="min-w-0 flex-1">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 sm:text-sm">
-            {isGuestRoute
-              ? "지금 만들어서 바로 보내는 도구"
-              : isNew
-                ? "명함 만들기"
-                : "명함 수정"}
+      <div className="mx-auto mb-6 max-w-6xl space-y-2 px-4 sm:mb-8 sm:px-5">
+        {!isGuestRoute && isNew && location.pathname === "/cards/new" && !wantsSample ? (
+          <p className="max-w-xl text-xs leading-relaxed text-slate-600 sm:text-sm">
+            ① 업종·템플릿 → ② 이름·연락처 등 최소 입력 → ③ 저장 후 「공유 설정」에서 고객에게 링크를 보냅니다.
           </p>
-          {!isGuestRoute && isNew && location.pathname === "/cards/new" && !wantsSample ? (
-            <p className="mt-1 max-w-xl text-xs leading-relaxed text-slate-600 sm:text-sm">
-              ① 업종·템플릿 → ② 이름·연락처 등 최소 입력 → ③ 저장하면 바로 공유 화면으로 이어집니다.
-            </p>
-          ) : null}
-          {isGuestRoute ? (
-            <p className="mt-1 max-w-md text-xs leading-relaxed text-slate-500 sm:text-sm">
-              입력만으로 자동 저장되고, 링크 하나로 고객에게 바로 보냅니다. 가입은 저장할 때 이어집니다.
-            </p>
-          ) : null}
-          <p
-            className="mt-2 flex min-h-5 flex-wrap items-center gap-1.5 text-xs text-slate-600 sm:text-sm"
-            aria-live="polite"
-          >
-            {autosaveStatus === "saving" ? (
-              <>
-                <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-brand-700" aria-hidden />
-                <span>자동 저장 중...</span>
-              </>
-            ) : null}
-            {autosaveStatus === "saved" ? (
-              <>
-                <Check className="h-3.5 w-3.5 shrink-0 text-emerald-600" aria-hidden />
-                <span className="font-medium text-emerald-800">
-                  {isGuestRoute && !user ? "미리보기 동기화됨" : "저장 완료"}
-                </span>
-              </>
-            ) : null}
+        ) : null}
+        {isGuestRoute ? (
+          <p className="max-w-md text-xs leading-relaxed text-slate-500 sm:text-sm">
+            입력하면 자동 저장됩니다. 링크는 아래 「공유 설정」, 저장은 페이지 하단에서 이어가면 됩니다.
           </p>
-        </div>
-        <Link
-          to={isGuestRoute ? "/" : "/cards"}
-          className="inline-flex min-h-10 shrink-0 items-center text-sm font-medium text-brand-700 sm:text-base"
-        >
-          {isGuestRoute ? "홈으로" : "목록으로"}
-        </Link>
+        ) : null}
       </div>
 
       {isGuestRoute && !user && isNew ? (
@@ -1653,132 +1618,48 @@ export function CardEditorPage() {
         <RewardAdsSection placement="card_complete" className="mb-8" />
       ) : null}
 
-      <div className="studio-editor-studio mx-auto w-full max-w-6xl grid-cols-1 gap-8 lg:grid lg:grid-cols-[minmax(0,1fr)_min(18rem,28rem)] lg:items-start xl:gap-10">
-        <div className="order-2 min-w-0 space-y-6 sm:space-y-8 lg:order-1">
-        <h1 className="mt-2 max-w-xl text-balance text-left text-2xl font-extrabold leading-snug tracking-tight text-slate-900 sm:mt-0 sm:text-3xl md:text-[1.75rem] lg:max-w-2xl">
-          {isLiveGenerator ? "명함 하나로 고객이 먼저 찾아옵니다" : "지금 보이는 대로 저장됩니다"}
-        </h1>
-        <p className="mt-3 max-w-2xl text-pretty text-left text-base leading-relaxed text-slate-600 sm:text-lg">
-          {isLiveGenerator
-            ? sampleLadderActive
-              ? "입력할 때마다 자동 저장되고, 같은 링크로 고객에게 바로 보낼 수 있어요. 아래에서 실사용·홍보 풀·교육까지 명함 중심으로 이어집니다."
-              : "입력할 때마다 자동 저장되고, 같은 링크로 고객에게 바로 보낼 수 있어요. 공유로 이어지는 구조예요. 샘플 체험 후 단계별로 확장해 보세요."
-            : "폼에서 내용을 고치면 오른쪽 명함 미리보기에 바로 반영돼요."}
-        </p>
+      <div className="studio-editor-studio mx-auto grid w-full max-w-6xl grid-cols-1 gap-8 px-4 sm:px-5 lg:grid lg:grid-cols-[3fr_2fr] lg:items-start xl:gap-12">
+        <div className="order-2 min-w-0 space-y-5 sm:space-y-7 lg:order-1 lg:py-2">
+          <div>
+            <h1 className="text-balance text-2xl font-extrabold leading-snug tracking-tight text-slate-900 sm:text-3xl md:text-[1.85rem]">
+              지금 보이는 대로 저장됩니다
+            </h1>
+            <p className="mt-3 max-w-2xl text-pretty text-base leading-relaxed text-slate-600 sm:text-lg">
+              왼쪽에서 내용을 수정하면 오른쪽 명함에 바로 반영됩니다.
+            </p>
+            {isLiveGenerator ? (
+              <p className="mt-3 max-w-2xl text-sm leading-relaxed text-slate-500">
+                {sampleLadderActive
+                  ? "아래 카드 순서대로 수정하면 초보자도 빠르게 완성할 수 있어요. 홍보·교육 확장은 명함 저장 이후 같은 화면에서 이어집니다."
+                  : "입력이 쌓이면 아래에서 홍보·교육으로 확장할 수 있습니다."}
+              </p>
+            ) : null}
+            <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-brand-700/90">
+              ① 기본 정보 → ② 대표 이미지 → ③ 연락·링크 → ④ 소개 · ⑤ 공유
+            </p>
+          </div>
 
-        {heroShareUrl ? (
-          <div className="mx-auto mt-8 w-full max-w-lg rounded-2xl border border-brand-200/90 bg-gradient-to-b from-brand-50/55 to-white p-4 shadow-sm sm:p-5">
-            <p className="text-center text-base font-bold text-slate-900">
-              {isGuestRoute && !user ? "명함 미리보기 완료" : "👉 당신의 명함 링크"}
-            </p>
-            <p className="mx-auto mt-2 max-w-sm text-center text-xs leading-relaxed text-slate-600 sm:text-sm">
-              {isGuestRoute && !user ? (
-                <>
-                  이 링크는 <span className="font-semibold text-slate-800">임시 미리보기</span>입니다. 먼저 열어 보고
-                  복사·카카오톡으로 보낼 수 있어요.
-                </>
-              ) : (
-                <>
-                  아래는 서비스 홈이 아니라 <span className="font-semibold text-slate-800">당신만의 /c/주소</span>예요.
-                </>
-              )}
-            </p>
-            <div
-              role="link"
-              tabIndex={0}
-              className="mt-3 w-full cursor-pointer break-all rounded-2xl border-2 border-slate-200 bg-white px-4 py-4 text-left text-sm font-bold text-brand-900 shadow-inner hover:bg-slate-50 sm:text-base"
-              onClick={() => window.open(heroShareUrl, "_blank", "noopener,noreferrer")}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ")
-                  window.open(heroShareUrl, "_blank", "noopener,noreferrer");
-              }}
+          {!heroShareUrl ? (
+            <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/60 px-4 py-3 text-sm leading-relaxed text-slate-600">
+              {!draft.is_public
+                ? "「공유 설정」에서 공개로 바꾸면 고객에게 보낼 주소와 링크가 만들어져요."
+                : "주소 이름(slug)을 채워 주세요. 준비가 되면 「공유 설정」에서 복사·카카오톡 공유가 켜집니다."}
+            </div>
+          ) : isGuestRoute && !user ? (
+            <button
+              type="button"
+              className="w-full rounded-xl border border-brand-200 bg-brand-50/60 px-4 py-3 text-left text-sm font-medium text-brand-950 hover:bg-brand-50"
+              onClick={() => setShareExpandCue((c) => c + 1)}
             >
-              {heroShareUrl}
-            </div>
-            <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-              <Button
-                type="button"
-                variant="outline"
-                className="min-h-11 w-full flex-1 gap-2 sm:flex-1"
-                onClick={() => void copyHeroShare()}
-              >
-                <Copy className="h-4 w-4 shrink-0" aria-hidden />
-                {heroCopyDone ? "복사됨!" : "링크 복사하기"}
-              </Button>
-              <Button
-                type="button"
-                variant="secondary"
-                className="min-h-11 w-full flex-1 gap-2"
-                onClick={() => void kakaoHeroShare()}
-                disabled={heroKakaoPreparing}
-              >
-                {heroKakaoPreparing ? (
-                  <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden />
-                ) : (
-                  <Share2 className="h-4 w-4 shrink-0" aria-hidden />
-                )}
-                {heroKakaoPreparing ? "준비 중..." : "카카오톡으로 보내기"}
-              </Button>
-            </div>
-            {isGuestRoute && !user ? null : (
-              <Button
-                type="button"
-                variant="secondary"
-                className="mt-2 min-h-11 w-full gap-2 border-2 border-brand-200/80 bg-white hover:bg-brand-50/80"
-                onClick={() => void kakaoHeroShare()}
-                disabled={heroKakaoPreparing}
-              >
-                {heroKakaoPreparing ? "준비 중..." : "내 카카오톡으로 테스트 보내기"}
-              </Button>
-            )}
-            {heroKakaoPreparing ? (
-              <div className="mt-3 rounded-xl border border-brand-200/80 bg-brand-50/70 px-3 py-3 text-sm text-brand-900">
-                <p className="font-semibold">공유 링크를 준비하고 있어요</p>
-                <p className="mt-1">잠시만 기다려 주세요</p>
-                <p className="mt-1">명함을 정리한 뒤 카카오톡으로 열어드릴게요</p>
-              </div>
-            ) : null}
-            {heroKakaoError ? (
-              <p className="mt-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs leading-relaxed text-red-700 sm:text-sm">
-                {heroKakaoError}
-              </p>
-            ) : null}
-            <pre className="mt-3 whitespace-pre-wrap break-words rounded-lg border border-slate-100 bg-slate-50/80 p-3 text-left font-sans text-xs leading-relaxed text-slate-700">
-              {heroShareText}
-            </pre>
-            {heroKakaoHint ? (
-              <p className="mt-2 text-center text-xs font-medium text-brand-800 sm:text-sm">
-                명함 링크를 복사했어요. 카카오톡에 붙여넣어 내 채팅으로 보내 보세요.
-              </p>
-            ) : null}
-            <p className="mt-3 text-center text-xs leading-relaxed text-slate-500">
-              {isGuestRoute && !user
-                ? "마음에 들면 아래에서 가입 후 내 명함(/c/주소)으로 저장하세요."
-                : "이 링크를 고객에게 보내면 명함 페이지가 바로 열립니다."}
+              임시 미리보기 링크가 있어요. 「공유 설정」에서 복사·카카오톡으로 보내 보세요. <span className="block text-xs font-normal text-brand-900/85">탭하면 공유 카드로 이동합니다</span>
+            </button>
+          ) : (
+            <p className="text-sm text-slate-600">
+              링크는 아래 「<span className="font-semibold">공유 설정</span>」에서 복사·공유하면 됩니다.
             </p>
-            {isGuestRoute && !user ? (
-              <div className="mt-4 space-y-2 border-t border-brand-100 pt-4">
-                <p className="text-center text-xs text-slate-500">👉 지금 만든 명함 링크</p>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  className="min-h-12 w-full gap-2 border-2 border-brand-300 font-bold text-brand-950"
-                  onClick={() => scrollToId("final-save")}
-                >
-                  이 명함 저장하기
-                </Button>
-              </div>
-            ) : null}
-          </div>
-        ) : (
-          <div className="mx-auto mt-8 max-w-md rounded-xl border border-dashed border-slate-200 bg-slate-50/60 px-4 py-3 text-center text-sm leading-relaxed text-slate-600">
-            {!draft.is_public
-              ? "명함을 공개로 설정하면 실제 링크로 열리고, 바로 테스트·공유할 수 있어요."
-              : "필수 정보를 모두 올바르게 채우면 위에서 같은 링크로 공유할 수 있어요."}
-          </div>
-        )}
+          )}
 
-        {heroShareUrl ? (
+        {isLiveGenerator ? (
           <div className="mx-auto mt-6 w-full max-w-2xl rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
             <p className="text-center text-lg font-bold text-slate-900">고객을 더 늘리고 싶으신가요?</p>
             <p className="mt-2 text-center text-sm text-slate-600">
@@ -1919,7 +1800,6 @@ export function CardEditorPage() {
             onBrandImagePersist={handleBrandImagePersist}
             guestHeroStorageHint={isGuestRoute && !user}
             gateGuestHeroImagePick={isGuestRoute && !user}
-            onGuestHeroImagePickBlocked={() => setGuestHeroAuthOpen(true)}
             postAuthHeroImageReminder={postAuthHeroReminderOpen && !isGuestRoute && Boolean(user)}
             onDismissPostAuthHeroReminder={() => setPostAuthHeroReminderOpen(false)}
             midSlot={
@@ -1927,94 +1807,91 @@ export function CardEditorPage() {
                 <EditorFlowHint phase="mid" />
               ) : null
             }
+            shareExpandCue={shareExpandCue}
+            contactLinksSlot={
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-sm font-semibold text-slate-900">명함에 붙는 버튼 링크</h3>
+                  <p className="mt-0.5 text-xs text-slate-500">방문 고객이 눌러 바로 행동할 수 있습니다. 저장 시 명함 카드 버튼에 반영됩니다.</p>
+                </div>
+                {linkRows.map((row, idx) => (
+                  <div key={row.id} className="grid gap-3 rounded-xl border border-slate-100 bg-slate-50/50 p-3 sm:grid-cols-12">
+                    <div className="sm:col-span-4">
+                      <label className="text-sm font-medium text-slate-800">라벨</label>
+                      <Input
+                        className="mt-1"
+                        value={row.label}
+                        onChange={(e) =>
+                          setLinkRows((rows) =>
+                            rows.map((r, i) => (i === idx ? { ...r, label: e.target.value } : r)),
+                          )
+                        }
+                      />
+                    </div>
+                    <div className="sm:col-span-3">
+                      <label className="text-sm font-medium text-slate-800">유형</label>
+                      <Select
+                        className="mt-1"
+                        value={row.type}
+                        onChange={(e) =>
+                          setLinkRows((rows) =>
+                            rows.map((r, i) =>
+                              i === idx ? { ...r, type: e.target.value as CardLinkType } : r,
+                            ),
+                          )
+                        }
+                      >
+                        <option value="website">웹사이트</option>
+                        <option value="blog">블로그</option>
+                        <option value="youtube">유튜브</option>
+                        <option value="kakao">카카오</option>
+                        <option value="email">이메일</option>
+                        <option value="phone">전화</option>
+                        <option value="custom">기타</option>
+                      </Select>
+                    </div>
+                    <div className="sm:col-span-5">
+                      <label className="text-sm font-medium text-slate-800">링크 주소</label>
+                      <Input
+                        className="mt-1"
+                        value={row.url}
+                        onChange={(e) =>
+                          setLinkRows((rows) =>
+                            rows.map((r, i) => (i === idx ? { ...r, url: e.target.value } : r)),
+                          )
+                        }
+                      />
+                    </div>
+                  </div>
+                ))}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    setLinkRows((rows) => [
+                      ...rows,
+                      {
+                        id: crypto.randomUUID(),
+                        label: "",
+                        type: "custom",
+                        url: "",
+                      },
+                    ])
+                  }
+                >
+                  링크 추가
+                </Button>
+              </div>
+            }
           />
         </div>
 
         {exportCardForPrint ? (
-          <div className="mt-10 scroll-mt-24">
+          <div id="card-qr-export" className="mt-10 scroll-mt-24">
             <CardQrAndExportPanel card={exportCardForPrint} />
           </div>
         ) : null}
-
-        <Card>
-          <CardHeader>
-            <h2 className="text-lg font-semibold text-slate-900">명함 버튼 (링크)</h2>
-            <p className="text-sm text-slate-500">클릭 시 통계에 기록됩니다.</p>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {linkRows.map((row, idx) => (
-              <div
-                key={row.id}
-                className="grid gap-3 rounded-xl border border-slate-100 bg-slate-50/50 p-3 sm:grid-cols-12"
-              >
-                <div className="sm:col-span-4">
-                  <label className="text-sm font-medium text-slate-800">라벨</label>
-                  <Input
-                    className="mt-1"
-                    value={row.label}
-                    onChange={(e) =>
-                      setLinkRows((rows) =>
-                        rows.map((r, i) => (i === idx ? { ...r, label: e.target.value } : r)),
-                      )
-                    }
-                  />
-                </div>
-                <div className="sm:col-span-3">
-                  <label className="text-sm font-medium text-slate-800">유형</label>
-                  <Select
-                    className="mt-1"
-                    value={row.type}
-                    onChange={(e) =>
-                      setLinkRows((rows) =>
-                        rows.map((r, i) =>
-                          i === idx ? { ...r, type: e.target.value as CardLinkType } : r,
-                        ),
-                      )
-                    }
-                  >
-                    <option value="website">웹사이트</option>
-                    <option value="blog">블로그</option>
-                    <option value="youtube">유튜브</option>
-                    <option value="kakao">카카오</option>
-                    <option value="email">이메일</option>
-                    <option value="phone">전화</option>
-                    <option value="custom">기타</option>
-                  </Select>
-                </div>
-                <div className="sm:col-span-5">
-                  <label className="text-sm font-medium text-slate-800">링크 주소</label>
-                  <Input
-                    className="mt-1"
-                    value={row.url}
-                    onChange={(e) =>
-                      setLinkRows((rows) =>
-                        rows.map((r, i) => (i === idx ? { ...r, url: e.target.value } : r)),
-                      )
-                    }
-                  />
-                </div>
-              </div>
-            ))}
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() =>
-                setLinkRows((rows) => [
-                  ...rows,
-                  {
-                    id: crypto.randomUUID(),
-                    label: "",
-                    type: "custom",
-                    url: "",
-                  },
-                ])
-              }
-            >
-              링크 추가
-            </Button>
-          </CardContent>
-        </Card>
 
         {isLiveGenerator ? (
           <>
@@ -2077,7 +1954,7 @@ export function CardEditorPage() {
         </div>
       </form>
         </div>
-        <aside className="order-1 mb-10 w-full lg:order-2 lg:sticky lg:top-[5.75rem] lg:z-30 lg:mb-0 lg:max-h-[min(calc(100vh-6rem),54rem)] lg:self-start lg:overflow-y-auto lg:overscroll-contain lg:pb-8">
+        <aside className="order-1 mb-10 w-full lg:order-2 lg:sticky lg:top-24 lg:z-30 lg:mb-0 lg:max-h-[min(calc(100vh-7rem),56rem)] lg:self-start lg:overflow-y-auto lg:overscroll-contain lg:pb-10">
           <section id="card-preview-hero" className="scroll-mt-28">
             <div className="mx-auto w-full max-w-[min(100%,26rem)] overflow-hidden rounded-[1.65rem] border border-slate-200/90 bg-slate-100 shadow-[0_28px_64px_-14px_rgba(15,23,42,0.38)] ring-1 ring-slate-900/[0.06] lg:mx-0">
               <p className="border-b border-slate-200/90 bg-white px-3 py-2.5 text-center text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500 sm:text-xs">
@@ -2102,6 +1979,22 @@ export function CardEditorPage() {
           </section>
         </aside>
       </div>
+
+      <nav
+        aria-label="빠른 작업"
+        className="fixed inset-x-0 bottom-0 z-40 flex gap-2 border-t border-slate-200 bg-white/95 px-3 py-2.5 backdrop-blur-sm supports-[backdrop-filter]:bg-white/85 lg:hidden"
+        style={{ paddingBottom: "max(0.6rem, env(safe-area-inset-bottom))" }}
+      >
+        <Button type="button" variant="outline" size="sm" className="min-h-11 flex-1 shrink" onClick={() => scrollToId("card-preview-hero")}>
+          미리보기
+        </Button>
+        <Button type="button" variant="outline" size="sm" className="min-h-11 flex-1 shrink" onClick={() => setShareExpandCue((c) => c + 1)}>
+          공유
+        </Button>
+        <Button type="submit" form="editor-main-form" size="sm" className="min-h-11 flex-[1.2] shrink-0 font-semibold">
+          저장
+        </Button>
+      </nav>
 
       <GuestHeroImageAuthModal
         open={guestHeroAuthOpen}

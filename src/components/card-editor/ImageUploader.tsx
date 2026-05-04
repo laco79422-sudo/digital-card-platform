@@ -12,11 +12,12 @@ import {
   validateBrandImageFile,
 } from "@/lib/brandImageConstraints";
 import { optimizeImageFileToDataUrl } from "@/lib/brandImageProcess";
-import { getBrandImageUploadUserMessage } from "@/lib/brandImageUpload";
 import { uploadBrandImageToPendingFromDataUrl } from "@/lib/brandImagePendingUpload";
+import { formatUploadErrorForDisplay } from "@/lib/brandImageUploadDiagnostics";
+import { Modal } from "@/components/ui/Modal";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/authStore";
-import { ImageIcon, Minus, Move, Plus, Trash2 } from "lucide-react";
+import { ChevronDown, ImageIcon, Minus, Move, Plus, RotateCcw } from "lucide-react";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 
 type UrlMeta = {
@@ -50,13 +51,15 @@ type Props = {
   /** natural 없을 때만 적용 (구 카드) */
   legacyObjectPosition?: string | null;
   error?: string;
-  /** 비회원: 파일 선택 대신 업로드를 막고 콜백만 호출 */
+  /** 비회원: 서버 업로드 없이 로컬 미리보기만 */
   gateGuestPick?: boolean;
-  onGuestPickBlocked?: () => void;
-  /** 업로드 실패 시 사용자 메시지(기본: 저장소 오류 안내) */
   uploadFailMessage?: string;
   /** 스크롤용 앵커 id · scroll-mt-24 클래스 적용 */
   sectionAnchorId?: string;
+  /** 기본: 고급(확대·위치) 조절 접힘 */
+  defaultAdvancedOpen?: boolean;
+  /** 편집기용: 삭제를 붉은 강조 대신 작은 보조 버튼으로 */
+  compactDeleteStyle?: boolean;
   moderationNote?: string | null;
   /** 저장된 명함이 있으면 업로드 직후 원격 DB에도 반영 — ID가 준비될 때까지 지연 필요 시 getter 사용 */
   persistBrandImageCardId?: string | null;
@@ -79,9 +82,10 @@ export function ImageUploader({
   legacyObjectPosition,
   error,
   gateGuestPick = false,
-  onGuestPickBlocked,
-  uploadFailMessage = "이미지 저장에 실패했습니다. 저장소 설정을 확인해 주세요.",
+  uploadFailMessage = "알 수 없는 업로드 오류",
   sectionAnchorId,
+  defaultAdvancedOpen = false,
+  compactDeleteStyle = false,
   moderationNote,
   persistBrandImageCardId,
   getPersistBrandImageCardId,
@@ -95,7 +99,14 @@ export function ImageUploader({
   const [previewDuringUpload, setPreviewDuringUpload] = useState<string | null>(null);
   const [processing, setProcessing] = useState(false);
   const [uploadLine, setUploadLine] = useState<string | null>(null);
+  const [uploadLineIsError, setUploadLineIsError] = useState(false);
+  const [advancedOpen, setAdvancedOpen] = useState(defaultAdvancedOpen);
+  const [removeModalOpen, setRemoveModalOpen] = useState(false);
   const successClearRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    setAdvancedOpen(defaultAdvancedOpen);
+  }, [defaultAdvancedOpen]);
 
   const [frame, setFrame] = useState({ w: 0, h: 0 });
   const dragRef = useRef({ active: false, lastX: 0, lastY: 0 });
@@ -129,19 +140,47 @@ export function ImageUploader({
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
-    if (gateGuestPick) {
-      onGuestPickBlocked?.();
-      return;
-    }
 
     const valid = validateBrandImageFile(file);
     if (!valid.ok) {
+      setUploadLineIsError(true);
       setUploadLine(valid.message);
       setPreviewDuringUpload(null);
       return;
     }
 
+    if (gateGuestPick) {
+      setProcessing(true);
+      setUploadLineIsError(false);
+      setUploadLine("이미지를 불러오는 중...");
+      try {
+        const { dataUrl, width, height } = await optimizeImageFileToDataUrl(file);
+        setPreviewDuringUpload(dataUrl);
+        onUrlChange(dataUrl, { reset: true, naturalW: width, naturalH: height });
+        setPreviewDuringUpload(null);
+        setUploadLine(
+          "비회원: 이 기기에서만 미리보기입니다. 서버 업로드 없음(로그인 후 저장·검수 업로드 가능).",
+        );
+        console.log("[ImageUploader] guest — local preview only, no Supabase storage");
+        if (successClearRef.current !== null) window.clearTimeout(successClearRef.current);
+        successClearRef.current = window.setTimeout(() => {
+          setUploadLine(null);
+          successClearRef.current = null;
+        }, 7000);
+      } catch (err) {
+        console.error("UPLOAD ERROR:", err);
+        setUploadLineIsError(true);
+        setPreviewDuringUpload(null);
+        const line = formatUploadErrorForDisplay(err);
+        setUploadLine(line || uploadFailMessage);
+      } finally {
+        setProcessing(false);
+      }
+      return;
+    }
+
     setProcessing(true);
+    setUploadLineIsError(false);
     setUploadLine("이미지를 업로드하고 있습니다...");
     try {
       const { dataUrl, width, height } = await optimizeImageFileToDataUrl(file);
@@ -182,10 +221,11 @@ export function ImageUploader({
         }, 7000);
       }
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      console.error("[ImageUploader] 이미지 저장 실패:", msg, err);
+      console.error("UPLOAD ERROR:", err);
+      setUploadLineIsError(true);
       setPreviewDuringUpload(null);
-      setUploadLine(getBrandImageUploadUserMessage(err) || uploadFailMessage);
+      const line = formatUploadErrorForDisplay(err);
+      setUploadLine(line?.trim() ? line : uploadFailMessage);
     } finally {
       setProcessing(false);
     }
@@ -261,22 +301,39 @@ export function ImageUploader({
     [displayUrl, setZoomAndClampPan, zoom],
   );
 
-  const clearImage = () => {
+  const clearImageConfirmed = () => {
+    setRemoveModalOpen(false);
     setPreviewDuringUpload(null);
     setUploadLine(null);
+    setUploadLineIsError(false);
     onUrlChange(null, { reset: true, naturalW: null, naturalH: null });
   };
 
+  const resetLayout = () => {
+    onZoomChange(1);
+    onPanChange(0, 0);
+  };
+
   const openFilePicker = () => {
-    if (gateGuestPick) {
-      onGuestPickBlocked?.();
-      return;
-    }
     inputRef.current?.click();
   };
 
   return (
     <div className={cn("space-y-3", sectionAnchorId && "scroll-mt-24")} id={sectionAnchorId}>
+      <Modal open={removeModalOpen} onClose={() => setRemoveModalOpen(false)} title="대표 이미지 삭제">
+        <p className="text-sm leading-relaxed text-slate-600">
+          등록한 이미지를 제거할까요? 저장 전이라면 언제든지 다시 선택할 수 있습니다.
+        </p>
+        <div className="mt-5 flex flex-wrap justify-end gap-2">
+          <Button type="button" variant="outline" onClick={() => setRemoveModalOpen(false)}>
+            취소
+          </Button>
+          <Button type="button" variant="secondary" className="text-slate-800" onClick={clearImageConfirmed}>
+            삭제하기
+          </Button>
+        </div>
+      </Modal>
+
       <label className="text-base font-medium text-slate-800" htmlFor={inputId}>
         {label}
       </label>
@@ -296,7 +353,50 @@ export function ImageUploader({
         className="sr-only"
         onChange={onPick}
       />
-      <div className="flex flex-wrap items-center gap-3">
+
+      {displayUrl ? (
+        <div
+          ref={frameRef}
+            className={cn(
+              "relative w-full max-w-2xl overflow-hidden rounded-2xl border-2 border-slate-200 bg-slate-900/10 shadow-inner",
+              "aspect-video touch-none select-none",
+              !advancedOpen && "pointer-events-none",
+            )}
+          style={{ touchAction: "none" }}
+          onPointerDown={advancedOpen ? onPointerDownFrame : undefined}
+          onPointerMove={advancedOpen ? onPointerMoveFrame : undefined}
+          onPointerUp={advancedOpen ? endDrag : undefined}
+          onPointerCancel={advancedOpen ? endDrag : undefined}
+          onWheel={advancedOpen ? onWheelFrame : undefined}
+          role={advancedOpen ? "application" : "img"}
+          aria-label={advancedOpen ? "대표 이미지 구도 조정" : "대표 이미지 미리보기"}
+        >
+          <BrandHeroFrame
+            className="absolute inset-0 h-full w-full"
+            imageUrl={displayUrl}
+            naturalWidth={iw}
+            naturalHeight={ih}
+            zoom={clampZoom(zoom)}
+            panNormX={panX}
+            panNormY={panY}
+            legacyObjectPosition={legacyObjectPosition}
+            onNaturalMeasured={onNaturalMeasured}
+            imgLoading="eager"
+          />
+          {!advancedOpen ? (
+            <p className="pointer-events-none absolute bottom-2 left-1/2 max-w-[90%] -translate-x-1/2 rounded-md bg-black/45 px-2 py-1 text-center text-[10px] font-medium text-white sm:text-xs">
+              구도 조정은 &quot;고급 이미지 조정&quot;을 연 뒤 사용하세요.
+            </p>
+          ) : null}
+        </div>
+      ) : (
+        <span className="flex items-center gap-2 text-sm text-slate-500">
+          <ImageIcon className="h-4 w-4 shrink-0 opacity-70" aria-hidden />
+          등록된 이미지 없음
+        </span>
+      )}
+
+      <div className="flex flex-wrap items-center gap-2">
         <Button
           type="button"
           variant="secondary"
@@ -307,24 +407,26 @@ export function ImageUploader({
           {processing ? "이미지를 업로드하고 있습니다..." : "파일 선택"}
         </Button>
         {displayUrl ? (
-          <Button
+          <button
             type="button"
-            variant="outline"
-            size="sm"
-            className="text-red-600 hover:bg-red-50"
             disabled={processing}
-            onClick={clearImage}
+            onClick={() => setRemoveModalOpen(true)}
+            className={cn(
+              "text-xs font-semibold underline-offset-2 hover:underline disabled:opacity-50",
+              compactDeleteStyle
+                ? "text-slate-500 hover:text-slate-800"
+                : "text-rose-700/85 hover:text-rose-800",
+            )}
           >
-            <Trash2 className="mr-1.5 h-4 w-4" aria-hidden />
-            삭제
-          </Button>
+            이미지 제거
+          </button>
         ) : null}
       </div>
       {uploadLine ? (
         <p
           className={cn(
-            "text-sm font-medium",
-            uploadLine.includes("실패") ? "text-red-600" : "text-brand-700",
+            "text-sm font-medium break-words",
+            uploadLineIsError ? "text-red-600" : "text-brand-700",
           )}
           role="status"
         >
@@ -333,101 +435,83 @@ export function ImageUploader({
       ) : null}
 
       {displayUrl ? (
-        <div className="space-y-3">
-          <p className="flex flex-wrap items-center gap-2 text-sm font-medium text-slate-700">
-            <Move className="h-4 w-4 shrink-0 text-slate-500" aria-hidden />
-            미리보기 (16:9) — 드래그로 위치 · 슬라이더 또는 ±로 확대/축소
-          </p>
-
-          <div className="flex max-w-xl flex-wrap items-center gap-3">
-            <span className="text-xs font-medium text-slate-600 sm:text-sm">확대</span>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="h-9 w-9 shrink-0 p-0"
-              onClick={() => nudgeZoom(-0.1)}
-              aria-label="축소"
-            >
-              <Minus className="h-4 w-4" aria-hidden />
-            </Button>
-            <input
-              type="range"
-              min={BRAND_HERO_MIN_ZOOM}
-              max={BRAND_HERO_MAX_ZOOM}
-              step={0.02}
-              value={clampZoom(zoom)}
-              onChange={(e) => setZoomAndClampPan(Number(e.target.value))}
-              className="h-2 min-w-[8rem] flex-1 cursor-pointer accent-brand-600 sm:min-w-[12rem]"
-              aria-label="이미지 확대 배율"
-            />
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="h-9 w-9 shrink-0 p-0"
-              onClick={() => nudgeZoom(0.1)}
-              aria-label="확대"
-            >
-              <Plus className="h-4 w-4" aria-hidden />
-            </Button>
-            <span className="text-xs tabular-nums text-slate-500 sm:text-sm">{clampZoom(zoom).toFixed(2)}×</span>
-          </div>
-          <p className="text-[11px] leading-relaxed text-slate-500 sm:text-xs">
-            트랙패드에서 Ctrl(또는 ⌘) + 스크롤로 확대/축소할 수 있어요.
-          </p>
-
-          <div
-            ref={frameRef}
-            className={cn(
-              "relative w-full max-w-xl overflow-hidden rounded-2xl border-2 border-slate-200 bg-slate-900/10 shadow-inner",
-              "aspect-video touch-none select-none",
-            )}
-            style={{ touchAction: "none" }}
-            onPointerDown={onPointerDownFrame}
-            onPointerMove={onPointerMoveFrame}
-            onPointerUp={endDrag}
-            onPointerCancel={endDrag}
-            onWheel={onWheelFrame}
-            role="application"
-            aria-label="대표 이미지 구도 조정"
+        <div className="max-w-2xl">
+          <button
+            type="button"
+            aria-expanded={advancedOpen}
+            onClick={() => setAdvancedOpen(!advancedOpen)}
+            className="flex w-full items-center justify-between rounded-xl border border-slate-200 bg-slate-50/90 px-3 py-2.5 text-left text-sm font-semibold text-slate-800 transition hover:bg-slate-100"
           >
-            <BrandHeroFrame
-              className="absolute inset-0 h-full w-full"
-              imageUrl={displayUrl}
-              naturalWidth={iw}
-              naturalHeight={ih}
-              zoom={clampZoom(zoom)}
-              panNormX={panX}
-              panNormY={panY}
-              legacyObjectPosition={legacyObjectPosition}
-              onNaturalMeasured={onNaturalMeasured}
-              imgLoading="eager"
+            고급 이미지 조정 {advancedOpen ? "접기" : "열기"}
+            <ChevronDown
+              className={cn("h-4 w-4 shrink-0 text-slate-500 transition-transform", advancedOpen && "rotate-180")}
+              aria-hidden
             />
-          </div>
-        </div>
-      ) : (
-        <span className="flex items-center gap-2 text-sm text-slate-500">
-          <ImageIcon className="h-4 w-4 shrink-0 opacity-70" aria-hidden />
-          등록된 이미지 없음
-        </span>
-      )}
+          </button>
 
-      <div className="mt-4 max-w-xl space-y-2 rounded-xl border border-slate-100 bg-slate-50/80 px-4 py-3 text-sm leading-relaxed text-slate-600 sm:px-4 sm:py-3.5">
-        <p className="break-keep">
-          <strong className="font-medium text-slate-700">처음 업로드하면</strong> 사진 전체가 16:9 프레임 안에{" "}
-          <strong className="font-medium text-slate-700">한 번에 보이도록</strong> 맞춰져요. 잘리지 않은 상태에서
-          시작합니다.
-        </p>
-        <p className="break-keep">
-          강조하고 싶을 때만 확대한 뒤, <strong className="font-medium text-slate-700">드래그</strong>로 위·아래·
-          좌·우 모두 움직여 구도를 맞출 수 있어요.
-        </p>
-        <p className="break-keep">
-          여기서 조정한 화면과 <strong className="font-medium text-slate-700">저장된 명함·미리보기</strong>가
-          같은 비율(16:9)로 동일하게 보입니다.
-        </p>
-      </div>
+          {advancedOpen ? (
+            <div className="mt-3 space-y-3 rounded-xl border border-slate-100 bg-white px-3 py-4 shadow-sm sm:px-4">
+              <p className="flex flex-wrap items-center gap-2 text-sm font-medium text-slate-700">
+                <Move className="h-4 w-4 shrink-0 text-slate-500" aria-hidden />
+                미리보기 영역 안에서 드래그하면 위치를 옮길 수 있어요. 아래 슬라이더로 확대·축소합니다.
+              </p>
+
+              <div className="flex max-w-xl flex-wrap items-center gap-3">
+                <span className="text-xs font-medium text-slate-600 sm:text-sm">확대</span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-9 w-9 shrink-0 p-0"
+                  onClick={() => nudgeZoom(-0.1)}
+                  aria-label="축소"
+                >
+                  <Minus className="h-4 w-4" aria-hidden />
+                </Button>
+                <input
+                  type="range"
+                  min={BRAND_HERO_MIN_ZOOM}
+                  max={BRAND_HERO_MAX_ZOOM}
+                  step={0.02}
+                  value={clampZoom(zoom)}
+                  onChange={(e) => setZoomAndClampPan(Number(e.target.value))}
+                  className="h-2 min-w-[8rem] flex-1 cursor-pointer accent-brand-600 sm:min-w-[12rem]"
+                  aria-label="이미지 확대 배율"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-9 w-9 shrink-0 p-0"
+                  onClick={() => nudgeZoom(0.1)}
+                  aria-label="확대"
+                >
+                  <Plus className="h-4 w-4" aria-hidden />
+                </Button>
+                <span className="text-xs tabular-nums text-slate-500 sm:text-sm">{clampZoom(zoom).toFixed(2)}×</span>
+              </div>
+              <p className="text-[11px] leading-relaxed text-slate-500 sm:text-xs">
+                트랙패드에서 Ctrl(또는 ⌘) + 스크롤로 확대/축소할 수 있어요.
+              </p>
+
+              <Button type="button" variant="outline" size="sm" className="gap-1.5" onClick={resetLayout}>
+                <RotateCcw className="h-3.5 w-3.5" aria-hidden />
+                확대·위치 초기화
+              </Button>
+
+              <div className="space-y-2 rounded-lg border border-slate-100 bg-slate-50/80 px-3 py-3 text-xs leading-relaxed text-slate-600 sm:text-sm">
+                <p className="break-keep">
+                  <strong className="font-medium text-slate-700">처음 업로드하면</strong> 사진 전체가 16:9 프레임 안에
+                  한 번에 보이도록 맞춰져요.
+                </p>
+                <p className="break-keep">
+                  명함 미리보기와 같은 비율(16:9)로 표시됩니다.
+                </p>
+              </div>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
 
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
     </div>

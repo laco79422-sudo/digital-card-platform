@@ -1,4 +1,5 @@
 import { validateBrandImageFile } from "@/lib/brandImageConstraints";
+import { formatUploadErrorForDisplay } from "@/lib/brandImageUploadDiagnostics";
 import { brandImageDataUrlToBlob } from "@/lib/brandImageUpload";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase/client";
 
@@ -34,8 +35,10 @@ export async function uploadBrandImageToPendingFromBlob(params: {
   originalFilename: string;
   cardId: string;
 }): Promise<{ path: string; signedUrl: string }> {
+  console.log("SUPABASE URL:", import.meta.env.VITE_SUPABASE_URL);
+
   if (!isSupabaseConfigured || !supabase) {
-    throw new Error("Supabase is not configured");
+    throw new Error(formatUploadErrorForDisplay(new Error("Supabase is not configured")));
   }
 
   const file = new File([params.blob], params.originalFilename, {
@@ -46,24 +49,36 @@ export async function uploadBrandImageToPendingFromBlob(params: {
     throw new Error(valid.message);
   }
 
-  const { data: auth } = await supabase.auth.getUser();
-  const uid = auth.user?.id;
+  const { data: userData, error: userError } = await supabase.auth.getUser();
+  console.log("USER:", userData?.user);
+  console.log("USER ERROR:", userError);
+  const uid = userData?.user?.id;
   if (!uid) {
-    throw new Error("Not authenticated");
+    const err = new Error(
+      userError?.message?.trim() || "Not authenticated (no session / uid)",
+    );
+    console.error("UPLOAD ERROR:", err, userError);
+    throw new Error(formatUploadErrorForDisplay(err));
   }
 
   const { data: slotOk, error: slotErr } = await supabase.rpc("try_consume_brand_image_upload_slot");
   if (slotErr) {
-    throw slotErr;
+    console.error("UPLOAD ERROR:", slotErr);
+    throw new Error(formatUploadErrorForDisplay(slotErr));
   }
   if (!slotOk) {
-    throw new Error("daily_limit");
+    const daily = new Error("daily_limit — 일일 브랜드 이미지 업로드 한도(5회)를 초과했습니다.");
+    console.error("UPLOAD ERROR:", daily);
+    throw new Error(formatUploadErrorForDisplay(daily));
   }
 
   const ext = extensionForBlob(params.blob, params.originalFilename);
   const name = `${crypto.randomUUID()}.${ext}`;
   const path = `${uid}/${params.cardId.trim()}/${name}`;
+  console.log("UPLOAD BUCKET:", "card-image-pending");
   const bucket = getPendingImageBucket();
+  console.log("UPLOAD BUCKET (effective):", bucket);
+  console.log("UPLOAD PATH:", path);
 
   const { error: upErr } = await supabase.storage.from(bucket).upload(path, params.blob, {
     contentType: params.blob.type || "image/jpeg",
@@ -71,12 +86,15 @@ export async function uploadBrandImageToPendingFromBlob(params: {
     upsert: false,
   });
   if (upErr) {
-    throw upErr;
+    console.error("UPLOAD ERROR:", upErr);
+    throw new Error(formatUploadErrorForDisplay(upErr));
   }
 
   const { data: sign, error: signErr } = await supabase.storage.from(bucket).createSignedUrl(path, 3600);
   if (signErr || !sign?.signedUrl) {
-    throw signErr ?? new Error("signed_url_failed");
+    const wrapped = signErr ?? new Error("createSignedUrl returned no URL");
+    console.error("UPLOAD ERROR:", wrapped);
+    throw new Error(formatUploadErrorForDisplay(wrapped));
   }
 
   return { path, signedUrl: sign.signedUrl };

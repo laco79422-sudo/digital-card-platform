@@ -6,7 +6,7 @@ import {
 } from "@/lib/brandImageConstraints";
 import { optimizeImageFileToDataUrl } from "@/lib/brandImageProcess";
 import { uploadBrandImageToPendingFromDataUrl } from "@/lib/brandImagePendingUpload";
-import { getBrandImageUploadUserMessage } from "@/lib/brandImageUpload";
+import { formatUploadErrorForDisplay } from "@/lib/brandImageUploadDiagnostics";
 import { DEFAULT_CARD_PERSON_NAME, draftToPreviewBusinessCard } from "@/stores/cardEditorDraftStore";
 import { useCardEditorDraftStore } from "@/stores/cardEditorDraftStore";
 import { useAppDataStore } from "@/stores/appDataStore";
@@ -185,14 +185,11 @@ export function CardPreview({
         successClearRef.current = null;
       }, 6000);
     } catch (error) {
-      const msg = error instanceof Error ? error.message : String(error);
-      console.error("[CardPreview] 이미지 저장 실패:", msg, error);
+      console.error("UPLOAD ERROR:", error);
       setLocalImagePreview(null);
-      const detail = getBrandImageUploadUserMessage(error);
+      const detail = formatUploadErrorForDisplay(error);
       setImageMessage(
-        isGuestPreview
-          ? "이미지 저장은 회원가입 후 가능합니다. 작성한 내용은 임시저장됩니다."
-          : detail,
+        detail.trim() ? detail : "알 수 없는 업로드 오류",
       );
     }
   };
