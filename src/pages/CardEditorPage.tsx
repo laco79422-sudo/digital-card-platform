@@ -280,6 +280,7 @@ export function CardEditorPage() {
 
   const [linkRows, setLinkRows] = useState<LinkRow[]>(() => mapLinksToRows(existingLinks));
   const [submitting, setSubmitting] = useState(false);
+  const [heroImageFlowBlocksSubmit, setHeroImageFlowBlocksSubmit] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<string, string>>>({});
   const [autosaveStatus, setAutosaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [autosaveBump, setAutosaveBump] = useState(0);
@@ -1802,6 +1803,7 @@ export function CardEditorPage() {
             gateGuestHeroImagePick={isGuestRoute && !user}
             postAuthHeroImageReminder={postAuthHeroReminderOpen && !isGuestRoute && Boolean(user)}
             onDismissPostAuthHeroReminder={() => setPostAuthHeroReminderOpen(false)}
+            onHeroImageFlowBlockingChange={setHeroImageFlowBlocksSubmit}
             midSlot={
               isLiveGenerator ? (
                 <EditorFlowHint phase="mid" />
@@ -1948,7 +1950,13 @@ export function CardEditorPage() {
           >
             취소
           </Link>
-          <Button type="submit" className="w-full min-h-[52px] sm:w-auto sm:min-h-11" size="lg" loading={submitting}>
+          <Button
+            type="submit"
+            className="w-full min-h-[52px] sm:w-auto sm:min-h-11"
+            size="lg"
+            loading={submitting}
+            disabled={heroImageFlowBlocksSubmit}
+          >
             {isGuestRoute ? "이 명함 저장하기" : "명함 저장하기"}
           </Button>
         </div>
@@ -1991,7 +1999,13 @@ export function CardEditorPage() {
         <Button type="button" variant="outline" size="sm" className="min-h-11 flex-1 shrink" onClick={() => setShareExpandCue((c) => c + 1)}>
           공유
         </Button>
-        <Button type="submit" form="editor-main-form" size="sm" className="min-h-11 flex-[1.2] shrink-0 font-semibold">
+        <Button
+          type="submit"
+          form="editor-main-form"
+          size="sm"
+          className="min-h-11 flex-[1.2] shrink-0 font-semibold"
+          disabled={heroImageFlowBlocksSubmit}
+        >
           저장
         </Button>
       </nav>

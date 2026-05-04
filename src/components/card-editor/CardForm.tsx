@@ -62,6 +62,7 @@ export function CardForm({
   gateGuestHeroImagePick = false,
   postAuthHeroImageReminder = false,
   onDismissPostAuthHeroReminder,
+  onHeroImageFlowBlockingChange,
   contactLinksSlot = null,
   shareExpandCue = 0,
 }: {
@@ -78,6 +79,8 @@ export function CardForm({
   gateGuestHeroImagePick?: boolean;
   postAuthHeroImageReminder?: boolean;
   onDismissPostAuthHeroReminder?: () => void;
+  /** 대표 이미지 2단계 검증이 끝나기 전이면 true — 상위에서 명함 저장 버튼 비활성화 */
+  onHeroImageFlowBlockingChange?: (blocked: boolean) => void;
   /** 명함 버튼(링크) 편집 — 연락 카드 안에 포함 */
   contactLinksSlot?: ReactNode;
   /** 상단 헤더「공유하기」에서 증가시키면 패널이 펼쳐짐 */
@@ -429,6 +432,7 @@ export function CardForm({
         onBrandImagePersist={onBrandImagePersist}
         moderationNote={imageModerationNote}
         gateGuestPick={gateGuestHeroImagePick}
+        onHeroImageFlowBlockingChange={onHeroImageFlowBlockingChange}
         sectionAnchorId="linko-editor-hero-upload"
         defaultAdvancedOpen={false}
         compactDeleteStyle

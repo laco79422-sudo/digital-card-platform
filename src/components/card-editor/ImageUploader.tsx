@@ -1,4 +1,11 @@
 import { BrandHeroFrame } from "@/components/digital-card/BrandHeroFrame";
+import {
+  BrandImageTwoStepFlow,
+  type FirstCheckStatus,
+  type ImageSaveStatus,
+  type LineStatus,
+  type SecondCheckStatus,
+} from "@/components/card-editor/BrandImageTwoStepFlow";
 import { Button } from "@/components/ui/Button";
 import {
   BRAND_HERO_MAX_ZOOM,
@@ -9,7 +16,9 @@ import {
 } from "@/lib/brandHeroLayout";
 import {
   BRAND_IMAGE_ACCEPT,
-  validateBrandImageFile,
+  BRAND_IMAGE_FORMAT_ERROR,
+  BRAND_IMAGE_MAX_BYTES,
+  BRAND_IMAGE_SIZE_ERROR,
 } from "@/lib/brandImageConstraints";
 import { optimizeImageFileToDataUrl } from "@/lib/brandImageProcess";
 import { uploadBrandImageToPendingFromDataUrl } from "@/lib/brandImagePendingUpload";
@@ -34,6 +43,15 @@ export type BrandImagePersistPayload = {
   naturalW: number | null;
   naturalH: number | null;
 };
+
+function decodeImageObjectUrl(url: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve();
+    img.onerror = () => reject(new Error("decode"));
+    img.src = url;
+  });
+}
 
 type Props = {
   label?: string;
@@ -65,6 +83,8 @@ type Props = {
   persistBrandImageCardId?: string | null;
   getPersistBrandImageCardId?: () => string | null;
   onBrandImagePersist?: (payload: BrandImagePersistPayload) => Promise<void>;
+  /** 1차 통과 전·2차 검증 전·검증 중일 때 true — 명함 폼 최종 저장 비활성화용 */
+  onHeroImageFlowBlockingChange?: (blocked: boolean) => void;
 };
 
 export function ImageUploader({
@@ -90,23 +110,39 @@ export function ImageUploader({
   persistBrandImageCardId,
   getPersistBrandImageCardId,
   onBrandImagePersist,
+  onHeroImageFlowBlockingChange,
 }: Props) {
   const inputId = useId();
   const sessionUser = useAuthStore((s) => s.user);
   const inputRef = useRef<HTMLInputElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
-  /** 업로드 완료 전 로컬 미리보기(data URL). 업로드 성공 시 비움 */
-  const [previewDuringUpload, setPreviewDuringUpload] = useState<string | null>(null);
-  const [processing, setProcessing] = useState(false);
-  const [uploadLine, setUploadLine] = useState<string | null>(null);
-  const [uploadLineIsError, setUploadLineIsError] = useState(false);
+  const previewObjectUrlRef = useRef<string | null>(null);
+  const successClearRef = useRef<number | null>(null);
+
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [firstCheckStatus, setFirstCheckStatus] = useState<FirstCheckStatus>("idle");
+  const [lineFormat, setLineFormat] = useState<LineStatus>("idle");
+  const [lineSize, setLineSize] = useState<LineStatus>("idle");
+  const [lineExists, setLineExists] = useState<LineStatus>("idle");
+  const [linePreview, setLinePreview] = useState<LineStatus>("idle");
+  const [secondCheckStatus, setSecondCheckStatus] = useState<SecondCheckStatus>("idle");
+  const [secondAck, setSecondAck] = useState(false);
+  const [imageSaveStatus, setImageSaveStatus] = useState<ImageSaveStatus>("idle");
+  const [imageErrorMessage, setImageErrorMessage] = useState<string | null>(null);
+  /** 저장 성공 후 추가 안내(임시 미리보기 등) — 실패 메시지와 별도 */
+  const [postSaveHint, setPostSaveHint] = useState<string | null>(null);
+
   const [advancedOpen, setAdvancedOpen] = useState(defaultAdvancedOpen);
   const [removeModalOpen, setRemoveModalOpen] = useState(false);
-  const successClearRef = useRef<number | null>(null);
 
   useEffect(() => {
     setAdvancedOpen(defaultAdvancedOpen);
   }, [defaultAdvancedOpen]);
+
+  useEffect(() => {
+    if (imageFile) setAdvancedOpen(false);
+  }, [imageFile]);
 
   const [frame, setFrame] = useState({ w: 0, h: 0 });
   const dragRef = useRef({ active: false, lastX: 0, lastY: 0 });
@@ -114,6 +150,10 @@ export function ImageUploader({
   useEffect(() => {
     return () => {
       if (successClearRef.current !== null) window.clearTimeout(successClearRef.current);
+      if (previewObjectUrlRef.current) {
+        URL.revokeObjectURL(previewObjectUrlRef.current);
+        previewObjectUrlRef.current = null;
+      }
     };
   }, []);
 
@@ -128,106 +168,198 @@ export function ImageUploader({
     const r = el.getBoundingClientRect();
     setFrame({ w: r.width, h: r.height });
     return () => ro.disconnect();
-  }, [value, previewDuringUpload]);
+  }, [value]);
 
   const iw = naturalWidth ?? 0;
   const ih = naturalHeight ?? 0;
 
-  /** 미리보기/저장에 쓰는 URL — 업로드 중에는 로컬 data URL */
-  const displayUrl = previewDuringUpload ?? value;
+  const committedUrl = value;
+  const displayUrl = committedUrl;
 
-  const onPick = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const revokePreview = useCallback(() => {
+    if (previewObjectUrlRef.current) {
+      URL.revokeObjectURL(previewObjectUrlRef.current);
+      previewObjectUrlRef.current = null;
+    }
+    setPreviewUrl(null);
+  }, []);
+
+  useEffect(() => {
+    if (!imageFile) {
+      revokePreview();
+      setFirstCheckStatus("idle");
+      setLineFormat("idle");
+      setLineSize("idle");
+      setLineExists("idle");
+      setLinePreview("idle");
+      setSecondCheckStatus("idle");
+      setSecondAck(false);
+      return;
+    }
+
+    let cancelled = false;
+    const file = imageFile;
+
+    const formatOk =
+      /^image\/(jpeg|jpg|png|webp)$/i.test(file.type) || /\.(jpe?g|png|webp)$/i.test(file.name);
+    const existsOk = file.size > 0;
+    const sizeOk = existsOk && file.size <= BRAND_IMAGE_MAX_BYTES;
+
+    setFirstCheckStatus("checking");
+    setImageErrorMessage(null);
+    setSecondCheckStatus("idle");
+    setSecondAck(false);
+    setImageSaveStatus("idle");
+    setLineFormat(formatOk ? "pass" : "fail");
+    setLineSize(sizeOk ? "pass" : "fail");
+    setLineExists(existsOk ? "pass" : "fail");
+    setLinePreview("pending");
+
+    revokePreview();
+
+    if (!formatOk) {
+      setFirstCheckStatus("failed");
+      setImageErrorMessage(BRAND_IMAGE_FORMAT_ERROR);
+      setLinePreview("idle");
+      return;
+    }
+    if (!existsOk) {
+      setFirstCheckStatus("failed");
+      setImageErrorMessage("빈 파일입니다. 다른 이미지를 선택해 주세요.");
+      setLinePreview("idle");
+      return;
+    }
+    if (!sizeOk) {
+      setFirstCheckStatus("failed");
+      setImageErrorMessage(BRAND_IMAGE_SIZE_ERROR);
+      setLinePreview("idle");
+      return;
+    }
+
+    const url = URL.createObjectURL(file);
+    previewObjectUrlRef.current = url;
+
+    void decodeImageObjectUrl(url)
+      .then(() => {
+        if (cancelled) return;
+        setPreviewUrl(url);
+        setFirstCheckStatus("passed");
+        setLinePreview("pass");
+      })
+      .catch(() => {
+        if (cancelled) return;
+        URL.revokeObjectURL(url);
+        previewObjectUrlRef.current = null;
+        setFirstCheckStatus("failed");
+        setImageErrorMessage(
+          "이미지를 불러와 미리보기할 수 없습니다. 손상된 파일이거나 지원되지 않는 형식일 수 있습니다.",
+        );
+        setLinePreview("fail");
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [imageFile, revokePreview]);
+
+  useEffect(() => {
+    const blocked =
+      imageFile != null && !(firstCheckStatus === "passed" && secondCheckStatus === "passed");
+    onHeroImageFlowBlockingChange?.(blocked);
+  }, [imageFile, firstCheckStatus, secondCheckStatus, onHeroImageFlowBlockingChange]);
+
+  const scheduleSaveMessageClear = useCallback(() => {
+    if (successClearRef.current !== null) window.clearTimeout(successClearRef.current);
+    successClearRef.current = window.setTimeout(() => {
+      setImageSaveStatus("idle");
+      setImageErrorMessage(null);
+      setPostSaveHint(null);
+      successClearRef.current = null;
+    }, 7000);
+  }, []);
+
+  const cancelSelection = useCallback(() => {
+    setImageFile(null);
+    setImageSaveStatus("idle");
+    setImageErrorMessage(null);
+    setPostSaveHint(null);
+    setSecondAck(false);
+    setSecondCheckStatus("idle");
+    if (inputRef.current) inputRef.current.value = "";
+  }, []);
+
+  const onPick = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
+    setImageSaveStatus("idle");
+    setImageErrorMessage(null);
+    setPostSaveHint(null);
+    setImageFile(file);
+  };
 
-    const valid = validateBrandImageFile(file);
-    if (!valid.ok) {
-      setUploadLineIsError(true);
-      setUploadLine(valid.message);
-      setPreviewDuringUpload(null);
-      return;
-    }
+  const confirmApply = async () => {
+    if (!imageFile || firstCheckStatus !== "passed" || !secondAck) return;
 
-    if (gateGuestPick) {
-      setProcessing(true);
-      setUploadLineIsError(false);
-      setUploadLine("이미지를 불러오는 중...");
-      try {
-        const { dataUrl, width, height } = await optimizeImageFileToDataUrl(file);
-        setPreviewDuringUpload(dataUrl);
+    setImageSaveStatus("saving");
+    setImageErrorMessage(null);
+
+    try {
+      const { dataUrl, width, height } = await optimizeImageFileToDataUrl(imageFile);
+
+      if (gateGuestPick) {
         onUrlChange(dataUrl, { reset: true, naturalW: width, naturalH: height });
-        setPreviewDuringUpload(null);
-        setUploadLine(
+        setSecondCheckStatus("passed");
+        setImageSaveStatus("saved");
+        setPostSaveHint(
           "비회원: 이 기기에서만 미리보기입니다. 서버 업로드 없음(로그인 후 저장·검수 업로드 가능).",
         );
+        setImageFile(null);
         console.log("[ImageUploader] guest — local preview only, no Supabase storage");
-        if (successClearRef.current !== null) window.clearTimeout(successClearRef.current);
-        successClearRef.current = window.setTimeout(() => {
-          setUploadLine(null);
-          successClearRef.current = null;
-        }, 7000);
-      } catch (err) {
-        console.error("UPLOAD ERROR:", err);
-        setUploadLineIsError(true);
-        setPreviewDuringUpload(null);
-        const line = formatUploadErrorForDisplay(err);
-        setUploadLine(line || uploadFailMessage);
-      } finally {
-        setProcessing(false);
+        scheduleSaveMessageClear();
+        return;
       }
-      return;
-    }
-
-    setProcessing(true);
-    setUploadLineIsError(false);
-    setUploadLine("이미지를 업로드하고 있습니다...");
-    try {
-      const { dataUrl, width, height } = await optimizeImageFileToDataUrl(file);
-      setPreviewDuringUpload(dataUrl);
 
       const cardId = getPersistBrandImageCardId?.() ?? persistBrandImageCardId ?? null;
       const usePendingBucket = Boolean(sessionUser?.id && cardId && onBrandImagePersist);
 
       if (usePendingBucket && cardId) {
-        const { path, signedUrl } = await uploadBrandImageToPendingFromDataUrl(dataUrl, file.name, cardId);
+        const { path, signedUrl } = await uploadBrandImageToPendingFromDataUrl(dataUrl, imageFile.name, cardId);
         onUrlChange(signedUrl, { reset: true, naturalW: width, naturalH: height });
-        setPreviewDuringUpload(null);
         await onBrandImagePersist?.({
           displayUrl: signedUrl,
           pendingPath: path,
           naturalW: width,
           naturalH: height,
         });
-        setUploadLine("이미지가 업로드되었습니다. 검수 후 공개됩니다.");
-        if (successClearRef.current !== null) window.clearTimeout(successClearRef.current);
-        successClearRef.current = window.setTimeout(() => {
-          setUploadLine(null);
-          successClearRef.current = null;
-        }, 6000);
-      } else if (!gateGuestPick) {
-        onUrlChange(dataUrl, { reset: true, naturalW: width, naturalH: height });
-        setPreviewDuringUpload(null);
-        const cardIdMissing = !cardId;
-        setUploadLine(
-          cardIdMissing && sessionUser?.id
-            ? "임시 미리보기입니다. 명함을 저장한 뒤 같은 화면에서 다시 선택하면 검수 대기 업로드가 됩니다."
-            : "미리보기만 반영되었습니다. 저장 후 다시 시도해 주세요.",
-        );
-        if (successClearRef.current !== null) window.clearTimeout(successClearRef.current);
-        successClearRef.current = window.setTimeout(() => {
-          setUploadLine(null);
-          successClearRef.current = null;
-        }, 7000);
+        setSecondCheckStatus("passed");
+        setImageSaveStatus("saved");
+        setPostSaveHint("이미지가 업로드되었습니다. 검수 후 공개됩니다.");
+        setImageFile(null);
+        scheduleSaveMessageClear();
+        return;
       }
+
+      onUrlChange(dataUrl, { reset: true, naturalW: width, naturalH: height });
+      setSecondCheckStatus("passed");
+      setImageSaveStatus("saved");
+      setImageFile(null);
+      const cardIdMissing = !cardId;
+      if (cardIdMissing && sessionUser?.id) {
+        setPostSaveHint(
+          "임시 미리보기입니다. 명함을 저장한 뒤 같은 화면에서 다시 선택하면 검수 대기 업로드가 됩니다.",
+        );
+      } else if (!sessionUser?.id) {
+        setPostSaveHint("미리보기만 반영되었습니다. 저장 후 다시 시도해 주세요.");
+      } else {
+        setPostSaveHint(null);
+      }
+      scheduleSaveMessageClear();
     } catch (err) {
       console.error("UPLOAD ERROR:", err);
-      setUploadLineIsError(true);
-      setPreviewDuringUpload(null);
+      setImageSaveStatus("failed");
       const line = formatUploadErrorForDisplay(err);
-      setUploadLine(line?.trim() ? line : uploadFailMessage);
-    } finally {
-      setProcessing(false);
+      setImageErrorMessage(line?.trim() ? line : uploadFailMessage);
     }
   };
 
@@ -303,9 +435,7 @@ export function ImageUploader({
 
   const clearImageConfirmed = () => {
     setRemoveModalOpen(false);
-    setPreviewDuringUpload(null);
-    setUploadLine(null);
-    setUploadLineIsError(false);
+    cancelSelection();
     onUrlChange(null, { reset: true, naturalW: null, naturalH: null });
   };
 
@@ -317,6 +447,14 @@ export function ImageUploader({
   const openFilePicker = () => {
     inputRef.current?.click();
   };
+
+  const checking = firstCheckStatus === "checking";
+  const saving = imageSaveStatus === "saving";
+  const filePickDisabled = checking || saving;
+
+  const showHeroBlock = Boolean(displayUrl);
+  const showEmptyPlaceholder = !displayUrl && !imageFile;
+  const advancedActive = advancedOpen && !imageFile;
 
   return (
     <div className={cn("space-y-3", sectionAnchorId && "scroll-mt-24")} id={sectionAnchorId}>
@@ -337,43 +475,80 @@ export function ImageUploader({
       <label className="text-base font-medium text-slate-800" htmlFor={inputId}>
         {label}
       </label>
-      <p className="text-xs text-slate-500">
-        JPG · PNG · WEBP · 최대 5MB · 업로드 시 긴 변 기준 최대 1920px로 최적화됩니다
-      </p>
       {moderationNote ? (
         <p className="rounded-lg border border-amber-200/90 bg-amber-50/80 px-3 py-2 text-xs font-medium text-amber-950">
           {moderationNote}
         </p>
       ) : null}
-      <input
-        id={inputId}
-        ref={inputRef}
-        type="file"
-        accept={BRAND_IMAGE_ACCEPT}
-        className="sr-only"
-        onChange={onPick}
+
+      <div className="rounded-xl border border-slate-200/90 bg-slate-50/50 p-4 sm:p-5">
+        <h3 className="text-sm font-bold text-slate-900">[1] 이미지 업로드</h3>
+        <p className="mt-2 text-xs leading-relaxed text-slate-600 sm:text-sm">
+          JPG · JPEG · PNG · WEBP · 최대 5MB · 업로드 시 긴 변 기준 최대 1920px로 최적화됩니다. 파일을 고른 뒤 1차 검사와 2차 검증을 거쳐야
+          명함에 반영됩니다.
+        </p>
+        <input
+          id={inputId}
+          ref={inputRef}
+          type="file"
+          accept={BRAND_IMAGE_ACCEPT}
+          className="sr-only"
+          onChange={onPick}
+        />
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <Button type="button" variant="secondary" className="min-h-11" disabled={filePickDisabled} onClick={openFilePicker}>
+            {checking ? "1차 검사 중…" : saving ? "저장 중…" : "파일 선택"}
+          </Button>
+        </div>
+      </div>
+
+      {imageFile && committedUrl ? (
+        <p className="text-xs font-medium text-slate-600">
+          아래 검증을 완료하고 저장하기 전까지는 명함 미리보기에 기존 이미지가 그대로 표시됩니다.
+        </p>
+      ) : null}
+
+      <BrandImageTwoStepFlow
+        imageFile={imageFile}
+        previewUrl={previewUrl}
+        firstCheckStatus={firstCheckStatus}
+        secondCheckStatus={secondCheckStatus}
+        imageSaveStatus={imageSaveStatus}
+        imageErrorMessage={imageErrorMessage}
+        lineFormat={lineFormat}
+        lineSize={lineSize}
+        lineExists={lineExists}
+        linePreview={linePreview}
+        secondAck={secondAck}
+        onSecondAckChange={setSecondAck}
+        onConfirmApply={() => void confirmApply()}
+        onCancelSelection={cancelSelection}
       />
 
-      {displayUrl ? (
+      {postSaveHint && imageSaveStatus === "saved" ? (
+        <p className="text-xs font-medium text-slate-600">{postSaveHint}</p>
+      ) : null}
+
+      {showHeroBlock ? (
         <div
           ref={frameRef}
-            className={cn(
-              "relative w-full max-w-2xl overflow-hidden rounded-2xl border-2 border-slate-200 bg-slate-900/10 shadow-inner",
-              "aspect-video touch-none select-none",
-              !advancedOpen && "pointer-events-none",
-            )}
+          className={cn(
+            "relative w-full max-w-2xl overflow-hidden rounded-2xl border-2 border-slate-200 bg-slate-900/10 shadow-inner",
+            "aspect-video touch-none select-none",
+            !advancedActive && "pointer-events-none",
+          )}
           style={{ touchAction: "none" }}
-          onPointerDown={advancedOpen ? onPointerDownFrame : undefined}
-          onPointerMove={advancedOpen ? onPointerMoveFrame : undefined}
-          onPointerUp={advancedOpen ? endDrag : undefined}
-          onPointerCancel={advancedOpen ? endDrag : undefined}
-          onWheel={advancedOpen ? onWheelFrame : undefined}
-          role={advancedOpen ? "application" : "img"}
-          aria-label={advancedOpen ? "대표 이미지 구도 조정" : "대표 이미지 미리보기"}
+          onPointerDown={advancedActive ? onPointerDownFrame : undefined}
+          onPointerMove={advancedActive ? onPointerMoveFrame : undefined}
+          onPointerUp={advancedActive ? endDrag : undefined}
+          onPointerCancel={advancedActive ? endDrag : undefined}
+          onWheel={advancedActive ? onWheelFrame : undefined}
+          role={advancedActive ? "application" : "img"}
+          aria-label={advancedActive ? "대표 이미지 구도 조정" : "대표 이미지 미리보기"}
         >
           <BrandHeroFrame
             className="absolute inset-0 h-full w-full"
-            imageUrl={displayUrl}
+            imageUrl={displayUrl!}
             naturalWidth={iw}
             naturalHeight={ih}
             zoom={clampZoom(zoom)}
@@ -383,33 +558,29 @@ export function ImageUploader({
             onNaturalMeasured={onNaturalMeasured}
             imgLoading="eager"
           />
-          {!advancedOpen ? (
+          {!advancedActive ? (
             <p className="pointer-events-none absolute bottom-2 left-1/2 max-w-[90%] -translate-x-1/2 rounded-md bg-black/45 px-2 py-1 text-center text-[10px] font-medium text-white sm:text-xs">
-              구도 조정은 &quot;고급 이미지 조정&quot;을 연 뒤 사용하세요.
+              {imageFile
+                ? "새 이미지는 아래 검증을 완료한 뒤 반영됩니다."
+                : "구도 조정은 &quot;고급 이미지 조정&quot;을 연 뒤 사용하세요."}
             </p>
           ) : null}
         </div>
-      ) : (
+      ) : showEmptyPlaceholder ? (
         <span className="flex items-center gap-2 text-sm text-slate-500">
           <ImageIcon className="h-4 w-4 shrink-0 opacity-70" aria-hidden />
           등록된 이미지 없음
         </span>
-      )}
+      ) : null}
 
-      <div className="flex flex-wrap items-center gap-2">
-        <Button
-          type="button"
-          variant="secondary"
-          className="min-h-11"
-          disabled={processing}
-          onClick={openFilePicker}
-        >
-          {processing ? "이미지를 업로드하고 있습니다..." : "파일 선택"}
-        </Button>
-        {displayUrl ? (
+      {showHeroBlock && !imageFile ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <Button type="button" variant="outline" size="sm" className="min-h-11" disabled={filePickDisabled} onClick={openFilePicker}>
+            다른 이미지로 바꾸기
+          </Button>
           <button
             type="button"
-            disabled={processing}
+            disabled={filePickDisabled}
             onClick={() => setRemoveModalOpen(true)}
             className={cn(
               "text-xs font-semibold underline-offset-2 hover:underline disabled:opacity-50",
@@ -420,21 +591,10 @@ export function ImageUploader({
           >
             이미지 제거
           </button>
-        ) : null}
-      </div>
-      {uploadLine ? (
-        <p
-          className={cn(
-            "text-sm font-medium break-words",
-            uploadLineIsError ? "text-red-600" : "text-brand-700",
-          )}
-          role="status"
-        >
-          {uploadLine}
-        </p>
+        </div>
       ) : null}
 
-      {displayUrl ? (
+      {showHeroBlock && !imageFile ? (
         <div className="max-w-2xl">
           <button
             type="button"
@@ -501,12 +661,10 @@ export function ImageUploader({
 
               <div className="space-y-2 rounded-lg border border-slate-100 bg-slate-50/80 px-3 py-3 text-xs leading-relaxed text-slate-600 sm:text-sm">
                 <p className="break-keep">
-                  <strong className="font-medium text-slate-700">처음 업로드하면</strong> 사진 전체가 16:9 프레임 안에
-                  한 번에 보이도록 맞춰져요.
+                  <strong className="font-medium text-slate-700">처음 업로드하면</strong> 사진 전체가 16:9 프레임 안에 한 번에 보이도록
+                  맞춰져요.
                 </p>
-                <p className="break-keep">
-                  명함 미리보기와 같은 비율(16:9)로 표시됩니다.
-                </p>
+                <p className="break-keep">명함 미리보기와 같은 비율(16:9)로 표시됩니다.</p>
               </div>
             </div>
           ) : null}
