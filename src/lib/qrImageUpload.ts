@@ -1,6 +1,8 @@
 import { getCardImageBucket } from "@/lib/brandImageUpload";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase/client";
 
+const LOG_PREFIX = "[qrImageUpload]";
+
 function dataUrlToBlob(dataUrl: string): Blob {
   const [meta, encoded] = dataUrl.split(",");
   if (!meta || !encoded) throw new Error("Invalid data URL");
@@ -24,10 +26,21 @@ export async function uploadQrImageDataUrl(cardId: string, pngDataUrl: string): 
   }
 
   const blob = dataUrlToBlob(pngDataUrl);
-  const { data: userData } = await supabase.auth.getUser();
-  const owner = safeSeg(userData.user?.id ?? "guest");
+  const { data: authData, error: getUserError } = await supabase.auth.getUser();
+  console.info(`${LOG_PREFIX} supabase.auth.getUser():`, { data: authData, error: getUserError });
+  console.info(`${LOG_PREFIX} user.id:`, authData.user?.id ?? "(없음)");
+  console.info(`${LOG_PREFIX} user.email:`, authData.user?.email ?? "(없음)");
+
+  const owner = safeSeg(authData.user?.id ?? "guest");
   const bucket = getCardImageBucket();
   const path = `${owner}/qr-${safeSeg(cardId)}.png`;
+
+  console.info(`${LOG_PREFIX} bucket / path:`, bucket, path);
+  console.info(`${LOG_PREFIX} 업로드 직전:`, {
+    로그인여부: Boolean(authData.user?.id),
+    blobSize_bytes: blob.size,
+    mime: blob.type,
+  });
 
   const { error } = await supabase.storage.from(bucket).upload(path, blob, {
     contentType: "image/png",
@@ -36,7 +49,12 @@ export async function uploadQrImageDataUrl(cardId: string, pngDataUrl: string): 
   });
 
   if (error) {
-    console.error("[qrImageUpload] 업로드 실패:", error.message, error);
+    console.error(`${LOG_PREFIX} Supabase Storage upload error (전체):`, error);
+    try {
+      console.error(`${LOG_PREFIX} error JSON:`, JSON.stringify(error, Object.getOwnPropertyNames(error)));
+    } catch {
+      /* ignore */
+    }
     throw error;
   }
 

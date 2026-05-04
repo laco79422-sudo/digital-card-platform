@@ -5,7 +5,7 @@ import {
   validateBrandImageFile,
 } from "@/lib/brandImageConstraints";
 import { optimizeImageFileToDataUrl } from "@/lib/brandImageProcess";
-import { uploadBrandImageDataUrl } from "@/lib/brandImageUpload";
+import { getBrandImageUploadUserMessage, uploadBrandImageDataUrl } from "@/lib/brandImageUpload";
 import { DEFAULT_CARD_PERSON_NAME, draftToPreviewBusinessCard } from "@/stores/cardEditorDraftStore";
 import { useCardEditorDraftStore } from "@/stores/cardEditorDraftStore";
 import { useAuthStore } from "@/stores/authStore";
@@ -134,10 +134,11 @@ export function CardPreview({
       const msg = error instanceof Error ? error.message : String(error);
       console.error("[CardPreview] 이미지 저장 실패:", msg, error);
       setLocalImagePreview(null);
+      const detail = getBrandImageUploadUserMessage(error);
       setImageMessage(
         isGuestPreview
           ? "이미지 저장은 회원가입 후 가능합니다. 작성한 내용은 임시저장됩니다."
-          : "이미지 저장에 실패했습니다. 저장소 설정을 확인해 주세요.",
+          : detail,
       );
     }
   };

@@ -12,7 +12,7 @@ import {
   validateBrandImageFile,
 } from "@/lib/brandImageConstraints";
 import { optimizeImageFileToDataUrl } from "@/lib/brandImageProcess";
-import { uploadBrandImageDataUrl } from "@/lib/brandImageUpload";
+import { getBrandImageUploadUserMessage, uploadBrandImageDataUrl } from "@/lib/brandImageUpload";
 import { cn } from "@/lib/utils";
 import { ImageIcon, Minus, Move, Plus, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
@@ -162,7 +162,7 @@ export function ImageUploader({
       const msg = err instanceof Error ? err.message : String(err);
       console.error("[ImageUploader] 이미지 저장 실패:", msg, err);
       setPreviewDuringUpload(null);
-      setUploadLine(uploadFailMessage);
+      setUploadLine(getBrandImageUploadUserMessage(err) || uploadFailMessage);
     } finally {
       setProcessing(false);
     }
