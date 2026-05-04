@@ -12,8 +12,10 @@ import {
   validateBrandImageFile,
 } from "@/lib/brandImageConstraints";
 import { optimizeImageFileToDataUrl } from "@/lib/brandImageProcess";
-import { getBrandImageUploadUserMessage, uploadBrandImageDataUrl } from "@/lib/brandImageUpload";
+import { getBrandImageUploadUserMessage } from "@/lib/brandImageUpload";
+import { uploadBrandImageToPendingFromDataUrl } from "@/lib/brandImagePendingUpload";
 import { cn } from "@/lib/utils";
+import { useAuthStore } from "@/stores/authStore";
 import { ImageIcon, Minus, Move, Plus, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 
@@ -24,7 +26,10 @@ type UrlMeta = {
 };
 
 export type BrandImagePersistPayload = {
-  publicUrl: string;
+  /** 편집기·미리보기용 (signed URL 또는 blob) */
+  displayUrl: string;
+  /** private 버킷 객체 경로 — null이면 서버에 히어로를 저장하지 않음(로컬만) */
+  pendingPath: string | null;
   naturalW: number | null;
   naturalH: number | null;
 };
@@ -52,6 +57,7 @@ type Props = {
   uploadFailMessage?: string;
   /** 스크롤용 앵커 id · scroll-mt-24 클래스 적용 */
   sectionAnchorId?: string;
+  moderationNote?: string | null;
   /** 저장된 명함이 있으면 업로드 직후 원격 DB에도 반영 — ID가 준비될 때까지 지연 필요 시 getter 사용 */
   persistBrandImageCardId?: string | null;
   getPersistBrandImageCardId?: () => string | null;
@@ -76,11 +82,13 @@ export function ImageUploader({
   onGuestPickBlocked,
   uploadFailMessage = "이미지 저장에 실패했습니다. 저장소 설정을 확인해 주세요.",
   sectionAnchorId,
+  moderationNote,
   persistBrandImageCardId,
   getPersistBrandImageCardId,
   onBrandImagePersist,
 }: Props) {
   const inputId = useId();
+  const sessionUser = useAuthStore((s) => s.user);
   const inputRef = useRef<HTMLInputElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
   /** 업로드 완료 전 로컬 미리보기(data URL). 업로드 성공 시 비움 */
@@ -139,25 +147,40 @@ export function ImageUploader({
       const { dataUrl, width, height } = await optimizeImageFileToDataUrl(file);
       setPreviewDuringUpload(dataUrl);
 
-      const publicUrl = await uploadBrandImageDataUrl(dataUrl, file.name);
-      onUrlChange(publicUrl, { reset: true, naturalW: width, naturalH: height });
-      setPreviewDuringUpload(null);
+      const cardId = getPersistBrandImageCardId?.() ?? persistBrandImageCardId ?? null;
+      const usePendingBucket = Boolean(sessionUser?.id && cardId && onBrandImagePersist);
 
-      const id = getPersistBrandImageCardId?.() ?? persistBrandImageCardId ?? null;
-      if (id && onBrandImagePersist) {
-        await onBrandImagePersist({
-          publicUrl,
+      if (usePendingBucket && cardId) {
+        const { path, signedUrl } = await uploadBrandImageToPendingFromDataUrl(dataUrl, file.name, cardId);
+        onUrlChange(signedUrl, { reset: true, naturalW: width, naturalH: height });
+        setPreviewDuringUpload(null);
+        await onBrandImagePersist?.({
+          displayUrl: signedUrl,
+          pendingPath: path,
           naturalW: width,
           naturalH: height,
         });
+        setUploadLine("이미지가 업로드되었습니다. 검수 후 공개됩니다.");
+        if (successClearRef.current !== null) window.clearTimeout(successClearRef.current);
+        successClearRef.current = window.setTimeout(() => {
+          setUploadLine(null);
+          successClearRef.current = null;
+        }, 6000);
+      } else if (!gateGuestPick) {
+        onUrlChange(dataUrl, { reset: true, naturalW: width, naturalH: height });
+        setPreviewDuringUpload(null);
+        const cardIdMissing = !cardId;
+        setUploadLine(
+          cardIdMissing && sessionUser?.id
+            ? "임시 미리보기입니다. 명함을 저장한 뒤 같은 화면에서 다시 선택하면 검수 대기 업로드가 됩니다."
+            : "미리보기만 반영되었습니다. 저장 후 다시 시도해 주세요.",
+        );
+        if (successClearRef.current !== null) window.clearTimeout(successClearRef.current);
+        successClearRef.current = window.setTimeout(() => {
+          setUploadLine(null);
+          successClearRef.current = null;
+        }, 7000);
       }
-
-      setUploadLine("이미지가 저장되었습니다.");
-      if (successClearRef.current !== null) window.clearTimeout(successClearRef.current);
-      successClearRef.current = window.setTimeout(() => {
-        setUploadLine(null);
-        successClearRef.current = null;
-      }, 4000);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       console.error("[ImageUploader] 이미지 저장 실패:", msg, err);
@@ -260,6 +283,11 @@ export function ImageUploader({
       <p className="text-xs text-slate-500">
         JPG · PNG · WEBP · 최대 5MB · 업로드 시 긴 변 기준 최대 1920px로 최적화됩니다
       </p>
+      {moderationNote ? (
+        <p className="rounded-lg border border-amber-200/90 bg-amber-50/80 px-3 py-2 text-xs font-medium text-amber-950">
+          {moderationNote}
+        </p>
+      ) : null}
       <input
         id={inputId}
         ref={inputRef}

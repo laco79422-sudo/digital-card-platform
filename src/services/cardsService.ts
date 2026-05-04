@@ -69,6 +69,10 @@ const BUSINESS_CARD_REMOTE_KEYS = [
   "industry",
   "card_industry",
   "auto_image_url",
+  "brand_image_status",
+  "brand_image_pending_path",
+  "brand_image_reject_reason",
+  "brand_image_pending_uploaded_at",
 ] as const satisfies ReadonlyArray<keyof BusinessCard>;
 
 export function pickBusinessCardForRemote(card: BusinessCard): BusinessCard {
@@ -419,6 +423,10 @@ export async function patchCardBrandHeroRemote(
       | "brand_image_pan_x"
       | "brand_image_pan_y"
       | "brand_image_object_position"
+      | "brand_image_status"
+      | "brand_image_pending_path"
+      | "brand_image_reject_reason"
+      | "brand_image_pending_uploaded_at"
     >
   >,
 ): Promise<boolean> {
@@ -435,6 +443,10 @@ export async function patchCardBrandHeroRemote(
     "brand_image_pan_x",
     "brand_image_pan_y",
     "brand_image_object_position",
+    "brand_image_status",
+    "brand_image_pending_path",
+    "brand_image_reject_reason",
+    "brand_image_pending_uploaded_at",
   ] as const;
   for (const key of keys) {
     if (patch[key] !== undefined) row[key] = patch[key];

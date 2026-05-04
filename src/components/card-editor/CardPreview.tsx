@@ -5,9 +5,11 @@ import {
   validateBrandImageFile,
 } from "@/lib/brandImageConstraints";
 import { optimizeImageFileToDataUrl } from "@/lib/brandImageProcess";
-import { getBrandImageUploadUserMessage, uploadBrandImageDataUrl } from "@/lib/brandImageUpload";
+import { uploadBrandImageToPendingFromDataUrl } from "@/lib/brandImagePendingUpload";
+import { getBrandImageUploadUserMessage } from "@/lib/brandImageUpload";
 import { DEFAULT_CARD_PERSON_NAME, draftToPreviewBusinessCard } from "@/stores/cardEditorDraftStore";
 import { useCardEditorDraftStore } from "@/stores/cardEditorDraftStore";
+import { useAppDataStore } from "@/stores/appDataStore";
 import { useAuthStore } from "@/stores/authStore";
 import type { CardLink, CardLinkType } from "@/types/domain";
 import { useEffect, useRef, useState } from "react";
@@ -60,6 +62,7 @@ export function CardPreview({
   const draft = useCardEditorDraftStore((s) => s.draft);
   const setDraft = useCardEditorDraftStore((s) => s.setDraft);
   const user = useAuthStore((s) => s.user);
+  const businessCards = useAppDataStore((s) => s.businessCards);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [localImagePreview, setLocalImagePreview] = useState<string | null>(null);
@@ -106,11 +109,67 @@ export function CardPreview({
       const { dataUrl, width, height } = await optimizeImageFileToDataUrl(file);
       setLocalImagePreview(dataUrl);
 
-      const publicUrl = await uploadBrandImageDataUrl(dataUrl, file.name);
+      if (isGuestPreview) {
+        setDraft({
+          imageUrl: dataUrl,
+          brand_image_url: dataUrl,
+          brand_image_natural_width: width,
+          brand_image_natural_height: height,
+          brand_image_zoom: 1,
+          brand_image_pan_x: 0,
+          brand_image_pan_y: 0,
+          brand_image_legacy_object_position: null,
+        });
+        setLocalImagePreview(null);
+        setImageMessage("로컬 미리보기입니다. 저장·공유는 로그인 후 가능합니다.");
+        if (successClearRef.current !== null) window.clearTimeout(successClearRef.current);
+        successClearRef.current = window.setTimeout(() => {
+          setImageMessage(null);
+          successClearRef.current = null;
+        }, 5000);
+        return;
+      }
+
+      const cardId = existingCardId?.trim();
+      const prevRow = cardId ? businessCards.find((c) => c.id === cardId) : null;
+      const approvedKeep =
+        prevRow?.brand_image_url?.trim() || prevRow?.image_url?.trim() || prevRow?.imageUrl?.trim() || null;
+
+      if (user?.id && cardId && persistUploadedHero) {
+        const { path, signedUrl } = await uploadBrandImageToPendingFromDataUrl(dataUrl, file.name, cardId);
+        setDraft({
+          imageUrl: signedUrl,
+          brand_image_url: signedUrl,
+          brand_image_status: "pending",
+          brand_image_pending_path: path,
+          brand_image_reject_reason: null,
+          approved_public_hero_url: approvedKeep,
+          brand_image_natural_width: width,
+          brand_image_natural_height: height,
+          brand_image_zoom: 1,
+          brand_image_pan_x: 0,
+          brand_image_pan_y: 0,
+          brand_image_legacy_object_position: null,
+        });
+        await persistUploadedHero({
+          displayUrl: signedUrl,
+          pendingPath: path,
+          naturalW: width,
+          naturalH: height,
+        });
+        setLocalImagePreview(null);
+        setImageMessage("이미지가 업로드되었습니다. 검수 후 공개됩니다.");
+        if (successClearRef.current !== null) window.clearTimeout(successClearRef.current);
+        successClearRef.current = window.setTimeout(() => {
+          setImageMessage(null);
+          successClearRef.current = null;
+        }, 5000);
+        return;
+      }
 
       setDraft({
-        imageUrl: publicUrl,
-        brand_image_url: publicUrl,
+        imageUrl: dataUrl,
+        brand_image_url: dataUrl,
         brand_image_natural_width: width,
         brand_image_natural_height: height,
         brand_image_zoom: 1,
@@ -118,18 +177,13 @@ export function CardPreview({
         brand_image_pan_y: 0,
         brand_image_legacy_object_position: null,
       });
-
-      if (!isGuestPreview && persistUploadedHero) {
-        await persistUploadedHero({ publicUrl, naturalW: width, naturalH: height });
-      }
-
       setLocalImagePreview(null);
-      setImageMessage("이미지가 저장되었습니다.");
+      setImageMessage("임시 미리보기입니다. 명함을 저장한 뒤 이미지를 서버에 올리면 검수를 거칩니다.");
       if (successClearRef.current !== null) window.clearTimeout(successClearRef.current);
       successClearRef.current = window.setTimeout(() => {
         setImageMessage(null);
         successClearRef.current = null;
-      }, 4000);
+      }, 6000);
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
       console.error("[CardPreview] 이미지 저장 실패:", msg, error);
@@ -147,6 +201,10 @@ export function CardPreview({
     setDraft({
       imageUrl: null,
       brand_image_url: null,
+      approved_public_hero_url: null,
+      brand_image_status: null,
+      brand_image_pending_path: null,
+      brand_image_reject_reason: null,
       brand_image_natural_width: null,
       brand_image_natural_height: null,
       brand_image_zoom: 1,
@@ -187,7 +245,7 @@ export function CardPreview({
         hideSticky
         qrDataUrl={null}
         previewVariant={draft.card_type}
-        imageUrlOverride={localImagePreview}
+        imageUrlOverride={localImagePreview ?? draft.imageUrl}
         imageHelperText={imageMessage}
         onEmptyImageClick={
           isGuestPreview && onGuestHeroImageBlocked ? () => onGuestHeroImageBlocked() : () => fileInputRef.current?.click()

@@ -70,6 +70,11 @@ export type CardEditorDraft = {
   og_image_url: string | null;
   /** 이미지형 히어로 상단 큰 제목 — 한 줄 소개(tagline)·본문(intro)과 별개 */
   marketing_title: string;
+  /** DB 동기화용: pending·rejected일 때 마지막 승인된 공개 URL */
+  approved_public_hero_url: string | null;
+  brand_image_status: BusinessCard["brand_image_status"];
+  brand_image_pending_path: string | null;
+  brand_image_reject_reason: string | null;
 };
 
 function emptyServiceRows(): DigitalCardServiceLine[] {
@@ -152,6 +157,20 @@ export function mergeDraftDefaults(
       partialRest.brand_image_legacy_object_position !== undefined
         ? partialRest.brand_image_legacy_object_position
         : base.brand_image_legacy_object_position ?? null,
+    approved_public_hero_url:
+      partialRest.approved_public_hero_url !== undefined
+        ? partialRest.approved_public_hero_url
+        : base.approved_public_hero_url,
+    brand_image_status:
+      partialRest.brand_image_status !== undefined ? partialRest.brand_image_status : base.brand_image_status,
+    brand_image_pending_path:
+      partialRest.brand_image_pending_path !== undefined
+        ? partialRest.brand_image_pending_path
+        : base.brand_image_pending_path,
+    brand_image_reject_reason:
+      partialRest.brand_image_reject_reason !== undefined
+        ? partialRest.brand_image_reject_reason
+        : base.brand_image_reject_reason,
     design_type: normalizeCardDesignType(partialRest.design_type ?? base.design_type),
   };
 }
@@ -194,6 +213,10 @@ export function createEmptyDraft(overrides: Partial<CardEditorDraft> = {}): Card
     og_image_url: null,
     marketing_title: "",
     card_industry: null,
+    approved_public_hero_url: null,
+    brand_image_status: null,
+    brand_image_pending_path: null,
+    brand_image_reject_reason: null,
     ...overrides,
   };
 }
@@ -206,6 +229,21 @@ export function draftFromBusinessCard(card: BusinessCard): CardEditorDraft {
   };
   const svc = card.services?.length ? [...card.services] : [];
   while (svc.length < 3) svc.push({ title: "", body: "" });
+  const st = card.brand_image_status;
+  const pendingPath = card.brand_image_pending_path?.trim() || null;
+  const mergedHero =
+    card.image_url?.trim() ||
+    card.profile_image_url?.trim() ||
+    card.imageUrl?.trim() ||
+    card.brand_image_url?.trim() ||
+    imageAliases.profileImageUrl?.trim() ||
+    imageAliases.logoUrl?.trim() ||
+    null;
+  const editorHero = st === "pending" && pendingPath ? null : mergedHero;
+  const approvedPub =
+    st === "pending" || st === "rejected"
+      ? card.brand_image_url?.trim() || card.image_url?.trim() || null
+      : null;
   return {
     brand_name: card.brand_name,
     person_name: card.person_name,
@@ -234,22 +272,8 @@ export function draftFromBusinessCard(card: BusinessCard): CardEditorDraft {
     ),
     gallery_urls_raw: card.gallery_urls?.join("\n") ?? "",
     services: svc.slice(0, 5),
-    imageUrl:
-      card.image_url?.trim() ||
-      card.profile_image_url?.trim() ||
-      card.imageUrl?.trim() ||
-      card.brand_image_url?.trim() ||
-      imageAliases.profileImageUrl?.trim() ||
-      imageAliases.logoUrl?.trim() ||
-      null,
-    brand_image_url:
-      card.image_url?.trim() ||
-      card.profile_image_url?.trim() ||
-      card.imageUrl?.trim() ||
-      card.brand_image_url?.trim() ||
-      imageAliases.profileImageUrl?.trim() ||
-      imageAliases.logoUrl?.trim() ||
-      null,
+    imageUrl: editorHero,
+    brand_image_url: editorHero,
     brand_image_frame_ratio: card.brand_image_frame_ratio?.trim() || "16:9",
     brand_image_natural_width: card.brand_image_natural_width ?? null,
     brand_image_natural_height: card.brand_image_natural_height ?? null,
@@ -269,6 +293,10 @@ export function draftFromBusinessCard(card: BusinessCard): CardEditorDraft {
     auto_image_url: card.auto_image_url?.trim() || null,
     og_image_url: card.og_image_url?.trim() || null,
     marketing_title: card.marketing_title?.trim() ?? "",
+    approved_public_hero_url: approvedPub,
+    brand_image_status: st ?? null,
+    brand_image_pending_path: pendingPath,
+    brand_image_reject_reason: card.brand_image_reject_reason?.trim() ?? null,
   };
 }
 
@@ -282,9 +310,20 @@ export function draftToPreviewBusinessCard(
     user_id: meta.userId,
     created_at: meta.createdAt ?? new Date().toISOString(),
   });
+  const display = (draft.imageUrl ?? draft.brand_image_url)?.trim() || null;
+  const slug = base.slug || "preview";
+  if ((draft.brand_image_status === "pending" || draft.brand_image_status === "rejected") && display) {
+    return {
+      ...base,
+      slug,
+      imageUrl: display,
+      brand_image_url: display,
+      image_url: display,
+    };
+  }
   return {
     ...base,
-    slug: base.slug || "preview",
+    slug,
   };
 }
 
@@ -313,7 +352,13 @@ export function draftToBusinessCard(
   const trust_testimonials = trimmedTestimonials.length > 0 ? trimmedTestimonials : null;
   const trust_line = trimmedTestimonials[0]?.quote ?? null;
   const trust_metric = draft.trust_metric.trim() || null;
-  const imageUrl = (draft.imageUrl ?? draft.brand_image_url)?.trim() || null;
+  const userFacing = (draft.imageUrl ?? draft.brand_image_url)?.trim() || null;
+  const st = draft.brand_image_status;
+  const persistedHero =
+    st === "pending" || st === "rejected"
+      ? draft.approved_public_hero_url?.trim() || null
+      : userFacing;
+  const imageUrl = persistedHero;
   const industry = draft.industry?.trim() || null;
   const explicitOg = draft.og_image_url?.trim();
   const explicitAuto = draft.auto_image_url?.trim();
@@ -371,6 +416,9 @@ export function draftToBusinessCard(
     auto_image_url: explicitAuto || null,
     og_image_url: resolvedOg || null,
     marketing_title: draft.marketing_title.trim() || null,
+    brand_image_status: draft.brand_image_status ?? null,
+    brand_image_pending_path: draft.brand_image_pending_path?.trim() || null,
+    brand_image_reject_reason: draft.brand_image_reject_reason?.trim() || null,
   };
 }
 

@@ -32,9 +32,11 @@ import {
   parseRevenueTemplateSearch,
   type RevenueCardTemplateId,
 } from "@/data/revenueCardTemplates";
+import { getPendingImageBucket } from "@/lib/brandImagePendingUpload";
 import { getCardHeroImageUrl } from "@/lib/businessCardHeroImage";
 import { buildCardShareUrl, buildTempPreviewUrl, editorOriginFallback } from "@/lib/cardShareUrl";
 import { canonicalSiteOrigin } from "@/lib/siteOrigin";
+import { isSupabaseConfigured, supabase } from "@/lib/supabase/client";
 import { parseCardEditorDraft, zodIssuesToFieldErrors } from "@/lib/cardEditorSchema";
 import { shareCardLinkNativeOrder } from "@/lib/kakaoWebShare";
 import { previewKakaoFeedFromDraft } from "@/lib/previewShareMeta";
@@ -247,6 +249,38 @@ export function CardEditorPage() {
   const replaceDraft = useCardEditorDraftStore((s) => s.replaceDraft);
   const setHydratedKey = useCardEditorDraftStore((s) => s.setHydratedKey);
   const setDraft = useCardEditorDraftStore((s) => s.setDraft);
+
+  useEffect(() => {
+    if (!existing?.brand_image_pending_path?.trim() || existing.brand_image_status !== "pending") return;
+    if (!isSupabaseConfigured || !supabase) return;
+    const path = existing.brand_image_pending_path.trim();
+    let cancelled = false;
+    void (async () => {
+      const { data, error } = await supabase.storage
+        .from(getPendingImageBucket())
+        .createSignedUrl(path, 3600);
+      if (cancelled || error || !data?.signedUrl) return;
+      const approvedKeep =
+        existing.brand_image_url?.trim() || existing.image_url?.trim() || existing.imageUrl?.trim() || null;
+      setDraft({
+        imageUrl: data.signedUrl,
+        brand_image_url: data.signedUrl,
+        brand_image_status: "pending",
+        brand_image_pending_path: path,
+        approved_public_hero_url: approvedKeep,
+      });
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    existing?.brand_image_pending_path,
+    existing?.brand_image_status,
+    existing?.brand_image_url,
+    existing?.image_url,
+    existing?.imageUrl,
+    setDraft,
+  ]);
 
   const [linkRows, setLinkRows] = useState<LinkRow[]>(() => mapLinksToRows(existingLinks));
   const [submitting, setSubmitting] = useState(false);
@@ -922,6 +956,7 @@ export function CardEditorPage() {
       if (!user || isGuestRoute) return;
       const cid = existing?.id ?? stagingEditorCardId;
       if (!cid) return;
+      if (!payload.pendingPath) return;
 
       let dly = useCardEditorDraftStore.getState().draft;
       const stagedSlug =
@@ -948,24 +983,45 @@ export function CardEditorPage() {
 
       const nw = payload.naturalW ?? 1;
       const nh = payload.naturalH ?? 1;
+      const prev = businessCards.find((c) => c.id === cid);
+      const approvedKeep =
+        prev?.brand_image_url?.trim() || prev?.image_url?.trim() || prev?.imageUrl?.trim() || null;
 
-      const cardRow = draftToBusinessCard(dly, {
+      setDraft({
+        imageUrl: payload.displayUrl,
+        brand_image_url: payload.displayUrl,
+        brand_image_status: "pending",
+        brand_image_pending_path: payload.pendingPath,
+        brand_image_reject_reason: null,
+        approved_public_hero_url: approvedKeep,
+        brand_image_natural_width: nw,
+        brand_image_natural_height: nh,
+        brand_image_zoom: 1,
+        brand_image_pan_x: 0,
+        brand_image_pan_y: 0,
+        brand_image_legacy_object_position: null,
+      });
+
+      const d2 = useCardEditorDraftStore.getState().draft;
+      const cardRow = draftToBusinessCard(d2, {
         id: cid,
         user_id: user.id,
         created_at: existing?.created_at ?? new Date().toISOString(),
       });
+      const nowIso = new Date().toISOString();
       const next = {
         ...cardRow,
-        image_url: payload.publicUrl,
-        brand_image_url: payload.publicUrl,
-        imageUrl: payload.publicUrl,
         profile_image_url: null as string | null,
+        brand_image_object_position: null as string | null,
+        brand_image_status: "pending" as const,
+        brand_image_pending_path: payload.pendingPath,
+        brand_image_reject_reason: null as string | null,
+        brand_image_pending_uploaded_at: nowIso,
         brand_image_natural_width: nw,
         brand_image_natural_height: nh,
         brand_image_zoom: 1 as number | null,
         brand_image_pan_x: 0 as number | null,
         brand_image_pan_y: 0 as number | null,
-        brand_image_object_position: null as string | null,
       };
       const persistedCard = {
         ...next,
@@ -985,6 +1041,7 @@ export function CardEditorPage() {
       existing?.status,
       existing?.qr_image_url,
       stagingEditorCardId,
+      businessCards,
       upsertBusinessCard,
       upsertCardRemote,
       setDraft,
@@ -1006,11 +1063,31 @@ export function CardEditorPage() {
       brand_image_pan_x: null as number | null,
       brand_image_pan_y: null as number | null,
       brand_image_object_position: null as string | null,
+      brand_image_status: null as BusinessCard["brand_image_status"],
+      brand_image_pending_path: null as string | null,
+      brand_image_reject_reason: null as string | null,
+      brand_image_pending_uploaded_at: null as string | null,
     };
     const remoteOk = await patchCardBrandHeroRemote(cid, patch);
     const row = businessCards.find((c) => c.id === cid);
     if (remoteOk && row) upsertBusinessCard({ ...row, ...patch });
-  }, [businessCards, existing?.id, isGuestRoute, stagingEditorCardId, user, upsertBusinessCard]);
+    if (remoteOk) {
+      setDraft({
+        imageUrl: null,
+        brand_image_url: null,
+        approved_public_hero_url: null,
+        brand_image_status: null,
+        brand_image_pending_path: null,
+        brand_image_reject_reason: null,
+        brand_image_natural_width: null,
+        brand_image_natural_height: null,
+        brand_image_zoom: 1,
+        brand_image_pan_x: 0,
+        brand_image_pan_y: 0,
+        brand_image_legacy_object_position: null,
+      });
+    }
+  }, [businessCards, existing?.id, isGuestRoute, stagingEditorCardId, user, upsertBusinessCard, setDraft]);
 
   const handleBrandImagePersist = persistUploadedHero;
 

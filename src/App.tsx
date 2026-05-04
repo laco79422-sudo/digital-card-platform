@@ -5,6 +5,7 @@ import { useSupabaseAuthSync } from "@/hooks/useSupabaseAuthSync";
 import { AdminWithdrawalRequestsPage } from "@/pages/AdminWithdrawalRequestsPage";
 import { AdminDashboardPage } from "@/pages/AdminDashboardPage";
 import { AdminDesignRequestsPage } from "@/pages/AdminDesignRequestsPage";
+import { AdminImageReviewPage } from "@/pages/AdminImageReviewPage";
 import { ApplicationsPage } from "@/pages/ApplicationsPage";
 import { InstantCardClaimEffect } from "@/components/instant/InstantCardClaimEffect";
 import { PendingCardDraftFlushEffect } from "@/components/pending-card/PendingCardDraftFlushEffect";
@@ -309,6 +310,14 @@ function AppRoutes() {
           element={
             <ProtectedRoute roles={["admin"]}>
               <AdminWithdrawalRequestsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="admin/image-review"
+          element={
+            <ProtectedRoute roles={["admin"]}>
+              <AdminImageReviewPage />
             </ProtectedRoute>
           }
         />

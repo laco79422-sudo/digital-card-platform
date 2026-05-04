@@ -113,6 +113,15 @@ export function AdminDashboardPage() {
 
       <div className="mt-8 rounded-2xl border border-brand-200 bg-brand-50/60 px-4 py-4">
         <Link
+          to="/admin/image-review"
+          className="text-base font-semibold text-brand-900 underline underline-offset-4 hover:text-brand-950"
+        >
+          이미지 검수 (대표 사진 승인) →
+        </Link>
+      </div>
+
+      <div className="mt-8 rounded-2xl border border-brand-200 bg-brand-50/60 px-4 py-4">
+        <Link
           to="/admin/withdrawals"
           className="text-base font-semibold text-brand-900 underline underline-offset-4 hover:text-brand-950"
         >

@@ -187,6 +187,19 @@ export function CardForm({
   const hintCls = "mt-0.5 text-xs font-medium text-brand-600";
   const onboardKind = coerceOnboardCardType(draft.card_type);
 
+  const imageModerationNote = useMemo(() => {
+    if (draft.brand_image_status === "pending") {
+      return "이미지 검수 중입니다. 승인되면 공개 명함에 반영됩니다.";
+    }
+    if (draft.brand_image_status === "rejected") {
+      const r = draft.brand_image_reject_reason?.trim();
+      return r
+        ? `이미지가 승인되지 않았습니다. (${r}) 다시 업로드해 주세요.`
+        : "이미지가 승인되지 않았습니다. 다시 업로드해 주세요.";
+    }
+    return null;
+  }, [draft.brand_image_status, draft.brand_image_reject_reason]);
+
   const basicBlock = (
     <>
       <div className="grid gap-4 sm:grid-cols-2">
@@ -423,11 +436,21 @@ export function CardForm({
             onUrlChange={(url, meta) => {
               useCardEditorDraftStore.setState((s) => {
                 const reset = meta?.reset;
+                const cleared =
+                  url == null || (typeof url === "string" && !url.trim())
+                    ? {
+                        brand_image_status: null,
+                        brand_image_pending_path: null,
+                        brand_image_reject_reason: null,
+                        approved_public_hero_url: null,
+                      }
+                    : {};
                 return {
                   draft: {
                     ...s.draft,
                     imageUrl: url,
                     brand_image_url: url,
+                    ...cleared,
                     ...(reset
                       ? {
                           brand_image_natural_width: meta?.naturalW ?? null,
@@ -459,6 +482,7 @@ export function CardForm({
             persistBrandImageCardId={persistBrandImageCardId}
             getPersistBrandImageCardId={getPersistBrandImageCardId}
             onBrandImagePersist={onBrandImagePersist}
+            moderationNote={imageModerationNote}
           gateGuestPick={gateGuestHeroImagePick}
           onGuestPickBlocked={onGuestHeroImagePickBlocked}
           sectionAnchorId="linko-editor-hero-upload"

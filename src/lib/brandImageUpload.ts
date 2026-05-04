@@ -8,7 +8,7 @@ import { isSupabaseConfigured, supabase } from "@/lib/supabase/client";
 const DEFAULT_BUCKET = "card-images";
 const LOG_PREFIX = "[brandImageUpload]";
 
-function dataUrlToBlob(dataUrl: string): Blob {
+export function brandImageDataUrlToBlob(dataUrl: string): Blob {
   const [meta, encoded] = dataUrl.split(",");
   if (!meta || !encoded) throw new Error("Invalid data URL");
   const mime = meta.match(/data:([^;]+)/)?.[1] || "image/jpeg";
@@ -97,6 +97,10 @@ export function getBrandImageUploadUserMessage(error: unknown): string {
     return "저장소 bucket 없음";
   }
 
+  if (/daily_limit|up to 5|일일|하루.*5/i.test(m)) {
+    return "오늘 업로드 가능 횟수(5회)를 모두 사용했습니다. 내일 다시 시도해 주세요.";
+  }
+
   if (/payload too large|413|entity too large|file too large|size limit/i.test(m)) {
     return "파일 용량 초과";
   }
@@ -124,7 +128,7 @@ export async function uploadBrandImageDataUrl(dataUrl: string, originalFilename 
     throw new Error("Supabase is not configured");
   }
 
-  const blob = dataUrlToBlob(dataUrl);
+  const blob = brandImageDataUrlToBlob(dataUrl);
   const bucket = getCardImageBucket();
   const ext = extensionForBlob(blob, originalFilename);
 

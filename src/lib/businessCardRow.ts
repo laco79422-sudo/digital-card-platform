@@ -31,6 +31,10 @@ export function normalizeBusinessCardRow(raw: Record<string, unknown>): Business
   const industry = optStr(raw.industry);
   const auto_image_url = optStr(raw.auto_image_url);
   const thumbnail_url = optStr(raw.thumbnail_url);
+  const brand_image_status = optStr(raw.brand_image_status) as BusinessCard["brand_image_status"];
+  const brand_image_pending_path = optStr(raw.brand_image_pending_path);
+  const brand_image_reject_reason = optStr(raw.brand_image_reject_reason);
+  const brand_image_pending_uploaded_at = optStr(raw.brand_image_pending_uploaded_at);
 
   const person_name =
     optStr(raw.person_name) ?? optStr(raw.name) ?? base.person_name ?? "";
@@ -59,5 +63,12 @@ export function normalizeBusinessCardRow(raw: Record<string, unknown>): Business
     thumbnail_url: thumbnail_url ?? undefined,
     imageUrl: mergedHero ?? base.imageUrl ?? null,
     brand_image_url: mergedHero ?? brand_image_url ?? base.brand_image_url ?? null,
+    brand_image_status:
+      brand_image_status === "pending" || brand_image_status === "approved" || brand_image_status === "rejected"
+        ? brand_image_status
+        : undefined,
+    brand_image_pending_path: brand_image_pending_path ?? undefined,
+    brand_image_reject_reason: brand_image_reject_reason ?? undefined,
+    brand_image_pending_uploaded_at: brand_image_pending_uploaded_at ?? undefined,
   };
 }

@@ -102,6 +102,12 @@ export interface BusinessCard {
   thumbnail_url?: string | null;
   /** 히어로 브랜드 대표 이미지 (DB 컬럼명, imageUrl과 동기화) */
   brand_image_url?: string | null;
+  /** 검수 중이면 pending — 공개 명함에는 미반영(기본 히어로만) */
+  brand_image_status?: "pending" | "approved" | "rejected" | null;
+  /** private 버킷 `card-image-pending` 내 객체 경로 */
+  brand_image_pending_path?: string | null;
+  brand_image_reject_reason?: string | null;
+  brand_image_pending_uploaded_at?: string | null;
   /** 히어로 프레임 비율 라벨 (저장·재현용, 예: 16:9) */
   brand_image_frame_ratio?: string | null;
   /** 업로드·최적화 후 이미지의 CSS 배치 기준 픽셀 크기 */
