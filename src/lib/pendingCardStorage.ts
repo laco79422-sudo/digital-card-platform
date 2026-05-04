@@ -20,6 +20,8 @@ const PENDING_HERO_RESUME_AFTER_AUTH_KEY = "linko-pending-hero-resume-after-auth
 export const PENDING_CARD_SESSION_KEY = "pendingCardDraft";
 /** 이전 배포 호환용 */
 export const PENDING_CARD_SESSION_LEGACY_KEY = "linko-pending-card-draft";
+/** 탭 종료 후에도 로그인 이어하기용 — 브라우저 localStorage (토큰·비밀번호 등은 저장하지 않음) */
+export const PENDING_CARD_LOCAL_KEY = "linko-pending-card-draft-local";
 
 const ENVELOPE_V = 1 as const;
 
@@ -37,6 +39,8 @@ export type PendingCardPayload = {
   liveCardId?: string;
   /** 로컬 임시 미리보기(/preview) id */
   tempId?: string;
+  /** true면 로그인 후 자동 서버 플러시 대신 편집기(/cards/new)에서 복원 · 저장 버튼으로 정식 저장 */
+  deferAutoFlush?: boolean;
 };
 
 export type PendingCardDraftFlatSummary = {
@@ -126,6 +130,7 @@ function removeAllPendingKeys() {
   try {
     sessionStorage.removeItem(PENDING_CARD_SESSION_KEY);
     sessionStorage.removeItem(PENDING_CARD_SESSION_LEGACY_KEY);
+    localStorage.removeItem(PENDING_CARD_LOCAL_KEY);
   } catch {
     /* ignore */
   }
@@ -134,7 +139,10 @@ function removeAllPendingKeys() {
 function readRawEnvelope(): StoredEnvelopeV1 | PendingCardPayload | null {
   try {
     const primary = sessionStorage.getItem(PENDING_CARD_SESSION_KEY);
-    const legacyRaw = primary ?? sessionStorage.getItem(PENDING_CARD_SESSION_LEGACY_KEY);
+    const legacyRaw =
+      primary ??
+      sessionStorage.getItem(PENDING_CARD_SESSION_LEGACY_KEY) ??
+      localStorage.getItem(PENDING_CARD_LOCAL_KEY);
     if (!legacyRaw) return null;
     const parsed = JSON.parse(legacyRaw) as unknown;
 
@@ -198,6 +206,7 @@ function persistEnvelope(env: StoredEnvelopeV1) {
   try {
     sessionStorage.setItem(PENDING_CARD_SESSION_KEY, serialized);
     sessionStorage.setItem(PENDING_CARD_SESSION_LEGACY_KEY, serialized);
+    localStorage.setItem(PENDING_CARD_LOCAL_KEY, serialized);
   } catch {
     /* ignore */
   }
@@ -245,6 +254,10 @@ export function consumePendingCardDraft(): PendingCardPayload | null {
 
 export function hasPendingCardDraft(): boolean {
   return peekPendingCardDraft() != null;
+}
+
+export function peekPendingDeferAutoFlush(): boolean {
+  return Boolean(peekPendingCardDraft()?.deferAutoFlush);
 }
 
 /** 수동 초기화 또는 저장 성공 후 정리 등 */

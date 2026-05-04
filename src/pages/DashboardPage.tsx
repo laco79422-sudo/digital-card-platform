@@ -14,6 +14,7 @@ import {
   copyReferralPromoImage,
   downloadReferralPromoImage,
 } from "@/lib/referralPromo";
+import { LINKO_CARD_CREATE_FLOW_HREF } from "@/lib/linkoFlowCopy";
 import { layout } from "@/lib/ui-classes";
 import {
   DESIGN_REQUEST_PAYMENT_STATUS_LABEL,
@@ -1255,7 +1256,7 @@ export function DashboardPage() {
           {!isCreator ? (
             cardsActuallyEmpty ? (
               <Link
-                to="/cards/new"
+                to={LINKO_CARD_CREATE_FLOW_HREF}
                 className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-xl bg-cta-500 px-4 text-sm font-bold text-white shadow-sm shadow-cta-900/20 hover:bg-cta-600"
               >
                 내 명함 만들기

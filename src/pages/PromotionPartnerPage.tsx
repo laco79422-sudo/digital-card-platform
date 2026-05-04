@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/Button";
 import { linkButtonClassName } from "@/components/ui/buttonStyles";
 import { Card, CardContent, CardHeader } from "@/components/ui/Card";
+import { LINKO_CARD_CREATE_FLOW_HREF } from "@/lib/linkoFlowCopy";
 import { appendPartnerQueryToUrl } from "@/lib/linkoPartnerAttribution";
 import { buildCardShareUrl } from "@/lib/cardShareUrl";
 import { shareCardLinkNativeOrder } from "@/lib/kakaoWebShare";
@@ -60,13 +61,13 @@ export function PromotionPartnerPage() {
   };
 
   const shareOne = async (slug: string) => {
-    let shareUrl = buildCardShareUrl(origin, slug);
-    if (!shareUrl) return;
+    let outbound = buildCardShareUrl(origin, slug);
+    if (!outbound) return;
     if (user?.id && partnerActive) {
-      shareUrl = appendPartnerQueryToUrl(shareUrl, user.id);
+      outbound = appendPartnerQueryToUrl(outbound, user.id);
     }
     const r = await shareCardLinkNativeOrder({
-      shareUrl,
+      shareUrl: outbound,
       title: "디지털 명함",
       shortMessage: "명함 페이지 링크예요.",
     });
@@ -183,7 +184,7 @@ export function PromotionPartnerPage() {
               아직 풀에 등록된 명함이 없어요. 명함을 만든 뒤 홍보 요청을 올려 보세요.
               <div className="mt-4">
                 <Link
-                  to="/create-card"
+                  to={LINKO_CARD_CREATE_FLOW_HREF}
                   className={linkButtonClassName({ variant: "secondary", size: "md", className: "inline-flex" })}
                 >
                   명함 만들기

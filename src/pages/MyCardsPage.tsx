@@ -4,6 +4,10 @@ import { Card, CardContent } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { brandCta } from "@/lib/brand";
 import { businessCardOwnedByUser } from "@/lib/businessCardAccess";
+import {
+  LINKO_CARD_CREATE_FLOW_HREF,
+  ROUTE_STATE_MAIN_CTA_PICK_CARD,
+} from "@/lib/linkoFlowCopy";
 import { canonicalSiteOrigin } from "@/lib/siteOrigin";
 import { layout } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
@@ -15,7 +19,7 @@ import type { BusinessCard } from "@/types/domain";
 import type { CardPromoEventType } from "@/types/cardPromo";
 import { BarChart3, ClipboardCopy, CreditCard, ExternalLink, Loader2, Pencil, RefreshCw } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 
 function localPromoSignalsForCard(
   cardId: string,
@@ -46,6 +50,7 @@ function buildMineFromServer(rows: BusinessCard[], userId: string, email?: strin
 export function MyCardsPage() {
   const user = useAuthStore((s) => s.user);
   const location = useLocation();
+  const navigate = useNavigate();
 
   const businessCards = useAppDataStore((s) => s.businessCards);
   const upsertBusinessCard = useAppDataStore((s) => s.upsertBusinessCard);
@@ -65,6 +70,7 @@ export function MyCardsPage() {
   const [loadState, setLoadState] = useState<LoadState>({ kind: "idle" });
   const [serverMine, setServerMine] = useState<BusinessCard[] | null>(null);
   const [statsByCard, setStatsByCard] = useState<Map<string, { views: number; inquiries: number }> | null>(null);
+  const [extraCardConfirmOpen, setExtraCardConfirmOpen] = useState(false);
 
   /** 서버 결과가 우선입니다. 불러오기 실패 시 localStorage 재수화된 카드 목록만으로 폴백합니다 */
   const displayedCards = serverMine ?? mineFromStore;
@@ -127,6 +133,18 @@ export function MyCardsPage() {
   };
 
   const justSavedNotice = Boolean(location.state && typeof location.state === "object" && "showSavedNotice" in location.state);
+
+  const pickCardBannerRaw =
+    typeof location.state === "object" && location.state !== null
+      ? (location.state as Record<string, unknown>)[ROUTE_STATE_MAIN_CTA_PICK_CARD]
+      : undefined;
+  const pickCardBanner =
+    typeof pickCardBannerRaw === "string" && pickCardBannerRaw.trim() ? pickCardBannerRaw : null;
+
+  const goExtraCardPurchase = () => {
+    navigate("/dashboard", { state: { openExtraCardModal: true } });
+    setExtraCardConfirmOpen(false);
+  };
 
   const showInitialSpinner =
     !!user?.id &&
@@ -265,7 +283,7 @@ export function MyCardsPage() {
         title="아직 만든 명함이 없어요"
         description="저장하면 Supabase 계정에 남으며, 새로 고침·재배포 후에도 이곳에서 이어져요."
         action={() => {
-          window.location.href = "/cards/new";
+          navigate(LINKO_CARD_CREATE_FLOW_HREF);
         }}
         actionLabel={brandCta.createDigitalCard}
       />
@@ -295,19 +313,35 @@ export function MyCardsPage() {
           >
             명함 대신 만들어주기
           </Link>
-          <Link
-            to={displayedCards.length >= 1 ? "/dashboard" : "/cards/new"}
-            state={displayedCards.length >= 1 ? { openExtraCardModal: true } : undefined}
+          <button
+            type="button"
+            onClick={() => {
+              if (displayedCards.length === 0) {
+                navigate(LINKO_CARD_CREATE_FLOW_HREF);
+                return;
+              }
+              if (displayedCards.length >= 2) {
+                setExtraCardConfirmOpen(true);
+                return;
+              }
+              goExtraCardPurchase();
+            }}
             className={cn("w-full sm:w-auto", linkButtonClassName({ size: "lg", className: "w-full sm:w-auto" }))}
           >
             {displayedCards.length >= 1 ? "명함 추가하기" : "내 명함 만들기"}
-          </Link>
+          </button>
         </div>
       </div>
 
       {justSavedNotice ? (
         <div className="mt-6 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
           명함이 서버에 저장되었습니다. 공개 설정은 각 카드에서 확인해 주세요.
+        </div>
+      ) : null}
+
+      {pickCardBanner ? (
+        <div className="mt-6 rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 text-sm font-semibold leading-relaxed text-brand-950">
+          {pickCardBanner}
         </div>
       ) : null}
 
@@ -355,6 +389,40 @@ export function MyCardsPage() {
           ) : null}
         </>
       )}
+      {extraCardConfirmOpen ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/55 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="extra-card-modal-title"
+        >
+          <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-xl">
+            <h2 id="extra-card-modal-title" className="text-lg font-bold text-slate-900">
+              명함이 여러 개입니다
+            </h2>
+            <p className="mt-3 text-sm leading-relaxed text-slate-600">
+              편집할 명함을 아래 목록에서 골라 주세요. 새 명함을 추가하려면 다음 화면에서 안내와 결제 흐름을 확인해야 할 수
+              있습니다.
+            </p>
+            <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                className={linkButtonClassName({ variant: "outline", size: "lg", className: "w-full sm:w-auto" })}
+                onClick={() => setExtraCardConfirmOpen(false)}
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                className={linkButtonClassName({ variant: "primary", size: "lg", className: "w-full sm:w-auto" })}
+                onClick={() => goExtraCardPurchase()}
+              >
+                새 명함 추가 안내 받기
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

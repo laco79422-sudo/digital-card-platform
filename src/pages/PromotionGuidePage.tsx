@@ -1,5 +1,5 @@
 import { linkButtonClassName } from "@/components/ui/buttonStyles";
-import { LINKO_MAIN_CTA_LABEL } from "@/lib/linkoFlowCopy";
+import { LINKO_CARD_CREATE_FLOW_HREF, LINKO_MAIN_CTA_LABEL } from "@/lib/linkoFlowCopy";
 import { layout } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
 import type { ReactNode } from "react";
@@ -36,7 +36,7 @@ export function PromotionGuidePage() {
         {/* [2] 최상단 CTA — 메인 명함 + 유입 링크 */}
         <div className="mt-10 flex flex-col gap-3 sm:flex-row">
           <Link
-            to="/create-card"
+            to={LINKO_CARD_CREATE_FLOW_HREF}
             className={linkButtonClassName({
               variant: "primary",
               size: "lg",
@@ -216,7 +216,7 @@ ${DEMO_LINK_PLACEHOLDER}`}
           <p className="text-lg font-bold leading-snug sm:text-xl">지금 시작하면 바로 고객 유입이 시작됩니다</p>
           <div className="mx-auto mt-8 flex max-w-xl flex-col gap-3 sm:flex-row sm:justify-center">
             <Link
-              to="/create-card"
+              to={LINKO_CARD_CREATE_FLOW_HREF}
               className={linkButtonClassName({
                 size: "lg",
                 variant: "primary",

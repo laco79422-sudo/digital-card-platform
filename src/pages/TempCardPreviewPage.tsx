@@ -1,5 +1,6 @@
 import { DigitalCardPublicView } from "@/components/digital-card/DigitalCardPublicView";
 import { DigitalCardSeo } from "@/components/digital-card/DigitalCardSeo";
+import { LINKO_CARD_CREATE_FLOW_HREF } from "@/lib/linkoFlowCopy";
 import { INSTANT_GUEST_USER_ID } from "@/lib/instantCardCreate";
 import { loadTempCard } from "@/lib/tempCardStorage";
 import { syncTempPreviewRemote } from "@/lib/syncTempPreviewRemote";
@@ -131,7 +132,7 @@ export function TempCardPreviewPage() {
           이 브라우저에서 만든 미리보기만 열 수 있거나, 링크가 만료되었을 수 있어요.
         </p>
         <Link
-          to="/create-card"
+          to={LINKO_CARD_CREATE_FLOW_HREF}
           className="mt-8 inline-flex min-h-[52px] items-center justify-center rounded-xl bg-cta-500 px-6 text-base font-bold text-white shadow-md shadow-cta-900/20 hover:bg-cta-600"
         >
           명함 만들기

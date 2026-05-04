@@ -11,6 +11,7 @@ import { useAppDataStore } from "@/stores/appDataStore";
 import { LogOut, Menu, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import {
+  LINKO_CARD_CREATE_FLOW_HREF,
   NAV_CARD_CREATE,
   NAV_CUSTOMER_INBOUND,
   NAV_EXPERT_HELP,
@@ -25,7 +26,7 @@ const navLinkClass = ({ isActive }: { isActive: boolean }) =>
   );
 
 const links = [
-  { to: "/create-card", label: NAV_CARD_CREATE },
+  { to: LINKO_CARD_CREATE_FLOW_HREF, label: NAV_CARD_CREATE },
   { to: "/promotion/guide", label: NAV_CUSTOMER_INBOUND },
   { to: "/creators", label: NAV_EXPERT_HELP },
   { to: "/dashboard", label: NAV_MY_RESULTS },

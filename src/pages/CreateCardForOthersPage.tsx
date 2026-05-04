@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { linkButtonClassName } from "@/components/ui/buttonStyles";
+import { LINKO_CARD_CREATE_FLOW_HREF } from "@/lib/linkoFlowCopy";
 import { layout } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
 import { buildCardShareUrl } from "@/lib/cardShareUrl";
@@ -271,7 +272,7 @@ export function CreateCardForOthersPage() {
 
         <p className="mt-10 text-center text-sm text-slate-500">
           직접 디자인하고 싶다면{" "}
-          <Link to="/create-card" className="font-semibold text-brand-700 underline-offset-2 hover:underline">
+          <Link to={LINKO_CARD_CREATE_FLOW_HREF} className="font-semibold text-brand-700 underline-offset-2 hover:underline">
             일반 명함 만들기
           </Link>
         </p>

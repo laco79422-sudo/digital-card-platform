@@ -31,6 +31,7 @@ import {
 import { tempPreviewKakaoFeedFromCard } from "@/lib/previewShareMeta";
 import { layout } from "@/lib/ui-classes";
 import { buildViralShareText } from "@/lib/viralShareText";
+import { LINKO_CARD_CREATE_FLOW_HREF } from "@/lib/linkoFlowCopy";
 import { LINKO_CONSULT_MODAL_FRAGMENT } from "@/lib/consultLead";
 import { cn } from "@/lib/utils";
 import { insertCardConsultationRemote } from "@/services/cardConsultationsService";
@@ -1036,7 +1037,7 @@ export function DigitalCardPublicView({
           {!conversionUx ? (
             <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-center">
               <Link
-                to="/create-card"
+                to={LINKO_CARD_CREATE_FLOW_HREF}
                 className={cn(
                   linkButtonClassName({ variant: "primary", size: "lg" }),
                   "w-full min-h-[52px] justify-center sm:w-auto sm:min-w-[12rem]",
@@ -1045,7 +1046,7 @@ export function DigitalCardPublicView({
                 내 명함 만들기
               </Link>
               <Link
-                to="/create-card?sample=true"
+                to="/card/create?sample=true"
                 className={cn(
                   linkButtonClassName({ variant: "outline", size: "lg" }),
                   "w-full min-h-[52px] justify-center sm:w-auto sm:min-w-[12rem]",
@@ -1140,7 +1141,7 @@ export function DigitalCardPublicView({
 
             <div className="mt-6 flex flex-col gap-3">
               <Link
-                to={tempPreview ? "/signup" : "/create-card"}
+                to={tempPreview ? "/signup" : LINKO_CARD_CREATE_FLOW_HREF}
                 className={cn(
                   linkButtonClassName({ variant: "primary", size: "lg" }),
                   "w-full min-h-[52px] justify-center shadow-md",
@@ -1213,7 +1214,7 @@ export function DigitalCardPublicView({
             </p>
             <div className="mt-6 grid gap-3 sm:grid-cols-2">
               <Link
-                to="/create-card"
+                to={LINKO_CARD_CREATE_FLOW_HREF}
                 className={cn(linkButtonClassName({ variant: "primary", size: "lg" }), "min-h-[52px] justify-center")}
               >
                 내 명함 만들기

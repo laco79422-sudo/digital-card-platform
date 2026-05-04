@@ -158,7 +158,7 @@ function pathnameAllowsReferralGuestNavbar(pathname: string): boolean {
   if (p.startsWith("/pay/")) return false;
   if (p.startsWith("/nfc/")) return false;
   if (p.startsWith("/c/")) return false;
-  if (p === "/create-card") return false;
+  if (p === "/create-card" || p === "/card/create") return false;
   if (p === "/requests/new" || p.startsWith("/requests/new/")) return false;
   if (p.startsWith("/edit/")) return false;
   if (p.startsWith("/preview/")) return false;

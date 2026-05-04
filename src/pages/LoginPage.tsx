@@ -13,7 +13,11 @@ import { BRAND_DISPLAY_NAME } from "@/lib/brand";
 import { layout } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
 import { peekInstantCardId, clearInstantCardId } from "@/lib/instantCardStorage";
-import { hasPendingCardDraft, peekPendingHeroResumeAfterAuth } from "@/lib/pendingCardStorage";
+import {
+  hasPendingCardDraft,
+  peekPendingDeferAutoFlush,
+  peekPendingHeroResumeAfterAuth,
+} from "@/lib/pendingCardStorage";
 import { getSupabaseConfigErrorMessage, isSupabaseConfigured } from "@/lib/supabase/client";
 import { mapSupabaseUser } from "@/lib/supabase/mapAuthUser";
 import { SHOW_PENDING_CARD_SAVED_STATE, tryFlushPendingCardDraftForAuthenticatedUser } from "@/services/pendingCardDraftFlush";
@@ -87,7 +91,10 @@ export function LoginPage() {
       useAppDataStore.getState().claimInstantGuestCard(u.id, instantId);
       clearInstantCardId();
     }
-    if (peekPendingHeroResumeAfterAuth() && hasPendingCardDraft()) {
+    if (
+      hasPendingCardDraft() &&
+      (peekPendingHeroResumeAfterAuth() || peekPendingDeferAutoFlush())
+    ) {
       navigate("/cards/new", { replace: true });
       return;
     }

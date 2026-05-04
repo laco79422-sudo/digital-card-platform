@@ -1,6 +1,10 @@
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { isEmailConfirmed } from "@/lib/auth/authActions";
-import { peekPendingCardDraft, peekPendingHeroResumeAfterAuth } from "@/lib/pendingCardStorage";
+import {
+  peekPendingCardDraft,
+  peekPendingDeferAutoFlush,
+  peekPendingHeroResumeAfterAuth,
+} from "@/lib/pendingCardStorage";
 import {
   SHOW_PENDING_CARD_SAVED_STATE,
   tryFlushPendingCardDraftForAuthenticatedUser,
@@ -23,6 +27,19 @@ export function PendingCardDraftFlushEffect() {
 
     /** 이미지 이어등록 플로우: 자동 플러시 안 함 · 로그인 직후 랜딩에서만 편집기로 안내합니다. */
     if (peekPendingHeroResumeAfterAuth() && peekPendingCardDraft()) {
+      const funnel =
+        pathname === "/" ||
+        pathname === "/login" ||
+        pathname === "/signup" ||
+        pathname === "/auth/callback";
+      if (funnel) {
+        navigate("/cards/new", { replace: true });
+      }
+      return;
+    }
+
+    /** 로그인 직후: 자동 DB 저장 안 함 초안(defer) — 편집기에서 이어 작성 */
+    if (peekPendingDeferAutoFlush() && peekPendingCardDraft()) {
       const funnel =
         pathname === "/" ||
         pathname === "/login" ||

@@ -14,3 +14,20 @@ export const NAV_CARD_CREATE = "명함 만들기";
 export const NAV_CUSTOMER_INBOUND = "고객 유입";
 export const NAV_EXPERT_HELP = "전문가 도움";
 export const NAV_MY_RESULTS = "내 성과";
+
+/** 메인 「3초 명함 만들기」 CTA — 업종별 샘플(기본 인테리어) 자동 적용 */
+export const LINKO_CARD_CREATE_FLOW_HREF = "/card/create?industry=interior";
+
+/** 로그인 사용자가 이미 명함이 1장 있을 때, 편집 화면 상단 안내 */
+export const MAIN_CTA_EXISTING_CARD_NOTICE =
+  "이미 만들어진 명함이 있어요. 기존 명함을 수정하거나 공유할 수 있습니다.";
+
+/** 명함 여러 장 → 목록에서 선택 유도 시 */
+export const MAIN_CTA_MULTI_CARD_CHOOSE_NOTICE =
+  "명함이 여러 개예요. 편집할 명함을 선택하거나 새 명함을 추가해 주세요.";
+
+/** React Router `location.state` 키 — 단일 명함 편집 배너 */
+export const ROUTE_STATE_MAIN_CTA_EXISTING_CARD = "mainCtaExistingCardNotice" as const;
+
+/** 목록 페이지 상단 안내 */
+export const ROUTE_STATE_MAIN_CTA_PICK_CARD = "mainCtaPickCardBanner" as const;

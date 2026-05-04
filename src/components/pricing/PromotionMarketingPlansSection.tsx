@@ -27,7 +27,9 @@ function OutcomePreviewDemo() {
 
   const onKakao = useCallback(async () => {
     const shareUrl =
-      typeof window !== "undefined" ? `${window.location.origin}/create-card` : "https://example.com/create-card";
+      typeof window !== "undefined"
+        ? `${window.location.origin}/card/create`
+        : "https://example.com/card/create";
     const r = await shareCardLinkNativeOrder({
       shareUrl,
       title: "린코 디지털 명함 · 홍보 패키지",

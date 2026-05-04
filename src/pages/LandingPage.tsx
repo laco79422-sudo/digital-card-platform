@@ -7,6 +7,7 @@ import { PricingCard } from "@/components/ui/PricingCard";
 import { useDevMountLog } from "@/dev/renderDiagnostics";
 import { LANDING_PRICING_PLANS } from "@/data/businessCardPlans";
 import {
+  LINKO_CARD_CREATE_FLOW_HREF,
   LINKO_HERO_HEADLINE,
   LINKO_HERO_SUPPORTING,
   LINKO_MAIN_CTA_LABEL,
@@ -30,7 +31,7 @@ import {
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 
-const CREATE_CARD_HREF = "/create-card";
+const CREATE_CARD_HREF = LINKO_CARD_CREATE_FLOW_HREF;
 const LOGIN_SUCCESS_NOTICE = "로그인되었습니다. 이제 메인화면에서 명함 만들기와 내 공간을 이용할 수 있어요.";
 
 const LANDING_SAMPLE_TYPES: Array<{ id: LandingSampleType; label: string }> = [

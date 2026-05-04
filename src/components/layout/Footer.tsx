@@ -1,4 +1,5 @@
 import { BRAND_DISPLAY_NAME } from "@/lib/brand";
+import { LINKO_CARD_CREATE_FLOW_HREF } from "@/lib/linkoFlowCopy";
 import { layout } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
 import { Link } from "react-router-dom";
@@ -23,7 +24,7 @@ export function Footer() {
             <h4 className="text-sm font-semibold text-slate-900">제품</h4>
             <ul className="mt-3 space-y-2 text-sm text-slate-600">
               <li>
-                <Link to="/create-card" className="hover:text-brand-800">
+                <Link to={LINKO_CARD_CREATE_FLOW_HREF} className="hover:text-brand-800">
                   명함 만들기
                 </Link>
               </li>

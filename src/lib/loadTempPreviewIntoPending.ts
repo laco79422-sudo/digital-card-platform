@@ -27,6 +27,7 @@ export async function loadTempPreviewIntoPending(tempId: string): Promise<boolea
     draft: mergeDraftDefaults(p.draft),
     linkRows: Array.isArray(p.linkRows) ? p.linkRows : [],
     tempId: tempId.trim(),
+    deferAutoFlush: true,
   });
   return true;
 }

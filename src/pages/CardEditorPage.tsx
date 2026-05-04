@@ -10,6 +10,7 @@ import { CardPreview } from "@/components/card-editor/CardPreview";
 import { FillSampleWizardModal, type FillSampleWizardResult } from "@/components/card-editor/FillSampleWizardModal";
 import { GuestHeroImageAuthModal } from "@/components/card-editor/GuestHeroImageAuthModal";
 import { GuestSaveAuthModal } from "@/components/card-editor/GuestSaveAuthModal";
+import { LoggedInGuestCreateRedirect } from "@/components/card/LoggedInGuestCreateRedirect";
 import { DelegateExpertChoiceModal } from "@/components/card-editor/ExpertAssistModals";
 import { IndustryPickSection } from "@/components/card-editor/IndustryPickSection";
 import { Button } from "@/components/ui/Button";
@@ -40,6 +41,12 @@ import { previewKakaoFeedFromDraft } from "@/lib/previewShareMeta";
 import { syncTempPreviewRemote } from "@/lib/syncTempPreviewRemote";
 import { layout } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
+import {
+  MAIN_CTA_EXISTING_CARD_NOTICE,
+  MAIN_CTA_MULTI_CARD_CHOOSE_NOTICE,
+  ROUTE_STATE_MAIN_CTA_EXISTING_CARD,
+  ROUTE_STATE_MAIN_CTA_PICK_CARD,
+} from "@/lib/linkoFlowCopy";
 import { useAuthStore } from "@/stores/authStore";
 import {
   DEFAULT_CARD_PERSON_NAME,
@@ -82,12 +89,14 @@ import { buildViralShareText } from "@/lib/viralShareText";
 import {
   fetchBusinessCardByIdForOwner,
   fetchCardLinks,
+  fetchMyCardsForUser,
   isSlugTakenOnRemoteByAnotherCard,
   patchCardBrandHeroRemote,
   upsertCardRemote,
 } from "@/services/cardsService";
 import { syncQrImageAfterSave } from "@/services/cardQrSync";
 import { SHOW_PENDING_CARD_SAVED_STATE } from "@/services/pendingCardDraftFlush";
+import { useAuthReady } from "@/hooks/useAuthReady";
 import { ArrowRight, Check, Copy, Loader2, Share2 } from "lucide-react";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
@@ -110,6 +119,14 @@ function cardBelongsToUser(card: BusinessCard, user: User): boolean {
     card.owner_id === user.id ||
     Boolean(email && (card.owner_email?.trim().toLowerCase() === email || card.email?.trim().toLowerCase() === email))
   );
+}
+
+function sortOwnedCardsByCreatedDesc(rows: BusinessCard[]): BusinessCard[] {
+  return [...rows].sort((a, b) => {
+    const ta = Date.parse(a.created_at) || 0;
+    const tb = Date.parse(b.created_at) || 0;
+    return tb - ta;
+  });
 }
 
 function EditorFlowHint({ phase }: { phase: "hero" | "mid" | "bottom" }) {
@@ -185,8 +202,11 @@ export function CardEditorPage() {
   const { id } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
+  const authReady = useAuthReady();
   const user = useAuthStore((s) => s.user);
-  const isGuestRoute = location.pathname === "/create-card";
+  const isGuestCreationPath =
+    location.pathname === "/create-card" || location.pathname === "/card/create";
+  const isGuestRoute = Boolean(isGuestCreationPath && authReady && !user);
   const businessCards = useAppDataStore((s) => s.businessCards);
   const cardLinks = useAppDataStore((s) => s.cardLinks);
   const upsertBusinessCard = useAppDataStore((s) => s.upsertBusinessCard);
@@ -301,6 +321,7 @@ export function CardEditorPage() {
       draft: useCardEditorDraftStore.getState().draft,
       linkRows,
       tempId: tid,
+      deferAutoFlush: true,
     });
   }, [guestTempId, linkRows, replaceDraft]);
 
@@ -599,6 +620,7 @@ export function CardEditorPage() {
           draft: dly,
           linkRows: rowPayload,
           tempId: tid ?? undefined,
+          deferAutoFlush: true,
         });
         if (autosaveStatusTimerRef.current) clearTimeout(autosaveStatusTimerRef.current);
         setAutosaveStatus("saved");
@@ -696,6 +718,7 @@ export function CardEditorPage() {
       draft,
       linkRows: rowPayload,
       tempId: guestTempId,
+      deferAutoFlush: true,
     });
     return syncTempPreviewRemote({
       tempId: guestTempId,
@@ -866,7 +889,7 @@ export function CardEditorPage() {
       const sp = new URLSearchParams(location.search);
       sp.set("industry", tid);
       const qs = sp.toString();
-      navigate(`/create-card${qs ? `?${qs}` : ""}`, { replace: true });
+      navigate(`/card/create${qs ? `?${qs}` : ""}`, { replace: true });
     }
 
     const nextHydrationKey = isGuestRoute
@@ -1301,7 +1324,9 @@ export function CardEditorPage() {
       const firstCreationPath =
         user &&
         isNew &&
-        (location.pathname === "/cards/new" || location.pathname === "/create-card");
+        (location.pathname === "/cards/new" ||
+          location.pathname === "/create-card" ||
+          location.pathname === "/card/create");
       const canShareCompletion = Boolean(draft.is_public && slugTrim && firstCreationPath);
       if (canShareCompletion) {
         navigate(`/cards/${cardId}/edit?saved=1&welcome=1`, { replace: true });
@@ -1345,10 +1370,31 @@ export function CardEditorPage() {
     };
   }, [isGuestRoute, isNew, id, user, existing, upsertBusinessCard, setCardLinks]);
 
-  const ownedCardsCount = useMemo(
-    () => (user ? businessCards.filter((c) => cardBelongsToUser(c, user)).length : 0),
-    [businessCards, user],
-  );
+  /** 직링크(/cards/new)에서 스토어가 비었을 때도 서버 기준 명함 분기 동기화 */
+  useEffect(() => {
+    if (isGuestRoute || !user?.id || !isNew || location.pathname !== "/cards/new") return;
+    let cancelled = false;
+    void fetchMyCardsForUser({ id: user.id, email: user.email ?? null }).then((result) => {
+      if (cancelled || result.status !== "ok") return;
+      result.cards.forEach((c) => upsertBusinessCard(c));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [isGuestRoute, user?.id, user?.email, isNew, location.pathname, upsertBusinessCard]);
+
+  const ownedMineSorted = useMemo(() => {
+    if (!user) return [];
+    return sortOwnedCardsByCreatedDesc(businessCards.filter((c) => cardBelongsToUser(c, user)));
+  }, [businessCards, user]);
+
+  const ownedCardsCount = ownedMineSorted.length;
+
+  const existingBannerRaw = (
+    location.state as Record<string, unknown> | null | undefined
+  )?.[ROUTE_STATE_MAIN_CTA_EXISTING_CARD];
+  const existingCardBannerFromRouter =
+    typeof existingBannerRaw === "string" && existingBannerRaw.trim() ? existingBannerRaw : null;
 
   if (!isGuestRoute && !isNew && id && editorBootstrap === "missing") {
     return <Navigate to="/dashboard" replace />;
@@ -1363,16 +1409,50 @@ export function CardEditorPage() {
     );
   }
 
-  if (user && isGuestRoute) {
-    return <Navigate to={{ pathname: "/cards/new", search: location.search }} replace />;
+  if (isGuestCreationPath && !authReady) {
+    return (
+      <div className={cn(layout.pageEditor, "flex min-h-[45vh] flex-col items-center justify-center gap-3 py-16")}>
+        <Loader2 className="h-10 w-10 animate-spin text-brand-700" aria-hidden />
+        <p className="text-sm font-medium text-slate-600">인증 상태를 확인하는 중…</p>
+      </div>
+    );
+  }
+
+  if (isGuestCreationPath && user) {
+    return <LoggedInGuestCreateRedirect search={location.search} />;
   }
 
   if (!isGuestRoute && user && location.pathname === "/cards/new" && isNew && ownedCardsCount >= 1) {
-    return <Navigate to="/dashboard" replace />;
+    if (ownedMineSorted.length >= 2) {
+      return (
+        <Navigate
+          to="/cards"
+          replace
+          state={{ [ROUTE_STATE_MAIN_CTA_PICK_CARD]: MAIN_CTA_MULTI_CARD_CHOOSE_NOTICE }}
+        />
+      );
+    }
+    const primary = ownedMineSorted[0];
+    return primary ? (
+      <Navigate
+        to={`/cards/${encodeURIComponent(primary.id)}/edit`}
+        replace
+        state={{
+          [ROUTE_STATE_MAIN_CTA_EXISTING_CARD]: MAIN_CTA_EXISTING_CARD_NOTICE,
+        }}
+      />
+    ) : (
+      <Navigate to="/dashboard" replace />
+    );
   }
 
   return (
     <div className={cn(layout.pageEditor, "py-8 sm:py-12")}>
+      {!isGuestRoute && !isNew && existingCardBannerFromRouter ? (
+        <div className="mb-6 rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 text-sm font-semibold text-brand-950">
+          {existingCardBannerFromRouter}
+        </div>
+      ) : null}
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4 sm:mb-8">
         <div className="min-w-0 flex-1">
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 sm:text-sm">

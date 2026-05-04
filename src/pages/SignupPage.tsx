@@ -183,7 +183,7 @@ export function SignupPage() {
   }
 
   if (user) {
-    return <Navigate to={hasPendingCardDraft() ? "/dashboard" : "/"} replace />;
+    return <Navigate to={hasPendingCardDraft() ? "/cards/new" : "/"} replace />;
   }
 
   const signupNoticeFromNav = (location.state as { signupNotice?: string } | null)?.signupNotice;
@@ -212,7 +212,8 @@ export function SignupPage() {
             </p>
             {hasPendingCardDraft() ? (
               <p className="mt-3 rounded-xl border border-brand-100 bg-brand-50/80 px-3 py-2.5 text-sm font-medium leading-relaxed text-brand-950">
-                이메일 인증 후 로그인하면 임시 저장해 두신 명함이 내 공간에서 자동으로 저장됩니다.
+                이메일 인증 후 로그인하면 임시로 저장해 두신 명함이 편집 화면에 그대로 불러와집니다. 내용 확인 후 저장하면 계정에
+                등록됩니다.
               </p>
             ) : null}
             <Link
@@ -236,7 +237,9 @@ export function SignupPage() {
             {hasPendingCardDraft() ? (
               <>
                 <span className="font-semibold text-slate-900">작성한 명함을 저장하려면 회원가입이 필요합니다.</span>
-                <span className="mt-2 block">가입이 완료되면 방금 만든 명함이 자동으로 저장됩니다.</span>
+                <span className="mt-2 block">
+                  로그인 후 명함 편집 화면에서 내용을 확인하고 저장하면 계정(DB)에 올라갑니다.
+                </span>
               </>
             ) : (
               "가입 후 이메일 인증을 완료하면 내 공간에서 명함을 만들고 관리할 수 있어요."

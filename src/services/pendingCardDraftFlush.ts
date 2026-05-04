@@ -2,6 +2,7 @@ import { isEmailConfirmed } from "@/lib/auth/authActions";
 import { parseCardEditorDraft } from "@/lib/cardEditorSchema";
 import {
   peekPendingCardDraft,
+  peekPendingDeferAutoFlush,
   consumePendingCardDraft,
   peekPendingHeroResumeAfterAuth,
   type PendingCardLinkRow,
@@ -92,6 +93,11 @@ export async function tryFlushPendingCardDraftForAuthenticatedUser(user: User): 
 
     /** 히어로만 이어하기: 내용은 `/cards/new`에서 복원 — 자동 저장·초안 삭제 없음 */
     if (peekPendingHeroResumeAfterAuth() && peekPendingCardDraft()) {
+      return { saved: false };
+    }
+
+    /** 게스트 작성분을 로그인 후 편집기에서 이어 받아 저장 버튼으로 정식 저장 (자동 DB 생성 안 함) */
+    if (peekPendingDeferAutoFlush()) {
       return { saved: false };
     }
 

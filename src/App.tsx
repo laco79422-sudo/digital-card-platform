@@ -59,6 +59,11 @@ function EditAliasRedirect() {
   return <Navigate to={`/cards/${encodeURIComponent(id)}/edit`} replace />;
 }
 
+function MyCardsEditAliasRedirect() {
+  const { id = "" } = useParams();
+  return <Navigate to={`/cards/${encodeURIComponent(id)}/edit`} replace />;
+}
+
 function AppRoutes() {
   useSupabaseAuthSync();
   useInactivityLogout();
@@ -93,6 +98,7 @@ function AppRoutes() {
           <Route path="signup" element={<SignupPage />} />
           <Route path="create-for-others" element={<CreateCardForOthersPage />} />
           <Route path="create-card" element={<CardEditorPage />} />
+          <Route path="card/create" element={<CardEditorPage />} />
           <Route path="request" element={<DesignRequestPage />} />
         <Route path="creators" element={<CreatorDirectoryPage />} />
         <Route
@@ -231,6 +237,22 @@ function AppRoutes() {
           element={
             <ProtectedRoute roles={["client", "company_admin", "admin"]}>
               <CardEditorPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="my/cards/:id/edit"
+          element={
+            <ProtectedRoute roles={["client", "company_admin", "admin"]}>
+              <MyCardsEditAliasRedirect />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="my/cards"
+          element={
+            <ProtectedRoute roles={["client", "company_admin", "admin"]}>
+              <Navigate to="/cards" replace />
             </ProtectedRoute>
           }
         />
