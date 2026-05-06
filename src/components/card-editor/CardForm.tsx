@@ -850,7 +850,7 @@ export function CardForm({
     <div className="space-y-6">
       {wrap(
         "1 · 기본 정보",
-        "먼저 유형과 이름·한 줄 소개를 채우면 오른쪽 미리보기에 바로 반영됩니다.",
+        "먼저 유형과 이름·한 줄 소개를 채우면 미리보기에 바로 반영됩니다.",
         "기본 정보",
         basicInfoInner,
       )}

@@ -1530,6 +1530,29 @@ export function CardEditorPage() {
           {existingCardBannerFromRouter}
         </div>
       ) : null}
+      {isGuestRoute && !user && isNew ? (
+        <div className="top-actions mx-auto mb-4 max-w-6xl px-4 sm:mb-5 sm:px-5">
+          <div className="rounded-2xl border border-emerald-200/90 bg-gradient-to-br from-emerald-50/95 to-white px-4 py-4 shadow-sm sm:flex sm:flex-wrap sm:items-center sm:justify-between sm:gap-4 sm:px-5">
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-emerald-950">예시 명함으로 바로 체험해 보세요</p>
+              <p className="mt-1 text-xs font-medium text-emerald-900/85 sm:text-[13px]">
+                한 번 누르면 업종·문구가 채워지고, 아래 입력만 바꿔도 미리보기에 바로 반영됩니다.
+              </p>
+            </div>
+            <Button
+              type="button"
+              className={cn(
+                "mt-3 w-full min-h-11 shrink-0 font-extrabold shadow-md sm:mt-0 sm:w-auto sm:min-w-[10.5rem]",
+                "border-0 bg-emerald-600 text-white hover:bg-emerald-500",
+              )}
+              onClick={() => applyInstantIndustrySample()}
+            >
+              샘플로 채우기
+            </Button>
+          </div>
+        </div>
+      ) : null}
+
       <div className="mx-auto mb-6 max-w-6xl space-y-2 px-4 sm:mb-8 sm:px-5">
         {!isGuestRoute && isNew && location.pathname === "/cards/new" && !wantsSample ? (
           <p className="max-w-xl text-xs leading-relaxed text-slate-600 sm:text-sm">
@@ -1538,31 +1561,10 @@ export function CardEditorPage() {
         ) : null}
         {isGuestRoute ? (
           <p className="max-w-md text-xs leading-relaxed text-slate-500 sm:text-sm">
-            입력하면 자동 저장됩니다. 링크는 아래 「공유 설정」, 저장은 페이지 하단에서 이어가면 됩니다.
+            샘플로 빠르게 시작하고 필요한 내용만 수정해보세요.
           </p>
         ) : null}
       </div>
-
-      {isGuestRoute && !user && isNew ? (
-        <div className="mb-6 rounded-2xl border border-emerald-200/90 bg-gradient-to-br from-emerald-50/95 to-white px-4 py-4 shadow-sm sm:flex sm:flex-wrap sm:items-center sm:justify-between sm:gap-4 sm:px-5">
-          <div className="min-w-0">
-            <p className="text-sm font-bold text-emerald-950">예시 명함으로 바로 체험해 보세요</p>
-            <p className="mt-1 text-xs font-medium text-emerald-900/85 sm:text-[13px]">
-              업종·문구가 한 번에 들어오고 오른쪽에서 바로 수정만 하면 됩니다.
-            </p>
-          </div>
-          <Button
-            type="button"
-            className={cn(
-              "mt-3 w-full min-h-11 shrink-0 font-extrabold shadow-md sm:mt-0 sm:w-auto sm:min-w-[10.5rem]",
-              "border-0 bg-emerald-600 text-white hover:bg-emerald-500",
-            )}
-            onClick={() => applyInstantIndustrySample()}
-          >
-            샘플로 채우기
-          </Button>
-        </div>
-      ) : null}
 
       {user && !isGuestRoute && isNew && location.pathname === "/cards/new" && !wantsSample ? (
         <div className="mb-8 space-y-4">
@@ -1619,14 +1621,16 @@ export function CardEditorPage() {
         <RewardAdsSection placement="card_complete" className="mb-8" />
       ) : null}
 
-      <div className="studio-editor-studio mx-auto grid w-full max-w-6xl grid-cols-1 gap-8 px-4 sm:px-5 lg:grid lg:grid-cols-[3fr_2fr] lg:items-start xl:gap-12">
-        <div className="order-2 min-w-0 space-y-5 sm:space-y-7 lg:order-1 lg:py-2">
+      <div className="create-card-page studio-editor-studio mx-auto grid w-full max-w-6xl grid-cols-1 gap-8 px-4 sm:px-5 lg:grid lg:grid-cols-[3fr_2fr] lg:items-start xl:gap-12">
+        <div className="order-1 min-w-0 space-y-5 sm:space-y-7 lg:py-2">
           <div>
             <h1 className="text-balance text-2xl font-extrabold leading-snug tracking-tight text-slate-900 sm:text-3xl md:text-[1.85rem]">
               지금 보이는 대로 저장됩니다
             </h1>
             <p className="mt-3 max-w-2xl text-pretty text-base leading-relaxed text-slate-600 sm:text-lg">
-              왼쪽에서 내용을 수정하면 오른쪽 명함에 바로 반영됩니다.
+              {isGuestRoute
+                ? "입력한 내용이 아래 실시간 미리보기에 바로 반영됩니다."
+                : "왼쪽에서 내용을 수정하면 오른쪽 명함에 바로 반영됩니다."}
             </p>
             {isLiveGenerator ? (
               <p className="mt-3 max-w-2xl text-sm leading-relaxed text-slate-500">
@@ -1962,7 +1966,7 @@ export function CardEditorPage() {
         </div>
       </form>
         </div>
-        <aside className="order-1 mb-10 w-full lg:order-2 lg:sticky lg:top-24 lg:z-30 lg:mb-0 lg:max-h-[min(calc(100vh-7rem),56rem)] lg:self-start lg:overflow-y-auto lg:overscroll-contain lg:pb-10">
+        <aside className="order-2 mb-10 w-full lg:sticky lg:top-24 lg:z-30 lg:mb-0 lg:max-h-[min(calc(100vh-7rem),56rem)] lg:self-start lg:overflow-y-auto lg:overscroll-contain lg:pb-10">
           <section id="card-preview-hero" className="scroll-mt-28">
             <div className="mx-auto w-full max-w-[min(100%,26rem)] overflow-hidden rounded-[1.65rem] border border-slate-200/90 bg-slate-100 shadow-[0_28px_64px_-14px_rgba(15,23,42,0.38)] ring-1 ring-slate-900/[0.06] lg:mx-0">
               <p className="border-b border-slate-200/90 bg-white px-3 py-2.5 text-center text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500 sm:text-xs">
