@@ -1,3 +1,4 @@
+import { BrandImageStatusPanel } from "@/components/card-editor/BrandImageStatusPanel";
 import type { BrandImagePersistPayload } from "@/components/card-editor/ImageUploader";
 import { ImageUploader } from "@/components/card-editor/ImageUploader";
 import { Button } from "@/components/ui/Button";
@@ -199,19 +200,6 @@ export function CardForm({
   const labelCls = cn("text-base font-medium text-slate-800", isStudio && "text-slate-900");
   const hintCls = "mt-0.5 text-xs font-medium text-brand-600";
   const onboardKind = coerceOnboardCardType(draft.card_type);
-
-  const imageModerationNote = useMemo(() => {
-    if (draft.brand_image_status === "pending") {
-      return "이미지 검수 중입니다. 승인되면 공개 명함에 반영됩니다.";
-    }
-    if (draft.brand_image_status === "rejected") {
-      const r = draft.brand_image_reject_reason?.trim();
-      return r
-        ? `이미지가 승인되지 않았습니다. (${r}) 다시 업로드해 주세요.`
-        : "이미지가 승인되지 않았습니다. 다시 업로드해 주세요.";
-    }
-    return null;
-  }, [draft.brand_image_status, draft.brand_image_reject_reason]);
 
   const basicInfoInner = (
     <div className="grid gap-4 sm:grid-cols-2">
@@ -430,12 +418,17 @@ export function CardForm({
         persistBrandImageCardId={persistBrandImageCardId}
         getPersistBrandImageCardId={getPersistBrandImageCardId}
         onBrandImagePersist={onBrandImagePersist}
-        moderationNote={imageModerationNote}
         gateGuestPick={gateGuestHeroImagePick}
         onHeroImageFlowBlockingChange={onHeroImageFlowBlockingChange}
+        onBrandImageDraftPatch={(patch) => setDraft(patch)}
         sectionAnchorId="linko-editor-hero-upload"
         defaultAdvancedOpen={false}
         compactDeleteStyle
+      />
+      <BrandImageStatusPanel
+        className="mt-4"
+        status={draft.brand_image_status}
+        rejectReason={draft.brand_image_reject_reason}
       />
       {guestHeroStorageHint ? (
         <p className="mt-2 text-xs font-medium text-slate-600">이미지는 회원가입 후 안전하게 저장됩니다.</p>

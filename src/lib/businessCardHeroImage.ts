@@ -1,11 +1,11 @@
+import { isBrandImagePublicHeroBlocked } from "@/lib/brandImageStatus";
 import type { BusinessCard } from "@/types/domain";
 
 /** 내 공간·공개 명함·목록 썸네일 공통 — 빈 값일 때 동일 자산 사용 */
 export const CARD_HERO_FALLBACK_SRC = "/og-card-default.png" as const;
 
 function isHeroModerationHidden(card: BusinessCard): boolean {
-  const s = card.brand_image_status;
-  return s === "pending" || s === "rejected";
+  return isBrandImagePublicHeroBlocked(card.brand_image_status ?? card.image_status);
 }
 
 /**

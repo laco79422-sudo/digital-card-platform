@@ -1,3 +1,4 @@
+import type { BrandImageStatus } from "@/lib/brandImageStatus";
 import type { CardIndustryPayload } from "@/types/cardIndustry";
 
 export type UserRole = "client" | "creator" | "admin" | "company_admin" | "teacher";
@@ -102,8 +103,8 @@ export interface BusinessCard {
   thumbnail_url?: string | null;
   /** 히어로 브랜드 대표 이미지 (DB 컬럼명, imageUrl과 동기화) */
   brand_image_url?: string | null;
-  /** 검수 중이면 pending — 공개 명함에는 미반영(기본 히어로만) */
-  brand_image_status?: "pending" | "approved" | "rejected" | null;
+  /** 검수 상태 — DB: pending_review | approved | rejected_manual (+ 편집기 클라이언트 전용 값 가능) */
+  brand_image_status?: BrandImageStatus | null;
   /** private 버킷 `card-image-pending` 내 객체 경로 */
   brand_image_pending_path?: string | null;
   brand_image_reject_reason?: string | null;

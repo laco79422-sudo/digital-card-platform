@@ -88,7 +88,7 @@ export function AdminImageReviewPage() {
       if (res.ok) {
         upsertBusinessCard({
           ...card,
-          brand_image_status: "rejected",
+          brand_image_status: "rejected_manual",
           brand_image_reject_reason: reason,
           brand_image_pending_path: null,
           brand_image_pending_uploaded_at: null,
@@ -110,7 +110,7 @@ export function AdminImageReviewPage() {
       if (res.ok) {
         upsertBusinessCard({
           ...card,
-          brand_image_status: "rejected",
+          brand_image_status: "rejected_manual",
           brand_image_reject_reason: "관리자에 의해 삭제되었습니다.",
           brand_image_pending_path: null,
           brand_image_pending_uploaded_at: null,

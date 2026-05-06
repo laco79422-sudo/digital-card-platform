@@ -11,7 +11,7 @@ export async function fetchPendingBrandImageCards(): Promise<BusinessCard[]> {
   const { data, error } = await supabase
     .from(TABLE)
     .select("*")
-    .eq("brand_image_status", "pending")
+    .in("brand_image_status", ["pending_review", "pending"])
     .order("created_at", { ascending: false });
   if (error) {
     console.warn("[brandImageModerationService] fetchPendingBrandImageCards", error.message);
@@ -103,7 +103,7 @@ export async function rejectBrandImageModeration(
   const { error } = await supabase
     .from(TABLE)
     .update({
-      brand_image_status: "rejected",
+      brand_image_status: "rejected_manual",
       brand_image_reject_reason: reason.trim() || null,
       brand_image_pending_path: null,
       brand_image_pending_uploaded_at: null,
@@ -128,7 +128,7 @@ export async function deletePendingBrandImageModeration(card: BusinessCard): Pro
     .update({
       brand_image_pending_path: null,
       brand_image_pending_uploaded_at: null,
-      brand_image_status: "rejected",
+      brand_image_status: "rejected_manual",
       brand_image_reject_reason: "관리자에 의해 삭제되었습니다.",
     })
     .eq("id", card.id);

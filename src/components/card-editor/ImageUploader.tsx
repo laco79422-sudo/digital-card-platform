@@ -16,16 +16,21 @@ import {
 } from "@/lib/brandHeroLayout";
 import {
   BRAND_IMAGE_ACCEPT,
-  BRAND_IMAGE_FORMAT_ERROR,
   BRAND_IMAGE_MAX_BYTES,
-  BRAND_IMAGE_SIZE_ERROR,
+  BRAND_IMAGE_MIN_EDGE_PX,
+  BRAND_IMAGE_TOO_SMALL_ERROR,
+  measureImageDimensions,
+  validateBrandImageFile,
+  validateBrandImageFilename,
 } from "@/lib/brandImageConstraints";
+import type { BrandImageStatus } from "@/lib/brandImageStatus";
 import { optimizeImageFileToDataUrl } from "@/lib/brandImageProcess";
 import { uploadBrandImageToPendingFromDataUrl } from "@/lib/brandImagePendingUpload";
 import { formatUploadErrorForDisplay } from "@/lib/brandImageUploadDiagnostics";
 import { Modal } from "@/components/ui/Modal";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/authStore";
+import { useCardEditorDraftStore } from "@/stores/cardEditorDraftStore";
 import { ChevronDown, ImageIcon, Minus, Move, Plus, RotateCcw } from "lucide-react";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 
@@ -43,15 +48,6 @@ export type BrandImagePersistPayload = {
   naturalW: number | null;
   naturalH: number | null;
 };
-
-function decodeImageObjectUrl(url: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => resolve();
-    img.onerror = () => reject(new Error("decode"));
-    img.src = url;
-  });
-}
 
 type Props = {
   label?: string;
@@ -85,6 +81,11 @@ type Props = {
   onBrandImagePersist?: (payload: BrandImagePersistPayload) => Promise<void>;
   /** 1차 통과 전·2차 검증 전·검증 중일 때 true — 명함 폼 최종 저장 비활성화용 */
   onHeroImageFlowBlockingChange?: (blocked: boolean) => void;
+  /** 1차 검수 단계에서 draft.brand_image_status 동기화 (checking → 실패 시 rejected_auto 등) */
+  onBrandImageDraftPatch?: (patch: {
+    brand_image_status?: BrandImageStatus | null;
+    brand_image_reject_reason?: string | null;
+  }) => void;
 };
 
 export function ImageUploader({
@@ -111,6 +112,7 @@ export function ImageUploader({
   getPersistBrandImageCardId,
   onBrandImagePersist,
   onHeroImageFlowBlockingChange,
+  onBrandImageDraftPatch,
 }: Props) {
   const inputId = useId();
   const sessionUser = useAuthStore((s) => s.user);
@@ -118,6 +120,8 @@ export function ImageUploader({
   const frameRef = useRef<HTMLDivElement>(null);
   const previewObjectUrlRef = useRef<string | null>(null);
   const successClearRef = useRef<number | null>(null);
+  const statusBeforePickRef = useRef<BrandImageStatus | null>(null);
+  const rejectBeforePickRef = useRef<string | null>(null);
 
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -126,6 +130,7 @@ export function ImageUploader({
   const [lineSize, setLineSize] = useState<LineStatus>("idle");
   const [lineExists, setLineExists] = useState<LineStatus>("idle");
   const [linePreview, setLinePreview] = useState<LineStatus>("idle");
+  const [linePixels, setLinePixels] = useState<LineStatus>("idle");
   const [secondCheckStatus, setSecondCheckStatus] = useState<SecondCheckStatus>("idle");
   const [secondAck, setSecondAck] = useState(false);
   const [imageSaveStatus, setImageSaveStatus] = useState<ImageSaveStatus>("idle");
@@ -192,6 +197,7 @@ export function ImageUploader({
       setLineSize("idle");
       setLineExists("idle");
       setLinePreview("idle");
+      setLinePixels("idle");
       setSecondCheckStatus("idle");
       setSecondAck(false);
       return;
@@ -200,67 +206,95 @@ export function ImageUploader({
     let cancelled = false;
     const file = imageFile;
 
-    const formatOk =
-      /^image\/(jpeg|jpg|png|webp)$/i.test(file.type) || /\.(jpe?g|png|webp)$/i.test(file.name);
-    const existsOk = file.size > 0;
-    const sizeOk = existsOk && file.size <= BRAND_IMAGE_MAX_BYTES;
-
     setFirstCheckStatus("checking");
+    onBrandImageDraftPatch?.({ brand_image_status: "checking", brand_image_reject_reason: null });
     setImageErrorMessage(null);
     setSecondCheckStatus("idle");
     setSecondAck(false);
     setImageSaveStatus("idle");
-    setLineFormat(formatOk ? "pass" : "fail");
-    setLineSize(sizeOk ? "pass" : "fail");
-    setLineExists(existsOk ? "pass" : "fail");
+    setLinePixels("idle");
     setLinePreview("pending");
 
     revokePreview();
 
-    if (!formatOk) {
-      setFirstCheckStatus("failed");
-      setImageErrorMessage(BRAND_IMAGE_FORMAT_ERROR);
-      setLinePreview("idle");
-      return;
-    }
+    const existsOk = file.size > 0;
     if (!existsOk) {
+      setLineFormat("idle");
+      setLineSize("idle");
+      setLineExists("fail");
+      setLinePreview("idle");
       setFirstCheckStatus("failed");
       setImageErrorMessage("빈 파일입니다. 다른 이미지를 선택해 주세요.");
-      setLinePreview("idle");
+      onBrandImageDraftPatch?.({
+        brand_image_status: "rejected_auto",
+        brand_image_reject_reason: "빈 파일입니다. 다른 이미지를 선택해 주세요.",
+      });
       return;
     }
-    if (!sizeOk) {
+
+    const v = validateBrandImageFile(file);
+    if (!v.ok) {
+      const nameOk = validateBrandImageFilename(file.name).ok;
+      const typeOk = /^image\/(jpeg|jpg|png|webp)$/i.test(file.type);
+      const formatPass = nameOk && typeOk;
+      const sizePass = file.size > 0 && file.size <= BRAND_IMAGE_MAX_BYTES;
+      setLineFormat(formatPass ? "pass" : "fail");
+      setLineSize(sizePass ? "pass" : "fail");
+      setLineExists("pass");
+      setLinePreview("idle");
       setFirstCheckStatus("failed");
-      setImageErrorMessage(BRAND_IMAGE_SIZE_ERROR);
-      setLinePreview("idle");
+      setImageErrorMessage(v.message);
+      onBrandImageDraftPatch?.({ brand_image_status: "rejected_auto", brand_image_reject_reason: v.message });
       return;
     }
+
+    setLineFormat("pass");
+    setLineSize("pass");
+    setLineExists("pass");
+    setLinePixels("pending");
 
     const url = URL.createObjectURL(file);
     previewObjectUrlRef.current = url;
 
-    void decodeImageObjectUrl(url)
-      .then(() => {
+    void measureImageDimensions(url)
+      .then(({ width, height }) => {
         if (cancelled) return;
+        if (width < BRAND_IMAGE_MIN_EDGE_PX || height < BRAND_IMAGE_MIN_EDGE_PX) {
+          URL.revokeObjectURL(url);
+          previewObjectUrlRef.current = null;
+          setLinePixels("fail");
+          setLinePreview("idle");
+          setFirstCheckStatus("failed");
+          setImageErrorMessage(BRAND_IMAGE_TOO_SMALL_ERROR);
+          onBrandImageDraftPatch?.({
+            brand_image_status: "rejected_auto",
+            brand_image_reject_reason: BRAND_IMAGE_TOO_SMALL_ERROR,
+          });
+          return;
+        }
         setPreviewUrl(url);
+        setLinePixels("pass");
         setFirstCheckStatus("passed");
         setLinePreview("pass");
+        onBrandImageDraftPatch?.({ brand_image_status: null, brand_image_reject_reason: null });
       })
       .catch(() => {
         if (cancelled) return;
         URL.revokeObjectURL(url);
         previewObjectUrlRef.current = null;
+        setLinePixels("fail");
         setFirstCheckStatus("failed");
-        setImageErrorMessage(
-          "이미지를 불러와 미리보기할 수 없습니다. 손상된 파일이거나 지원되지 않는 형식일 수 있습니다.",
-        );
+        const msg =
+          "이미지를 불러오지 못했습니다. 손상된 파일이거나 지원되지 않는 형식일 수 있습니다.";
+        setImageErrorMessage(msg);
         setLinePreview("fail");
+        onBrandImageDraftPatch?.({ brand_image_status: "rejected_auto", brand_image_reject_reason: msg });
       });
 
     return () => {
       cancelled = true;
     };
-  }, [imageFile, revokePreview]);
+  }, [imageFile, revokePreview, onBrandImageDraftPatch]);
 
   useEffect(() => {
     const blocked =
@@ -279,6 +313,14 @@ export function ImageUploader({
   }, []);
 
   const cancelSelection = useCallback(() => {
+    const st0 = statusBeforePickRef.current;
+    const r0 = rejectBeforePickRef.current;
+    statusBeforePickRef.current = null;
+    rejectBeforePickRef.current = null;
+    onBrandImageDraftPatch?.({
+      brand_image_status: st0,
+      brand_image_reject_reason: r0,
+    });
     setImageFile(null);
     setImageSaveStatus("idle");
     setImageErrorMessage(null);
@@ -286,12 +328,15 @@ export function ImageUploader({
     setSecondAck(false);
     setSecondCheckStatus("idle");
     if (inputRef.current) inputRef.current.value = "";
-  }, []);
+  }, [onBrandImageDraftPatch]);
 
   const onPick = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
+    const d = useCardEditorDraftStore.getState().draft;
+    statusBeforePickRef.current = d.brand_image_status ?? null;
+    rejectBeforePickRef.current = d.brand_image_reject_reason ?? null;
     setImageSaveStatus("idle");
     setImageErrorMessage(null);
     setPostSaveHint(null);
@@ -301,6 +346,9 @@ export function ImageUploader({
   const confirmApply = async () => {
     if (!imageFile || firstCheckStatus !== "passed" || !secondAck) return;
 
+    statusBeforePickRef.current = null;
+    rejectBeforePickRef.current = null;
+
     setImageSaveStatus("saving");
     setImageErrorMessage(null);
 
@@ -309,6 +357,7 @@ export function ImageUploader({
 
       if (gateGuestPick) {
         onUrlChange(dataUrl, { reset: true, naturalW: width, naturalH: height });
+        onBrandImageDraftPatch?.({ brand_image_status: null, brand_image_reject_reason: null });
         setSecondCheckStatus("passed");
         setImageSaveStatus("saved");
         setPostSaveHint(
@@ -359,7 +408,9 @@ export function ImageUploader({
       console.error("UPLOAD ERROR:", err);
       setImageSaveStatus("failed");
       const line = formatUploadErrorForDisplay(err);
-      setImageErrorMessage(line?.trim() ? line : uploadFailMessage);
+      const msg = line?.trim() ? line : uploadFailMessage;
+      setImageErrorMessage(msg);
+      onBrandImageDraftPatch?.({ brand_image_status: "rejected_auto", brand_image_reject_reason: msg });
     }
   };
 
@@ -519,6 +570,7 @@ export function ImageUploader({
         lineSize={lineSize}
         lineExists={lineExists}
         linePreview={linePreview}
+        linePixels={linePixels}
         secondAck={secondAck}
         onSecondAckChange={setSecondAck}
         onConfirmApply={() => void confirmApply()}

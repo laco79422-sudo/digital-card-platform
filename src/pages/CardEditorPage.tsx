@@ -38,6 +38,7 @@ import { canonicalSiteOrigin } from "@/lib/siteOrigin";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase/client";
 import { parseCardEditorDraft, zodIssuesToFieldErrors } from "@/lib/cardEditorSchema";
 import { syncTempPreviewRemote } from "@/lib/syncTempPreviewRemote";
+import { normalizeBrandImageStatus } from "@/lib/brandImageStatus";
 import { layout } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
 import {
@@ -247,7 +248,8 @@ export function CardEditorPage() {
   const setDraft = useCardEditorDraftStore((s) => s.setDraft);
 
   useEffect(() => {
-    if (!existing?.brand_image_pending_path?.trim() || existing.brand_image_status !== "pending") return;
+    const pendingSt = normalizeBrandImageStatus(existing?.brand_image_status);
+    if (!existing?.brand_image_pending_path?.trim() || pendingSt !== "pending_review") return;
     if (!isSupabaseConfigured || !supabase) return;
     const path = existing.brand_image_pending_path.trim();
     let cancelled = false;
@@ -261,7 +263,7 @@ export function CardEditorPage() {
       setDraft({
         imageUrl: data.signedUrl,
         brand_image_url: data.signedUrl,
-        brand_image_status: "pending",
+        brand_image_status: "pending_review",
         brand_image_pending_path: path,
         approved_public_hero_url: approvedKeep,
       });
@@ -922,7 +924,7 @@ export function CardEditorPage() {
       setDraft({
         imageUrl: payload.displayUrl,
         brand_image_url: payload.displayUrl,
-        brand_image_status: "pending",
+        brand_image_status: "pending_review",
         brand_image_pending_path: payload.pendingPath,
         brand_image_reject_reason: null,
         approved_public_hero_url: approvedKeep,
@@ -945,7 +947,7 @@ export function CardEditorPage() {
         ...cardRow,
         profile_image_url: null as string | null,
         brand_image_object_position: null as string | null,
-        brand_image_status: "pending" as const,
+        brand_image_status: "pending_review" as const,
         brand_image_pending_path: payload.pendingPath,
         brand_image_reject_reason: null as string | null,
         brand_image_pending_uploaded_at: nowIso,

@@ -1,3 +1,8 @@
+import {
+  brandImageStatusForRemote,
+  normalizeBrandImageStatus,
+  shouldPersistApprovedHeroOnly,
+} from "@/lib/brandImageStatus";
 import type { BusinessCard, CardDesignType, DigitalCardServiceLine, TrustTestimonial } from "@/types/domain";
 import type { CardIndustryPayload } from "@/types/cardIndustry";
 import { parseCardIndustryPayload } from "@/types/cardIndustry";
@@ -229,7 +234,7 @@ export function draftFromBusinessCard(card: BusinessCard): CardEditorDraft {
   };
   const svc = card.services?.length ? [...card.services] : [];
   while (svc.length < 3) svc.push({ title: "", body: "" });
-  const st = card.brand_image_status;
+  const st = normalizeBrandImageStatus(card.brand_image_status ?? card.image_status);
   const pendingPath = card.brand_image_pending_path?.trim() || null;
   const mergedHero =
     card.image_url?.trim() ||
@@ -239,9 +244,9 @@ export function draftFromBusinessCard(card: BusinessCard): CardEditorDraft {
     imageAliases.profileImageUrl?.trim() ||
     imageAliases.logoUrl?.trim() ||
     null;
-  const editorHero = st === "pending" && pendingPath ? null : mergedHero;
+  const editorHero = st === "pending_review" && pendingPath ? null : mergedHero;
   const approvedPub =
-    st === "pending" || st === "rejected"
+    shouldPersistApprovedHeroOnly(st) && st !== "checking"
       ? card.brand_image_url?.trim() || card.image_url?.trim() || null
       : null;
   return {
@@ -312,7 +317,11 @@ export function draftToPreviewBusinessCard(
   });
   const display = (draft.imageUrl ?? draft.brand_image_url)?.trim() || null;
   const slug = base.slug || "preview";
-  if ((draft.brand_image_status === "pending" || draft.brand_image_status === "rejected") && display) {
+  const previewSt = normalizeBrandImageStatus(draft.brand_image_status);
+  if (
+    (previewSt === "pending_review" || previewSt === "rejected_manual" || previewSt === "rejected_auto") &&
+    display
+  ) {
     return {
       ...base,
       slug,
@@ -353,11 +362,10 @@ export function draftToBusinessCard(
   const trust_line = trimmedTestimonials[0]?.quote ?? null;
   const trust_metric = draft.trust_metric.trim() || null;
   const userFacing = (draft.imageUrl ?? draft.brand_image_url)?.trim() || null;
-  const st = draft.brand_image_status;
-  const persistedHero =
-    st === "pending" || st === "rejected"
-      ? draft.approved_public_hero_url?.trim() || null
-      : userFacing;
+  const st = normalizeBrandImageStatus(draft.brand_image_status);
+  const persistedHero = shouldPersistApprovedHeroOnly(st)
+    ? draft.approved_public_hero_url?.trim() || null
+    : userFacing;
   const imageUrl = persistedHero;
   const industry = draft.industry?.trim() || null;
   const explicitOg = draft.og_image_url?.trim();
@@ -416,7 +424,7 @@ export function draftToBusinessCard(
     auto_image_url: explicitAuto || null,
     og_image_url: resolvedOg || null,
     marketing_title: draft.marketing_title.trim() || null,
-    brand_image_status: draft.brand_image_status ?? null,
+    brand_image_status: brandImageStatusForRemote(normalizeBrandImageStatus(draft.brand_image_status)),
     brand_image_pending_path: draft.brand_image_pending_path?.trim() || null,
     brand_image_reject_reason: draft.brand_image_reject_reason?.trim() || null,
   };

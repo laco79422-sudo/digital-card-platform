@@ -28,6 +28,8 @@ export type BrandImageTwoStepFlowProps = {
   lineSize: LineStatus;
   lineExists: LineStatus;
   linePreview: LineStatus;
+  /** 가로·세로 최소 픽셀 — 미사용 시 모두 idle */
+  linePixels?: LineStatus;
   secondAck: boolean;
   onSecondAckChange: (v: boolean) => void;
   onConfirmApply: () => void;
@@ -50,6 +52,7 @@ export function BrandImageTwoStepFlow({
   lineSize,
   lineExists,
   linePreview,
+  linePixels = "idle",
   secondAck,
   onSecondAckChange,
   onConfirmApply,
@@ -70,7 +73,7 @@ export function BrandImageTwoStepFlow({
         <>
           <div>
             <h3 className="text-sm font-bold text-slate-900">[2] 1차 검사 결과</h3>
-            <p className="mt-1 text-xs text-slate-500">형식·용량·파일·미리보기 생성 가능 여부를 확인합니다.</p>
+            <p className="mt-1 text-xs text-slate-500">형식·용량·파일명·해상도·미리보기 생성 가능 여부를 확인합니다.</p>
             <ul className="mt-3 space-y-2 text-sm">
               <li className="flex items-center gap-2">
                 {formatLineIcon(lineFormat)}
@@ -93,6 +96,15 @@ export function BrandImageTwoStepFlow({
                   {lineExists === "pass" ? " — 통과" : lineExists === "fail" ? " — 실패" : lineExists === "pending" ? " — 확인 중" : ""}
                 </span>
               </li>
+              {linePixels !== "idle" ? (
+                <li className="flex items-center gap-2">
+                  {formatLineIcon(linePixels)}
+                  <span className={linePixels === "fail" ? "text-red-700" : "text-slate-700"}>
+                    해상도: 가로·세로 200px 이상
+                    {linePixels === "pass" ? " — 통과" : linePixels === "fail" ? " — 실패" : linePixels === "pending" ? " — 확인 중" : ""}
+                  </span>
+                </li>
+              ) : null}
               <li className="flex items-center gap-2">
                 {formatLineIcon(linePreview)}
                 <span className={linePreview === "fail" ? "text-red-700" : "text-slate-700"}>

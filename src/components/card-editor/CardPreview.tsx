@@ -10,9 +10,12 @@ import type { BrandImagePersistPayload } from "@/components/card-editor/ImageUpl
 import { Button } from "@/components/ui/Button";
 import {
   BRAND_IMAGE_ACCEPT,
-  BRAND_IMAGE_FORMAT_ERROR,
   BRAND_IMAGE_MAX_BYTES,
-  BRAND_IMAGE_SIZE_ERROR,
+  BRAND_IMAGE_MIN_EDGE_PX,
+  BRAND_IMAGE_TOO_SMALL_ERROR,
+  measureImageDimensions,
+  validateBrandImageFile,
+  validateBrandImageFilename,
 } from "@/lib/brandImageConstraints";
 import { optimizeImageFileToDataUrl } from "@/lib/brandImageProcess";
 import { uploadBrandImageToPendingFromDataUrl } from "@/lib/brandImagePendingUpload";
@@ -21,6 +24,7 @@ import { DEFAULT_CARD_PERSON_NAME, draftToPreviewBusinessCard } from "@/stores/c
 import { useCardEditorDraftStore } from "@/stores/cardEditorDraftStore";
 import { useAppDataStore } from "@/stores/appDataStore";
 import { useAuthStore } from "@/stores/authStore";
+import type { BrandImageStatus } from "@/lib/brandImageStatus";
 import type { CardLink, CardLinkType } from "@/types/domain";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -41,15 +45,6 @@ function navigatePreviewLink(url: string) {
     return;
   }
   window.open(t, "_blank", "noopener,noreferrer");
-}
-
-function decodeImageObjectUrl(url: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => resolve();
-    img.onerror = () => reject(new Error("decode"));
-    img.src = url;
-  });
 }
 
 type Props = {
@@ -86,6 +81,8 @@ export function CardPreview({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const previewObjectUrlRef = useRef<string | null>(null);
   const successClearRef = useRef<number | null>(null);
+  const statusBeforePickRef = useRef<BrandImageStatus | null>(null);
+  const rejectBeforePickRef = useRef<string | null>(null);
 
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -94,6 +91,7 @@ export function CardPreview({
   const [lineSize, setLineSize] = useState<LineStatus>("idle");
   const [lineExists, setLineExists] = useState<LineStatus>("idle");
   const [linePreview, setLinePreview] = useState<LineStatus>("idle");
+  const [linePixels, setLinePixels] = useState<LineStatus>("idle");
   const [secondCheckStatus, setSecondCheckStatus] = useState<SecondCheckStatus>("idle");
   const [secondAck, setSecondAck] = useState(false);
   const [imageSaveStatus, setImageSaveStatus] = useState<ImageSaveStatus>("idle");
@@ -129,6 +127,7 @@ export function CardPreview({
       setLineSize("idle");
       setLineExists("idle");
       setLinePreview("idle");
+      setLinePixels("idle");
       setSecondCheckStatus("idle");
       setSecondAck(false);
       return;
@@ -137,67 +136,93 @@ export function CardPreview({
     let cancelled = false;
     const file = imageFile;
 
-    const formatOk =
-      /^image\/(jpeg|jpg|png|webp)$/i.test(file.type) || /\.(jpe?g|png|webp)$/i.test(file.name);
-    const existsOk = file.size > 0;
-    const sizeOk = existsOk && file.size <= BRAND_IMAGE_MAX_BYTES;
-
     setFirstCheckStatus("checking");
+    setDraft({ brand_image_status: "checking", brand_image_reject_reason: null });
     setImageErrorMessage(null);
     setSecondCheckStatus("idle");
     setSecondAck(false);
     setImageSaveStatus("idle");
-    setLineFormat(formatOk ? "pass" : "fail");
-    setLineSize(sizeOk ? "pass" : "fail");
-    setLineExists(existsOk ? "pass" : "fail");
+    setLinePixels("idle");
     setLinePreview("pending");
 
     revokePreview();
 
-    if (!formatOk) {
-      setFirstCheckStatus("failed");
-      setImageErrorMessage(BRAND_IMAGE_FORMAT_ERROR);
-      setLinePreview("idle");
-      return;
-    }
+    const existsOk = file.size > 0;
     if (!existsOk) {
-      setFirstCheckStatus("failed");
-      setImageErrorMessage("빈 파일입니다. 다른 이미지를 선택해 주세요.");
+      setLineFormat("idle");
+      setLineSize("idle");
+      setLineExists("fail");
       setLinePreview("idle");
+      setFirstCheckStatus("failed");
+      const msg = "빈 파일입니다. 다른 이미지를 선택해 주세요.";
+      setImageErrorMessage(msg);
+      setDraft({ brand_image_status: "rejected_auto", brand_image_reject_reason: msg });
       return;
     }
-    if (!sizeOk) {
-      setFirstCheckStatus("failed");
-      setImageErrorMessage(BRAND_IMAGE_SIZE_ERROR);
+
+    const v = validateBrandImageFile(file);
+    if (!v.ok) {
+      const nameOk = validateBrandImageFilename(file.name).ok;
+      const typeOk = /^image\/(jpeg|jpg|png|webp)$/i.test(file.type);
+      const formatPass = nameOk && typeOk;
+      const sizePass = file.size > 0 && file.size <= BRAND_IMAGE_MAX_BYTES;
+      setLineFormat(formatPass ? "pass" : "fail");
+      setLineSize(sizePass ? "pass" : "fail");
+      setLineExists("pass");
       setLinePreview("idle");
+      setFirstCheckStatus("failed");
+      setImageErrorMessage(v.message);
+      setDraft({ brand_image_status: "rejected_auto", brand_image_reject_reason: v.message });
       return;
     }
+
+    setLineFormat("pass");
+    setLineSize("pass");
+    setLineExists("pass");
+    setLinePixels("pending");
 
     const url = URL.createObjectURL(file);
     previewObjectUrlRef.current = url;
 
-    void decodeImageObjectUrl(url)
-      .then(() => {
+    void measureImageDimensions(url)
+      .then(({ width, height }) => {
         if (cancelled) return;
+        if (width < BRAND_IMAGE_MIN_EDGE_PX || height < BRAND_IMAGE_MIN_EDGE_PX) {
+          URL.revokeObjectURL(url);
+          previewObjectUrlRef.current = null;
+          setLinePixels("fail");
+          setLinePreview("idle");
+          setFirstCheckStatus("failed");
+          setImageErrorMessage(BRAND_IMAGE_TOO_SMALL_ERROR);
+          setDraft({
+            brand_image_status: "rejected_auto",
+            brand_image_reject_reason: BRAND_IMAGE_TOO_SMALL_ERROR,
+          });
+          return;
+        }
         setPreviewUrl(url);
+        setLinePixels("pass");
         setFirstCheckStatus("passed");
         setLinePreview("pass");
+        setDraft({ brand_image_status: null, brand_image_reject_reason: null });
       })
       .catch(() => {
         if (cancelled) return;
         URL.revokeObjectURL(url);
         previewObjectUrlRef.current = null;
+        setLinePixels("fail");
         setFirstCheckStatus("failed");
-        setImageErrorMessage(
-          "이미지를 불러와 미리보기할 수 없습니다. 손상된 파일이거나 지원되지 않는 형식일 수 있습니다.",
-        );
+        const msg =
+          "이미지를 불러오지 못했습니다. 손상된 파일이거나 지원되지 않는 형식일 수 있습니다.";
+        setImageErrorMessage(msg);
         setLinePreview("fail");
+        setDraft({ brand_image_status: "rejected_auto", brand_image_reject_reason: msg });
       });
 
     return () => {
       cancelled = true;
     };
-  }, [imageFile, revokePreview]);
+  }, [imageFile, revokePreview, setDraft]);
 
   const scheduleSaveMessageClear = useCallback(() => {
     if (successClearRef.current !== null) window.clearTimeout(successClearRef.current);
@@ -210,6 +235,11 @@ export function CardPreview({
   }, []);
 
   const cancelSelection = useCallback(() => {
+    const st0 = statusBeforePickRef.current;
+    const r0 = rejectBeforePickRef.current;
+    statusBeforePickRef.current = null;
+    rejectBeforePickRef.current = null;
+    setDraft({ brand_image_status: st0, brand_image_reject_reason: r0 });
     setImageFile(null);
     setImageSaveStatus("idle");
     setImageErrorMessage(null);
@@ -217,12 +247,15 @@ export function CardPreview({
     setSecondAck(false);
     setSecondCheckStatus("idle");
     if (fileInputRef.current) fileInputRef.current.value = "";
-  }, []);
+  }, [setDraft]);
 
   const onPick = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
+    const d = useCardEditorDraftStore.getState().draft;
+    statusBeforePickRef.current = d.brand_image_status ?? null;
+    rejectBeforePickRef.current = d.brand_image_reject_reason ?? null;
     setImageSaveStatus("idle");
     setImageErrorMessage(null);
     setPostSaveHint(null);
@@ -231,6 +264,9 @@ export function CardPreview({
 
   const confirmApply = async () => {
     if (!imageFile || firstCheckStatus !== "passed" || !secondAck) return;
+
+    statusBeforePickRef.current = null;
+    rejectBeforePickRef.current = null;
 
     setImageSaveStatus("saving");
     setImageErrorMessage(null);
@@ -248,6 +284,8 @@ export function CardPreview({
           brand_image_pan_x: 0,
           brand_image_pan_y: 0,
           brand_image_legacy_object_position: null,
+          brand_image_status: null,
+          brand_image_reject_reason: null,
         });
         setSecondCheckStatus("passed");
         setImageSaveStatus("saved");
@@ -267,7 +305,7 @@ export function CardPreview({
         setDraft({
           imageUrl: signedUrl,
           brand_image_url: signedUrl,
-          brand_image_status: "pending",
+          brand_image_status: "pending_review",
           brand_image_pending_path: path,
           brand_image_reject_reason: null,
           approved_public_hero_url: approvedKeep,
@@ -315,7 +353,9 @@ export function CardPreview({
       console.error("UPLOAD ERROR:", error);
       setImageSaveStatus("failed");
       const detail = formatUploadErrorForDisplay(error);
-      setImageErrorMessage(detail.trim() ? detail : "알 수 없는 업로드 오류");
+      const msg = detail.trim() ? detail : "알 수 없는 업로드 오류";
+      setImageErrorMessage(msg);
+      setDraft({ brand_image_status: "rejected_auto", brand_image_reject_reason: msg });
     }
   };
 
@@ -414,6 +454,7 @@ export function CardPreview({
             lineSize={lineSize}
             lineExists={lineExists}
             linePreview={linePreview}
+            linePixels={linePixels}
             secondAck={secondAck}
             onSecondAckChange={setSecondAck}
             onConfirmApply={() => void confirmApply()}
