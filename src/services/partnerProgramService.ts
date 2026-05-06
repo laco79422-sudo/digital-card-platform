@@ -4,26 +4,49 @@ export type ProfileSelfFlags = {
   is_partner: boolean;
   is_deleted: boolean;
   can_login: boolean;
+  /** DB 컬럼이 없으면 undefined */
+  role?: string | null;
 };
 
-/** 로그인 세션과 동기화 — 파트너 여부·탈퇴·로그인 허용 */
+/** 로그인 세션과 동기화 — 파트너 여부·탈퇴·로그인 허용·역할 */
 export async function fetchProfilesSelfFlagsRemote(userId: string): Promise<ProfileSelfFlags | null> {
   if (!isSupabaseConfigured || !supabase) return null;
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("is_partner, is_deleted, can_login")
-    .eq("id", userId)
-    .maybeSingle();
-  if (error) {
-    console.warn("[partnerProgramService] profiles self flags", error.message);
-    return null;
+  let data: Record<string, unknown> | null = null;
+  {
+    const res = await supabase
+      .from("profiles")
+      .select("is_partner, is_deleted, can_login, role")
+      .eq("id", userId)
+      .maybeSingle();
+    if (res.error) {
+      const msg = res.error.message.toLowerCase();
+      const roleMissing = msg.includes("role") && (msg.includes("column") || msg.includes("schema"));
+      if (roleMissing) {
+        const res2 = await supabase
+          .from("profiles")
+          .select("is_partner, is_deleted, can_login")
+          .eq("id", userId)
+          .maybeSingle();
+        if (res2.error) {
+          console.warn("[partnerProgramService] profiles self flags", res2.error.message);
+          return null;
+        }
+        data = (res2.data as Record<string, unknown>) ?? null;
+      } else {
+        console.warn("[partnerProgramService] profiles self flags", res.error.message);
+        return null;
+      }
+    } else {
+      data = (res.data as Record<string, unknown>) ?? null;
+    }
   }
   if (!data || typeof data !== "object") return null;
-  const row = data as Record<string, unknown>;
+  const row = data;
   return {
     is_partner: Boolean(row.is_partner),
     is_deleted: Boolean(row.is_deleted),
     can_login: row.can_login !== false,
+    role: typeof row.role === "string" ? row.role : row.role != null ? String(row.role) : null,
   };
 }
 

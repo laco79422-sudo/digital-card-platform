@@ -13,7 +13,7 @@ import {
   INACTIVITY_TIMEOUT_MS,
 } from "@/lib/auth/inactivityConstants";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase/client";
-import { mapSupabaseUser } from "@/lib/supabase/mapAuthUser";
+import { mapSupabaseUser, normalizeRoleFromProfile } from "@/lib/supabase/mapAuthUser";
 import { fetchProfilePartnerFlagRemote, fetchProfilesSelfFlagsRemote } from "@/services/partnerProgramService";
 import { claimPendingReferral } from "@/services/referralService";
 import { resetSignupSignalSubmitCache, submitSignupSignalForAuthenticatedUser } from "@/services/signupSignalsRemote";
@@ -63,6 +63,7 @@ export function useSupabaseAuthSync() {
         }
         const base = mapSupabaseUser(session.user);
         let is_partner = false;
+        let role = base.role;
         try {
           const flags = await fetchProfilesSelfFlagsRemote(session.user.id);
           if (flags && (flags.is_deleted || !flags.can_login)) {
@@ -77,13 +78,16 @@ export function useSupabaseAuthSync() {
             return;
           }
           is_partner = flags?.is_partner ?? false;
+          if (flags?.role != null && String(flags.role).trim()) {
+            role = normalizeRoleFromProfile(flags.role);
+          }
           if (!flags) {
             is_partner = await fetchProfilePartnerFlagRemote(session.user.id);
           }
         } catch {
           is_partner = false;
         }
-        setUser({ ...base, is_partner });
+        setUser({ ...base, role, is_partner });
         setSession(session);
         setLastActivityAt(readLastActivityMs());
         void claimPendingReferral();

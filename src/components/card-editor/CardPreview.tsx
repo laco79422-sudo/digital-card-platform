@@ -25,6 +25,7 @@ import { useCardEditorDraftStore } from "@/stores/cardEditorDraftStore";
 import { useAppDataStore } from "@/stores/appDataStore";
 import { useAuthStore } from "@/stores/authStore";
 import type { BrandImageStatus } from "@/lib/brandImageStatus";
+import { canReviewBrandImageSecondStep } from "@/lib/brandImageReviewAccess";
 import type { CardLink, CardLinkType } from "@/types/domain";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -83,6 +84,8 @@ export function CardPreview({
   const successClearRef = useRef<number | null>(null);
   const statusBeforePickRef = useRef<BrandImageStatus | null>(null);
   const rejectBeforePickRef = useRef<string | null>(null);
+  const autoSecondConsumedRef = useRef(false);
+  const confirmApplyRef = useRef<() => Promise<void>>(async () => {});
 
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -100,6 +103,7 @@ export function CardPreview({
 
   const editorHeroEditable = Boolean(!isGuestPreview && persistUploadedHero);
   const showImageFlowPanel = editorHeroEditable || isGuestPreview;
+  const allowSecondStepSubmit = canReviewBrandImageSecondStep(user?.role);
 
   useEffect(() => {
     return () => {
@@ -247,12 +251,14 @@ export function CardPreview({
     setSecondAck(false);
     setSecondCheckStatus("idle");
     if (fileInputRef.current) fileInputRef.current.value = "";
+    autoSecondConsumedRef.current = false;
   }, [setDraft]);
 
   const onPick = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
+    autoSecondConsumedRef.current = false;
     const d = useCardEditorDraftStore.getState().draft;
     statusBeforePickRef.current = d.brand_image_status ?? null;
     rejectBeforePickRef.current = d.brand_image_reject_reason ?? null;
@@ -263,7 +269,8 @@ export function CardPreview({
   };
 
   const confirmApply = async () => {
-    if (!imageFile || firstCheckStatus !== "passed" || !secondAck) return;
+    if (!imageFile || firstCheckStatus !== "passed") return;
+    if (allowSecondStepSubmit && !secondAck) return;
 
     statusBeforePickRef.current = null;
     rejectBeforePickRef.current = null;
@@ -352,12 +359,29 @@ export function CardPreview({
     } catch (error) {
       console.error("UPLOAD ERROR:", error);
       setImageSaveStatus("failed");
+      autoSecondConsumedRef.current = false;
       const detail = formatUploadErrorForDisplay(error);
       const msg = detail.trim() ? detail : "알 수 없는 업로드 오류";
       setImageErrorMessage(msg);
       setDraft({ brand_image_status: "rejected_auto", brand_image_reject_reason: msg });
     }
   };
+
+  confirmApplyRef.current = confirmApply;
+
+  useEffect(() => {
+    if (!imageFile) {
+      autoSecondConsumedRef.current = false;
+      return;
+    }
+    if (allowSecondStepSubmit || firstCheckStatus !== "passed") return;
+    if (secondCheckStatus === "passed" || imageSaveStatus === "saving" || imageSaveStatus === "saved") return;
+    if (autoSecondConsumedRef.current) return;
+    autoSecondConsumedRef.current = true;
+    queueMicrotask(() => {
+      void confirmApplyRef.current();
+    });
+  }, [imageFile, firstCheckStatus, allowSecondStepSubmit, secondCheckStatus, imageSaveStatus]);
 
   const removeHero = async () => {
     cancelSelection();
@@ -459,6 +483,7 @@ export function CardPreview({
             onSecondAckChange={setSecondAck}
             onConfirmApply={() => void confirmApply()}
             onCancelSelection={cancelSelection}
+            allowSecondStepSubmit={allowSecondStepSubmit}
             compact
           />
           {postSaveHint && imageSaveStatus === "saved" ? (

@@ -220,7 +220,7 @@ function AppRoutes() {
         <Route
           path="cards"
           element={
-            <ProtectedRoute roles={["client", "company_admin", "admin"]}>
+            <ProtectedRoute roles={["client", "company_admin", "admin", "designer"]}>
               <MyCardsPage />
             </ProtectedRoute>
           }
@@ -228,7 +228,7 @@ function AppRoutes() {
         <Route
           path="cards/new"
           element={
-            <ProtectedRoute roles={["client", "company_admin", "admin"]}>
+            <ProtectedRoute roles={["client", "company_admin", "admin", "designer"]}>
               <CardEditorPage />
             </ProtectedRoute>
           }
@@ -236,7 +236,7 @@ function AppRoutes() {
         <Route
           path="cards/:id/edit"
           element={
-            <ProtectedRoute roles={["client", "company_admin", "admin"]}>
+            <ProtectedRoute roles={["client", "company_admin", "admin", "designer"]}>
               <CardEditorPage />
             </ProtectedRoute>
           }
@@ -244,7 +244,7 @@ function AppRoutes() {
         <Route
           path="my/cards/:id/edit"
           element={
-            <ProtectedRoute roles={["client", "company_admin", "admin"]}>
+            <ProtectedRoute roles={["client", "company_admin", "admin", "designer"]}>
               <MyCardsEditAliasRedirect />
             </ProtectedRoute>
           }
@@ -252,7 +252,7 @@ function AppRoutes() {
         <Route
           path="my/cards"
           element={
-            <ProtectedRoute roles={["client", "company_admin", "admin"]}>
+            <ProtectedRoute roles={["client", "company_admin", "admin", "designer"]}>
               <Navigate to="/cards" replace />
             </ProtectedRoute>
           }
@@ -260,7 +260,7 @@ function AppRoutes() {
         <Route
           path="edit/:id"
           element={
-            <ProtectedRoute roles={["client", "company_admin", "admin"]}>
+            <ProtectedRoute roles={["client", "company_admin", "admin", "designer"]}>
               <EditAliasRedirect />
             </ProtectedRoute>
           }
@@ -268,7 +268,7 @@ function AppRoutes() {
         <Route
           path="requests/new"
           element={
-            <ProtectedRoute roles={["client", "company_admin", "admin"]}>
+            <ProtectedRoute roles={["client", "company_admin", "admin", "designer"]}>
               <RequestCreatePage />
             </ProtectedRoute>
           }
@@ -316,7 +316,7 @@ function AppRoutes() {
         <Route
           path="admin/image-review"
           element={
-            <ProtectedRoute roles={["admin"]}>
+            <ProtectedRoute roles={["admin", "designer"]}>
               <AdminImageReviewPage />
             </ProtectedRoute>
           }

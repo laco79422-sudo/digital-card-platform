@@ -51,7 +51,7 @@ export function brandImageStatusBadgeLabel(s: BrandImageStatus | null | undefine
     case "checking":
       return "이미지 검사 중입니다";
     case "pending_review":
-      return "1차 검수 완료 · 관리자 확인 대기";
+      return "1차 검수 완료 · 관리자 검토 대기";
     case "approved":
       return "승인 완료 · 공개 중";
     case "rejected_auto":

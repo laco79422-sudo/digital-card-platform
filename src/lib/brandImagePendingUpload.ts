@@ -61,17 +61,6 @@ export async function uploadBrandImageToPendingFromBlob(params: {
     throw new Error(formatUploadErrorForDisplay(err));
   }
 
-  const { data: slotOk, error: slotErr } = await supabase.rpc("try_consume_brand_image_upload_slot");
-  if (slotErr) {
-    console.error("UPLOAD ERROR:", slotErr);
-    throw new Error(formatUploadErrorForDisplay(slotErr));
-  }
-  if (!slotOk) {
-    const daily = new Error("daily_limit — 일일 브랜드 이미지 업로드 한도(5회)를 초과했습니다.");
-    console.error("UPLOAD ERROR:", daily);
-    throw new Error(formatUploadErrorForDisplay(daily));
-  }
-
   const ext = extensionForBlob(params.blob, params.originalFilename);
   const name = `${crypto.randomUUID()}.${ext}`;
   const path = `${uid}/${params.cardId.trim()}/${name}`;

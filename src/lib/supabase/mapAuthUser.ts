@@ -1,7 +1,19 @@
 import type { User, UserRole } from "@/types/domain";
 
 function normalizeRole(v: unknown): UserRole {
-  if (v === "creator" || v === "admin" || v === "company_admin" || v === "teacher") return v;
+  if (v === "creator" || v === "admin" || v === "company_admin" || v === "teacher" || v === "designer") return v;
+  if (v === "user") return "client";
+  return "client";
+}
+
+/** Supabase `profiles.role` (user / admin / designer 등) → 앱 UserRole */
+export function normalizeRoleFromProfile(raw: string | null | undefined): UserRole {
+  const t = String(raw ?? "").trim().toLowerCase();
+  if (t === "admin") return "admin";
+  if (t === "company_admin") return "company_admin";
+  if (t === "teacher") return "teacher";
+  if (t === "designer") return "designer";
+  if (t === "creator" || t === "expert") return "creator";
   return "client";
 }
 

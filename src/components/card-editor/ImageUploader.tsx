@@ -24,6 +24,7 @@ import {
   validateBrandImageFilename,
 } from "@/lib/brandImageConstraints";
 import type { BrandImageStatus } from "@/lib/brandImageStatus";
+import { canReviewBrandImageSecondStep } from "@/lib/brandImageReviewAccess";
 import { optimizeImageFileToDataUrl } from "@/lib/brandImageProcess";
 import { uploadBrandImageToPendingFromDataUrl } from "@/lib/brandImagePendingUpload";
 import { formatUploadErrorForDisplay } from "@/lib/brandImageUploadDiagnostics";
@@ -116,12 +117,15 @@ export function ImageUploader({
 }: Props) {
   const inputId = useId();
   const sessionUser = useAuthStore((s) => s.user);
+  const allowSecondStepSubmit = canReviewBrandImageSecondStep(sessionUser?.role);
   const inputRef = useRef<HTMLInputElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
   const previewObjectUrlRef = useRef<string | null>(null);
   const successClearRef = useRef<number | null>(null);
   const statusBeforePickRef = useRef<BrandImageStatus | null>(null);
   const rejectBeforePickRef = useRef<string | null>(null);
+  const autoSecondConsumedRef = useRef(false);
+  const confirmApplyRef = useRef<() => Promise<void>>(async () => {});
 
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -297,8 +301,9 @@ export function ImageUploader({
   }, [imageFile, revokePreview, onBrandImageDraftPatch]);
 
   useEffect(() => {
+    const passedSecond = secondCheckStatus === "passed";
     const blocked =
-      imageFile != null && !(firstCheckStatus === "passed" && secondCheckStatus === "passed");
+      imageFile != null && !(firstCheckStatus === "passed" && passedSecond);
     onHeroImageFlowBlockingChange?.(blocked);
   }, [imageFile, firstCheckStatus, secondCheckStatus, onHeroImageFlowBlockingChange]);
 
@@ -328,12 +333,14 @@ export function ImageUploader({
     setSecondAck(false);
     setSecondCheckStatus("idle");
     if (inputRef.current) inputRef.current.value = "";
+    autoSecondConsumedRef.current = false;
   }, [onBrandImageDraftPatch]);
 
   const onPick = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
+    autoSecondConsumedRef.current = false;
     const d = useCardEditorDraftStore.getState().draft;
     statusBeforePickRef.current = d.brand_image_status ?? null;
     rejectBeforePickRef.current = d.brand_image_reject_reason ?? null;
@@ -344,7 +351,8 @@ export function ImageUploader({
   };
 
   const confirmApply = async () => {
-    if (!imageFile || firstCheckStatus !== "passed" || !secondAck) return;
+    if (!imageFile || firstCheckStatus !== "passed") return;
+    if (allowSecondStepSubmit && !secondAck) return;
 
     statusBeforePickRef.current = null;
     rejectBeforePickRef.current = null;
@@ -407,12 +415,29 @@ export function ImageUploader({
     } catch (err) {
       console.error("UPLOAD ERROR:", err);
       setImageSaveStatus("failed");
+      autoSecondConsumedRef.current = false;
       const line = formatUploadErrorForDisplay(err);
       const msg = line?.trim() ? line : uploadFailMessage;
       setImageErrorMessage(msg);
       onBrandImageDraftPatch?.({ brand_image_status: "rejected_auto", brand_image_reject_reason: msg });
     }
   };
+
+  confirmApplyRef.current = confirmApply;
+
+  useEffect(() => {
+    if (!imageFile) {
+      autoSecondConsumedRef.current = false;
+      return;
+    }
+    if (allowSecondStepSubmit || firstCheckStatus !== "passed") return;
+    if (secondCheckStatus === "passed" || imageSaveStatus === "saving" || imageSaveStatus === "saved") return;
+    if (autoSecondConsumedRef.current) return;
+    autoSecondConsumedRef.current = true;
+    queueMicrotask(() => {
+      void confirmApplyRef.current();
+    });
+  }, [imageFile, firstCheckStatus, allowSecondStepSubmit, secondCheckStatus, imageSaveStatus]);
 
   const applyPanDrag = useCallback(
     (dx: number, dy: number) => {
@@ -575,6 +600,7 @@ export function ImageUploader({
         onSecondAckChange={setSecondAck}
         onConfirmApply={() => void confirmApply()}
         onCancelSelection={cancelSelection}
+        allowSecondStepSubmit={allowSecondStepSubmit}
       />
 
       {postSaveHint && imageSaveStatus === "saved" ? (

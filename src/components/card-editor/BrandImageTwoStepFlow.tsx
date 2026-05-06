@@ -35,6 +35,8 @@ export type BrandImageTwoStepFlowProps = {
   onConfirmApply: () => void;
   onCancelSelection: () => void;
   compact?: boolean;
+  /** false: 일반 사용자 — 2차 체크·「2차 검증 완료 후 저장하기」 숨김, 검수 대기 문구만 */
+  allowSecondStepSubmit?: boolean;
 };
 
 /**
@@ -58,6 +60,7 @@ export function BrandImageTwoStepFlow({
   onConfirmApply,
   onCancelSelection,
   compact = false,
+  allowSecondStepSubmit = true,
 }: BrandImageTwoStepFlowProps) {
   const showFirstBlock = Boolean(imageFile);
   const showFinal = imageSaveStatus !== "idle";
@@ -136,46 +139,74 @@ export function BrandImageTwoStepFlow({
 
           {showSecond ? (
             <div className="border-t border-slate-100 pt-4">
-              <h3 className="text-sm font-bold text-slate-900">[3] 2차 검증</h3>
-              <p className="mt-2 text-xs leading-relaxed text-slate-600 sm:text-sm">
-                명함·프로필·작품 소개 등 <strong className="font-semibold text-slate-800">공개 노출</strong>에 쓰일 이미지인지 확인해 주세요.
-                초상·타인 권리 침해·과도한 텍스트·선정성 등은 검수에서 반려될 수 있습니다.
-              </p>
+              {allowSecondStepSubmit ? (
+                <>
+                  <h3 className="text-sm font-bold text-slate-900">[3] 2차 검증</h3>
+                  <p className="mt-2 text-xs leading-relaxed text-slate-600 sm:text-sm">
+                    명함·프로필·작품 소개 등 <strong className="font-semibold text-slate-800">공개 노출</strong>에 쓰일 이미지인지 확인해 주세요.
+                    초상·타인 권리 침해·과도한 텍스트·선정성 등은 검수에서 반려될 수 있습니다.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <h3 className="text-sm font-bold text-slate-900">[3] 검수 요청</h3>
+                  <p className="mt-2 text-sm font-semibold text-slate-800">1차 검수 완료 · 관리자 검토 대기</p>
+                  <p className="mt-1 text-xs leading-relaxed text-slate-600">
+                    이미지가 자동으로 제출됩니다. 관리자 승인 후 공개 명함에 반영됩니다.
+                  </p>
+                </>
+              )}
               {previewUrl ? (
                 <div className={cn("mt-3 overflow-hidden rounded-xl border border-slate-200 bg-slate-100", compact ? "max-h-48" : "max-h-80")}>
                   <img src={previewUrl} alt="선택한 이미지 미리보기" className="mx-auto max-h-full w-full object-contain" />
                 </div>
               ) : null}
-              <label className="mt-4 flex cursor-pointer items-start gap-3 text-sm text-slate-800">
-                <input
-                  type="checkbox"
-                  className="mt-1 h-4 w-4 shrink-0 rounded border-slate-300 accent-brand-600"
-                  checked={secondAck}
-                  onChange={(e) => onSecondAckChange(e.target.checked)}
-                />
-                <span>이 이미지로 등록해도 괜찮습니다</span>
-              </label>
-              <div className="mt-4 flex flex-wrap gap-2">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  className="min-h-11"
-                  disabled={!secondAck || saving || secondCheckStatus === "passed"}
-                  onClick={onConfirmApply}
-                >
+              {allowSecondStepSubmit ? (
+                <>
+                  <label className="mt-4 flex cursor-pointer items-start gap-3 text-sm text-slate-800">
+                    <input
+                      type="checkbox"
+                      className="mt-1 h-4 w-4 shrink-0 rounded border-slate-300 accent-brand-600"
+                      checked={secondAck}
+                      onChange={(e) => onSecondAckChange(e.target.checked)}
+                    />
+                    <span>이 이미지로 등록해도 괜찮습니다</span>
+                  </label>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="min-h-11"
+                      disabled={!secondAck || saving || secondCheckStatus === "passed"}
+                      onClick={onConfirmApply}
+                    >
+                      {saving ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
+                          저장 중…
+                        </>
+                      ) : (
+                        "2차 검증 완료 후 저장하기"
+                      )}
+                    </Button>
+                    <Button type="button" variant="outline" size="sm" className="min-h-11" disabled={saving} onClick={onCancelSelection}>
+                      선택 취소
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <div className="mt-4 space-y-3">
                   {saving ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
-                      저장 중…
-                    </>
-                  ) : (
-                    "2차 검증 완료 후 저장하기"
-                  )}
-                </Button>
-                <Button type="button" variant="outline" size="sm" className="min-h-11" disabled={saving} onClick={onCancelSelection}>
-                  선택 취소
-                </Button>
-              </div>
+                    <p className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                      <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                      이미지를 제출하는 중입니다…
+                    </p>
+                  ) : null}
+                  <Button type="button" variant="outline" size="sm" className="min-h-11" disabled={saving} onClick={onCancelSelection}>
+                    선택 취소
+                  </Button>
+                </div>
+              )}
             </div>
           ) : null}
         </>

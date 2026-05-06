@@ -1,7 +1,7 @@
 import type { BrandImageStatus } from "@/lib/brandImageStatus";
 import type { CardIndustryPayload } from "@/types/cardIndustry";
 
-export type UserRole = "client" | "creator" | "admin" | "company_admin" | "teacher";
+export type UserRole = "client" | "creator" | "admin" | "company_admin" | "teacher" | "designer";
 
 export interface User {
   id: string;

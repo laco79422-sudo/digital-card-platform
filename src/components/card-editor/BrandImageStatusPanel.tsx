@@ -53,7 +53,7 @@ export function BrandImageStatusPanel({
       ) : null}
       {n === "pending_review" ? (
         <p className="mt-2 text-xs leading-relaxed text-slate-600">
-          관리자 승인 후 공개 명함에 반영됩니다. 승인 전까지는 이전에 승인된 이미지 또는 기본 이미지가 보일 수 있습니다.
+          관리자 검토 후 공개 명함에 반영됩니다. 승인 전까지는 이전에 승인된 이미지 또는 기본 이미지가 보일 수 있습니다.
         </p>
       ) : null}
       {n === "approved" ? (
